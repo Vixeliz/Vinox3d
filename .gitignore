@@ -1,0 +1,13 @@
+Cargo.lock
+/target
+run.sh
+run-release.sh
+run-remote.sh
+run-remote-release.sh
+.DS_Store
+*.DS_Store
+*.tracy
+*.db
+*.db-wal
+*.db-shm
+*.ps1
