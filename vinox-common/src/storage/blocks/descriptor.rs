@@ -4,7 +4,7 @@ use crate::world::chunks::storage::VoxelVisibility;
 use serde::{Deserialize, Serialize};
 use strum::EnumString;
 
-#[derive(EnumString, Default, Deserialize, Serialize, PartialEq, Eq, Debug)]
+#[derive(EnumString, Default, Deserialize, Serialize, PartialEq, Eq, Debug, Clone)]
 pub enum ToolType {
     Axe,
     #[default]
@@ -17,7 +17,7 @@ pub enum ToolType {
 
 /*  Technically we could do something similiar to mc for completely custom models. However
 due to personal preference i would rather only allow certain types listed below.    */
-#[derive(EnumString, Default, Deserialize, Serialize, PartialEq, Eq, Debug)]
+#[derive(EnumString, Default, Deserialize, Serialize, PartialEq, Eq, Debug, Clone)]
 pub enum BlockGeometry {
     #[default]
     Block,
@@ -30,7 +30,7 @@ pub enum BlockGeometry {
 }
 
 // Anything optional here that is necessary for the game to function but we have a default value for ie texture or geometry
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Default)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Default, Clone)]
 pub struct BlockDescriptor {
     pub namespace: String,
     pub name: String,
