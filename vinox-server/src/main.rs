@@ -2,6 +2,7 @@ mod game;
 use bevy::{
     app::ScheduleRunnerSettings, diagnostic::DiagnosticsPlugin, log::LogPlugin, prelude::*,
 };
+use bevy_quinnet::server::QuinnetServerPlugin;
 use game::{
     plugin::GamePlugin,
     world::storage::{create_database, WorldDatabase},
@@ -47,6 +48,7 @@ fn main() {
         .add_plugins(MinimalPlugins)
         .add_plugin(DiagnosticsPlugin)
         .add_plugin(LogPlugin::default())
+        .add_plugin(QuinnetServerPlugin::default())
         .add_plugin(GamePlugin)
         .run();
 }

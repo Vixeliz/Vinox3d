@@ -18,7 +18,7 @@ pub fn load_all_blocks() -> Vec<BlockDescriptor> {
                     if let Ok(block) = ron_result {
                         result.push(block);
                     } else {
-                        println!("{:?}", ron_result);
+                        println!("{ron_result:?}");
                     }
                 }
             }

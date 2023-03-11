@@ -86,9 +86,9 @@ pub fn timeout(mut commands: Commands, mut timer: Local<Timer>, time: Res<Time>)
 }
 
 pub fn setup_resources(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    mut loading: ResMut<AssetsLoading>,
+    mut _commands: Commands,
+    _asset_server: Res<AssetServer>,
+    mut _loading: ResMut<AssetsLoading>,
     mut block_table: ResMut<BlockTable>,
 ) {
     for block in load_all_blocks() {
