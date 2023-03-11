@@ -13,7 +13,7 @@ pub const CHUNK_SIZE: u32 = 32;
 pub const TOTAL_CHUNK_SIZE: usize =
     (CHUNK_SIZE as usize) * (CHUNK_SIZE as usize) * (CHUNK_SIZE as usize);
 
-#[derive(Resource, Clone)]
+#[derive(Resource, Clone, Default)]
 pub struct BlockTable(pub HashMap<String, BlockDescriptor>);
 
 #[derive(Resource, Default)]

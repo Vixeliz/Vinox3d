@@ -3,6 +3,7 @@ use std::{fs::remove_dir_all, path::PathBuf};
 
 use bevy::prelude::*;
 use directories::*;
+use states::{components::GameState, loading::plugin::LoadingPlugin, menu::plugin::MenuPlugin};
 
 fn main() {
     // Eventually I will implement my own recursive copy and also not delete the assets directory for now though we will completely.
@@ -30,5 +31,8 @@ fn main() {
                 .set(ImagePlugin::default_nearest()),
         )
         .insert_resource(Msaa::Off)
+        .add_state::<GameState>()
+        .add_plugin(MenuPlugin)
+        .add_plugin(LoadingPlugin)
         .run();
 }

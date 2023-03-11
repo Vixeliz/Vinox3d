@@ -34,7 +34,7 @@ pub enum BlockGeometry {
 pub struct BlockDescriptor {
     pub namespace: String,
     pub name: String,
-    pub textures: Option<HashMap<String, String>>,
+    pub textures: Option<HashMap<Option<String>, Option<String>>>,
     pub geometry: Option<BlockGeometry>,
     pub durability: Option<u32>,
     pub tool_type: Option<ToolType>,
