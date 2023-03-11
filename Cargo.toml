@@ -19,6 +19,8 @@ walkdir = "2.3.2"
 bimap = {version="0.6.2", features=["serde"]}
 itertools = "0.10.5"
 zstd = "0.12.3"
+rustc_data_structures = "0.0.1"
+rand = "0.8.5"
 
 [profile.dev]
 opt-level = 1

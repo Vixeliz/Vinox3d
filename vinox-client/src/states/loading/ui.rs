@@ -1,4 +1,4 @@
-use bevy::{asset::LoadState, prelude::*};
+use bevy::{asset::LoadState, math::Vec3A, prelude::*, render::primitives::Aabb};
 use bevy_quinnet::client::{
     certificate::CertificateVerificationMode,
     connection::{ConnectionConfiguration, ConnectionEvent},
@@ -6,8 +6,8 @@ use bevy_quinnet::client::{
 };
 use std::time::Duration;
 use vinox_common::{
-    networking::protocol::NetworkIP, storage::blocks::load::load_all_blocks,
-    world::chunks::storage::BlockTable,
+    ecs::bundles::PlayerBundleBuilder, networking::protocol::NetworkIP,
+    storage::blocks::load::load_all_blocks, world::chunks::storage::BlockTable,
 };
 
 use crate::states::{assets::load::LoadableAssets, components::GameState};
@@ -86,11 +86,21 @@ pub fn timeout(mut commands: Commands, mut timer: Local<Timer>, time: Res<Time>)
 }
 
 pub fn setup_resources(
-    mut _commands: Commands,
-    _asset_server: Res<AssetServer>,
-    mut _loading: ResMut<AssetsLoading>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut loading: ResMut<AssetsLoading>,
     mut block_table: ResMut<BlockTable>,
 ) {
+    let player_handle = asset_server.load("base_player.gltf#Scene0");
+    loading.0.push(player_handle.clone_untyped());
+    commands.insert_resource(PlayerBundleBuilder {
+        default_model: player_handle,
+        model_aabb: Aabb {
+            half_extents: Vec3A::new(0.25, 1.0, 0.2),
+            ..default()
+        },
+    });
+
     for block in load_all_blocks() {
         let mut name = block.clone().namespace;
         name.push(':');

@@ -16,11 +16,6 @@ pub const TOTAL_CHUNK_SIZE: usize =
 #[derive(Resource, Clone, Default)]
 pub struct BlockTable(pub HashMap<String, BlockDescriptor>);
 
-#[derive(Resource, Default)]
-pub struct CurrentChunks {
-    pub chunks: HashMap<IVec3, Entity>,
-}
-
 #[derive(EnumString, Serialize, Deserialize, Debug, PartialEq, Eq, Default, Clone, Copy)]
 pub enum VoxelVisibility {
     #[default]
@@ -297,6 +292,7 @@ impl RawChunk {
     }
     // This actual chunks data starts at 1,1,1 and ends at chunk_size
     pub fn set_block(&mut self, pos: UVec3, block_data: &BlockData) {
+        self.add_block_state(block_data);
         let index = RawChunk::linearize(pos);
         if let Some(block_type) = self.get_index_for_state(block_data) {
             if block_type == 0 {
@@ -308,9 +304,22 @@ impl RawChunk {
             warn!("Voxel doesn't exist");
         }
     }
+
     pub fn get_block(&self, pos: UVec3) -> Option<BlockData> {
         let index = RawChunk::linearize(pos);
         self.get_state_for_index(self.voxels[index] as usize)
+    }
+
+    pub fn get_identifier(&self, pos: UVec3) -> String {
+        let index = RawChunk::linearize(pos);
+        if let Some(block) = self.get_state_for_index(self.voxels[index] as usize) {
+            let mut identifier = block.namespace.clone();
+            identifier.push(':');
+            identifier.push_str(&block.name);
+            identifier
+        } else {
+            "vinox:air".to_string()
+        }
     }
 }
 

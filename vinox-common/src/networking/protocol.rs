@@ -6,6 +6,8 @@ pub struct NetworkIP(pub String);
 
 use serde::{Deserialize, Serialize};
 
+use crate::world::chunks::storage::BlockData;
+
 #[derive(Component)]
 pub struct NetworkedEntity;
 
@@ -41,7 +43,7 @@ pub enum ClientMessage {
     SentBlock {
         chunk_pos: IVec3,
         voxel_pos: [u8; 3],
-        block_type: String,
+        block_type: BlockData,
     },
     Join {
         user_name: String, // Username is just for display we use an id for the actual identification of clients
@@ -69,7 +71,7 @@ pub enum ServerMessage {
     SentBlock {
         chunk_pos: IVec3,
         voxel_pos: [u8; 3],
-        block_type: String,
+        block_type: BlockData,
     },
     NetworkedEntities {
         networked_entities: NetworkedEntities,

@@ -10,7 +10,7 @@ use bevy_tweening::{lens::TransformPositionLens, *};
 use futures_lite::future;
 use itertools::Itertools;
 use vinox_common::world::chunks::{
-    ecs::{ChunkComp, CurrentChunks, ViewDistance},
+    ecs::{ChunkComp, CurrentChunks, ViewRadius},
     positions::voxel_to_world,
     storage::{BlockTable, Chunk, Voxel, VoxelVisibility, CHUNK_SIZE},
 };
@@ -437,7 +437,7 @@ pub fn build_mesh(
     mut event: EventReader<MeshChunkEvent>,
     mut chunk_queue: ResMut<MeshQueue>,
     player_chunk: Res<PlayerChunk>,
-    view_distance: Res<ViewDistance>,
+    view_radius: Res<ViewRadius>,
     chunks: Query<&ChunkComp>,
     current_chunks: Res<CurrentChunks>,
 ) {
@@ -445,7 +445,7 @@ pub fn build_mesh(
     for evt in event.iter() {
         if !checked.contains(&evt.pos) {
             checked.insert(evt.pos);
-            if player_chunk.is_in_radius(evt.pos, view_distance.radius) {
+            if player_chunk.is_in_radius(evt.pos, &view_radius) {
                 chunk_queue.mesh.push((
                     evt.pos,
                     ChunkBoundary::new(

@@ -46,11 +46,13 @@ impl CurrentChunks {
 }
 
 #[derive(Default, Resource)]
-pub struct ViewDistance {
-    pub radius: i32,
+pub struct ViewRadius {
+    pub horizontal: i32,
+    pub vertical: i32,
 }
 
 #[derive(Default, Resource)]
-pub struct SimulationDistance {
-    pub radius: i32,
+pub struct SimulationRadius {
+    pub horizontal: i32,
+    pub vertical: i32,
 }

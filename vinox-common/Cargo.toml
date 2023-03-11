@@ -17,3 +17,5 @@ walkdir.workspace = true
 strum = {version="0.24.1", features=["derive"]}
 serde-big-array = "0.5.1"
 itertools.workspace = true
+rustc_data_structures.workspace=true
+

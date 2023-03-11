@@ -1,8 +1,9 @@
 use bevy::prelude::*;
 
 use super::{
+    components::ServerLobby,
     start::{new_server, setup_loadables},
-    syncing::{connections, get_messages, send_chunks, send_entities, ServerLobby},
+    syncing::{connections, get_messages, send_chunks, send_entities},
 };
 
 pub struct NetworkingPlugin;
