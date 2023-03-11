@@ -1,3 +1,4 @@
+use bevy::prelude::error;
 use directories::ProjectDirs;
 use std::fs::{self};
 
@@ -14,8 +15,11 @@ pub fn load_all_blocks() -> Vec<BlockDescriptor> {
         {
             if entry.path().extension().unwrap_or_default() == "ron" {
                 if let Ok(ron_string) = fs::read_to_string(entry.path()) {
-                    if let Ok(block) = ron::from_str(ron_string.as_str()) {
+                    let ron_result = ron::from_str(ron_string.as_str());
+                    if let Ok(block) = ron_result {
                         result.push(block);
+                    } else {
+                        println!("{:?}", ron_result);
                     }
                 }
             }
@@ -27,6 +31,8 @@ pub fn load_all_blocks() -> Vec<BlockDescriptor> {
 #[cfg(test)]
 mod tests {
     use crate::storage::blocks::descriptor::{BlockDescriptor, ToolType};
+
+    use super::load_all_blocks;
 
     #[test]
     fn ron_loads() {
