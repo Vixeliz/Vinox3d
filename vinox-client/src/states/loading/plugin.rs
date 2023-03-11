@@ -15,11 +15,12 @@ impl Plugin for LoadingPlugin {
         app.insert_resource(BlockTable::default())
             .insert_resource(LoadableAssets::default())
             .insert_resource(AssetsLoading::default())
-            .add_system(setup_resources.in_schedule(OnEnter(GameState::Loading)))
-            .add_system(new_client.in_schedule(OnEnter(GameState::Loading)))
-            .add_system(load_blocks.in_set(OnUpdate(GameState::Loading)))
-            .add_system(switch.in_set(OnUpdate(GameState::Loading)))
-            .add_system(timeout.in_set(OnUpdate(GameState::Loading)))
+            .add_systems(
+                (setup_resources, new_client)
+                    .chain()
+                    .in_schedule(OnEnter(GameState::Loading)),
+            )
+            .add_systems((load_blocks, switch, timeout).in_set(OnUpdate(GameState::Loading)))
             .add_system(despawn_with::<Loading>.in_schedule(OnExit(GameState::Loading)));
     }
 }

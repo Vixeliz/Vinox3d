@@ -31,8 +31,8 @@ fn main() {
                 })
                 .set(ImagePlugin::default_nearest()),
         )
-        .add_plugin(QuinnetClientPlugin::default())
         .insert_resource(Msaa::Off)
+        .add_plugin(QuinnetClientPlugin::default())
         .add_state::<GameState>()
         .add_plugin(MenuPlugin)
         .add_plugin(LoadingPlugin)
