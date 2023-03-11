@@ -16,6 +16,8 @@ ron = "0.8.0"
 rusqlite = "0.28.0"
 serde = "1.0.154"
 walkdir = "2.3.2"
+bimap = {version="0.6.2", features=["serde"]}
+itertools = "0.10.5"
 
 [profile.dev]
 opt-level = 1

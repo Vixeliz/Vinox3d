@@ -1,3 +1,4 @@
+pub mod states;
 use bevy::prelude::*;
 
 fn main() {

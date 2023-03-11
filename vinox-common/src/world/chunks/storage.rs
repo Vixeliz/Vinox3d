@@ -9,16 +9,11 @@ use strum::EnumString;
 
 use crate::storage::blocks::descriptor::BlockDescriptor;
 
-const CHUNK_SIZE: u32 = 32;
-const TOTAL_CHUNK_SIZE: usize =
+pub const CHUNK_SIZE: u32 = 32;
+pub const TOTAL_CHUNK_SIZE: usize =
     (CHUNK_SIZE as usize) * (CHUNK_SIZE as usize) * (CHUNK_SIZE as usize);
-// TODO: Move these three to client as its only for meshing
-const CHUNK_BOUND: u32 = CHUNK_SIZE + 1;
-const TOTAL_CHUNK_SIZE_PADDED: usize =
-    (CHUNK_SIZE_PADDED as usize) * (CHUNK_SIZE_PADDED as usize) * (CHUNK_SIZE_PADDED as usize);
-const CHUNK_SIZE_PADDED: u32 = CHUNK_SIZE + 2;
 
-#[derive(Resource)]
+#[derive(Resource, Clone)]
 pub struct BlockTable(pub HashMap<String, BlockDescriptor>);
 
 #[derive(Resource, Default)]
@@ -26,7 +21,7 @@ pub struct CurrentChunks {
     pub chunks: HashMap<IVec3, Entity>,
 }
 
-#[derive(EnumString, Serialize, Deserialize, Debug, PartialEq, Eq, Default, Clone)]
+#[derive(EnumString, Serialize, Deserialize, Debug, PartialEq, Eq, Default, Clone, Copy)]
 pub enum VoxelVisibility {
     #[default]
     Empty,
@@ -81,10 +76,10 @@ impl BlockData {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct RawChunk {
-    palette: BiMap<u16, BlockData>,
-    voxels: Box<Array<u16, TOTAL_CHUNK_SIZE>>,
+    pub palette: BiMap<u16, BlockData>,
+    pub voxels: Box<Array<u16, TOTAL_CHUNK_SIZE>>,
 }
 
 #[derive(Copy, Clone, Hash, Debug, PartialEq, Eq, Serialize, Deserialize)]

@@ -7,4 +7,12 @@ edition = "2021"
 
 [dependencies]
 bevy.workspace=true
+bimap.workspace=true
 ron.workspace = true
+directories.workspace = true
+serde.workspace = true
+bincode.workspace = true
+walkdir.workspace = true
+strum = {version="0.24.1", features=["derive"]}
+serde-big-array = "0.5.1"
+itertools.workspace = true

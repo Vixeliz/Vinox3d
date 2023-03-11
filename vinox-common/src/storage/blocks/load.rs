@@ -1,4 +1,3 @@
-use bevy::prelude::error;
 use directories::ProjectDirs;
 use std::fs::{self};
 
@@ -31,8 +30,6 @@ pub fn load_all_blocks() -> Vec<BlockDescriptor> {
 #[cfg(test)]
 mod tests {
     use crate::storage::blocks::descriptor::{BlockDescriptor, ToolType};
-
-    use super::load_all_blocks;
 
     #[test]
     fn ron_loads() {
