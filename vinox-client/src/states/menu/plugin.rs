@@ -1,11 +1,12 @@
 use std::env;
 
 use bevy::prelude::*;
+use bevy_egui::EguiPlugin;
 use vinox_common::networking::protocol::NetworkIP;
 
 use crate::states::components::{despawn_with, GameState, Menu};
 
-use super::ui::start_loading;
+use super::ui::{configure_visuals, create_ui, start, ui_events, update_ui_scale_factor};
 
 pub struct MenuPlugin;
 
@@ -22,8 +23,19 @@ impl Plugin for MenuPlugin {
             _ => {}
         }
 
-        app.insert_resource(NetworkIP(ip))
-            .add_system(start_loading.in_schedule(OnEnter(GameState::Menu)))
+        app.add_plugin(EguiPlugin)
+            .insert_resource(NetworkIP(ip))
+            .add_systems(
+                (
+                    create_ui,
+                    ui_events,
+                    configure_visuals,
+                    update_ui_scale_factor,
+                )
+                    .chain()
+                    .in_set(OnUpdate(GameState::Menu)),
+            )
+            .add_system(start.in_schedule(OnEnter(GameState::Menu)))
             .add_system(despawn_with::<Menu>.in_schedule(OnExit(GameState::Menu)));
     }
 }
