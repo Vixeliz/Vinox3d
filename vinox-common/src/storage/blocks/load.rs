@@ -29,7 +29,7 @@ mod tests {
     use crate::storage::blocks::descriptor::{BlockDescriptor, ToolType};
 
     #[test]
-    fn it_works() {
+    fn ron_loads() {
         let ron_type = "
             BlockDescriptor(
                 namespace: \"vinox\",

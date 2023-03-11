@@ -322,13 +322,13 @@ impl RawChunk {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use bevy::prelude::UVec3;
 
     use super::{BlockData, RawChunk};
 
     #[test]
-    fn does_work() {
+    fn palette_works() {
         let mut raw_chunk = RawChunk::default();
         raw_chunk.add_block_state(&BlockData::new("vinox".to_string(), "dirt".to_string()));
         let grass = BlockData::new("vinox".to_string(), "grass".to_string());
