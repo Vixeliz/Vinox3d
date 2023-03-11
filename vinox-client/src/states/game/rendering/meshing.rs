@@ -12,13 +12,15 @@ use itertools::Itertools;
 use vinox_common::world::chunks::{
     ecs::{ChunkComp, CurrentChunks, ViewDistance},
     positions::voxel_to_world,
-    storage::{BlockTable, Chunk, RawChunk, Voxel, VoxelVisibility, CHUNK_SIZE},
+    storage::{BlockTable, Chunk, Voxel, VoxelVisibility, CHUNK_SIZE},
 };
 
 use crate::states::{
     assets::load::LoadableAssets,
     game::world::chunks::{PlayerBlock, PlayerChunk},
 };
+
+use super::chunk::ChunkBoundary;
 
 pub const EMPTY: VoxelVisibility = VoxelVisibility::Empty;
 pub const OPAQUE: VoxelVisibility = VoxelVisibility::Opaque;
@@ -355,7 +357,7 @@ pub struct RenderedChunk {
 
 #[derive(Default, Resource)]
 pub struct MeshQueue {
-    pub mesh: Vec<(IVec3, RawChunk)>,
+    pub mesh: Vec<(IVec3, ChunkBoundary)>,
 }
 
 pub struct MeshChunkEvent {
@@ -446,11 +448,14 @@ pub fn build_mesh(
             if player_chunk.is_in_radius(evt.pos, view_distance.radius) {
                 chunk_queue.mesh.push((
                     evt.pos,
-                    chunks
-                        .get(current_chunks.get_entity(evt.pos).unwrap())
-                        .unwrap()
-                        .chunk_data
-                        .clone(),
+                    ChunkBoundary::new(
+                        chunks
+                            .get(current_chunks.get_entity(evt.pos).unwrap())
+                            .unwrap()
+                            .chunk_data
+                            .clone(),
+                        Box::default(), //Replace with neighbors
+                    ),
                 ));
             }
         }
@@ -652,16 +657,14 @@ pub fn process_queue(
                             (Axis::Z, true) => 4,
                         };
                         let block = &raw_chunk
-                            .get_state_for_index(
-                                raw_chunk.voxels[RawChunk::linearize(UVec3::new(
-                                    face.voxel()[0] as u32,
-                                    face.voxel()[1] as u32,
-                                    face.voxel()[2] as u32,
-                                ))] as usize,
+                            .get_block(
+                                face.voxel()[0] as u32,
+                                face.voxel()[1] as u32,
+                                face.voxel()[2] as u32,
                             )
                             .unwrap();
                         let mut block_name = block.namespace.clone();
-                        block_name.push_str(":");
+                        block_name.push(':');
                         block_name.push_str(&block.name);
 
                         if let Some(texture_index) = clone_atlas.get_texture_index(
@@ -710,16 +713,14 @@ pub fn process_queue(
                         };
 
                         let block = &raw_chunk
-                            .get_state_for_index(
-                                raw_chunk.voxels[RawChunk::linearize(UVec3::new(
-                                    face.voxel()[0] as u32,
-                                    face.voxel()[1] as u32,
-                                    face.voxel()[2] as u32,
-                                ))] as usize,
+                            .get_block(
+                                face.voxel()[0] as u32,
+                                face.voxel()[1] as u32,
+                                face.voxel()[2] as u32,
                             )
                             .unwrap();
                         let mut block_name = block.namespace.clone();
-                        block_name.push_str(":");
+                        block_name.push(':');
                         block_name.push_str(&block.name);
 
                         if let Some(texture_index) = clone_atlas.get_texture_index(

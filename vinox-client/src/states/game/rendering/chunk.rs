@@ -1,5 +1,8 @@
+use bevy::prelude::UVec3;
 use serde_big_array::Array;
-use vinox_common::world::chunks::storage::{BlockTable, Chunk, RawChunk, VoxelType, CHUNK_SIZE};
+use vinox_common::world::chunks::storage::{
+    BlockData, BlockTable, Chunk, RawChunk, VoxelType, CHUNK_SIZE,
+};
 
 const CHUNK_BOUND: u32 = CHUNK_SIZE + 1;
 const TOTAL_CHUNK_SIZE_PADDED: usize =
@@ -22,7 +25,7 @@ impl Chunk for ChunkBoundary {
         // let [x, y, z] = ChunkBoundary::delinearize(idx);
         // const MAX: usize = CHUNK_SIZE as usize;
         const MAX: u32 = CHUNK_SIZE; // Just cause CHUNK_SIZE is long
-        let voxel = match (x, y, z) {
+        match (x, y, z) {
             (0, 0, 0) => self.neighbors[0].get(MAX - 1, MAX - 1, MAX - 1, block_table),
             (0, 0, 1..=MAX) => self.neighbors[1].get(MAX - 1, MAX - 1, z - 1, block_table),
             (0, 0, CHUNK_BOUND) => self.neighbors[2].get(MAX - 1, MAX - 1, 0, block_table),
@@ -44,9 +47,7 @@ impl Chunk for ChunkBoundary {
 
             // ...
             (_, _, _) => VoxelType::Empty(0),
-        };
-        voxel
-        // self.get_voxel(RawChunk::linearize(UVec3::new(x, y, z)), block_table)
+        }
     }
 }
 
@@ -57,6 +58,36 @@ impl ChunkBoundary {
 
     pub const fn size() -> usize {
         TOTAL_CHUNK_SIZE_PADDED
+    }
+
+    pub fn get_block(&self, x: u32, y: u32, z: u32) -> Option<BlockData> {
+        // let [x, y, z] = ChunkBoundary::delinearize(idx);
+        // const MAX: usize = CHUNK_SIZE as usize;
+        const MAX: u32 = CHUNK_SIZE; // Just cause CHUNK_SIZE is long
+        match (x, y, z) {
+            (0, 0, 0) => self.neighbors[0].get_block(UVec3::new(x, y, z)),
+            (0, 0, 1..=MAX) => self.neighbors[1].get_block(UVec3::new(x, y, z)),
+            (0, 0, CHUNK_BOUND) => self.neighbors[2].get_block(UVec3::new(x, y, z)),
+            (0, 1..=MAX, 0) => self.neighbors[3].get_block(UVec3::new(x, y, z)),
+            (0, 1..=MAX, 1..=MAX) => self.neighbors[4].get_block(UVec3::new(x, y, z)),
+            (0, 1..=MAX, CHUNK_BOUND) => self.neighbors[5].get_block(UVec3::new(x, y, z)),
+            (0, CHUNK_BOUND, 0) => self.neighbors[6].get_block(UVec3::new(x, y, z)),
+            (0, CHUNK_BOUND, 1..=MAX) => self.neighbors[7].get_block(UVec3::new(x, y, z)),
+            (0, CHUNK_BOUND, CHUNK_BOUND) => self.neighbors[8].get_block(UVec3::new(x, y, z)),
+            (1..=MAX, 0, 0) => self.neighbors[9].get_block(UVec3::new(x, y, z)),
+            (1..=MAX, 0, 1..=MAX) => self.neighbors[10].get_block(UVec3::new(x, y, z)),
+            (1..=MAX, 0, CHUNK_BOUND) => self.neighbors[11].get_block(UVec3::new(x, y, z)),
+            (1..=MAX, 1..=MAX, 0) => self.neighbors[12].get_block(UVec3::new(x, y, z)),
+            (1..=MAX, 1..=MAX, 1..=MAX) => self.center.get_block(UVec3::new(x, y, z)),
+            (1..=MAX, 1..=MAX, CHUNK_BOUND) => self.neighbors[13].get_block(UVec3::new(x, y, z)),
+            (1..=MAX, CHUNK_BOUND, 0) => self.neighbors[14].get_block(UVec3::new(x, y, z)),
+            (1..=MAX, CHUNK_BOUND, 1..=MAX) => self.neighbors[15].get_block(UVec3::new(x, y, z)),
+            (1..=MAX, CHUNK_BOUND, CHUNK_BOUND) => {
+                self.neighbors[16].get_block(UVec3::new(x, y, z))
+            }
+
+            (_, _, _) => Some(BlockData::new("vinox".to_string(), "air".to_string())),
+        }
     }
 }
 

@@ -213,11 +213,11 @@ impl RawChunk {
         let block_state = self
             .get_state_for_index(self.voxels[index] as usize)
             .unwrap();
-        let block_id = self.get_index_for_state(&block_state).unwrap() as u16;
+        let block_id = self.get_index_for_state(&block_state).unwrap();
         let mut block_name = block_state.namespace.clone();
-        block_name.push_str(":");
+        block_name.push(':');
         block_name.push_str(block_state.name.as_str());
-        let voxel_visibility = block_table.0.get(&block_name).unwrap().visibility.clone();
+        let voxel_visibility = block_table.0.get(&block_name).unwrap().visibility;
         if let Some(voxel_visibility) = voxel_visibility {
             match voxel_visibility {
                 VoxelVisibility::Empty => VoxelType::Empty(block_id),
@@ -234,13 +234,13 @@ impl RawChunk {
             .get_state_for_index(self.voxels[index] as usize)
             .unwrap();
         let mut block_name = block_state.namespace.clone();
-        block_name.push_str(":");
+        block_name.push(':');
         block_name.push_str(block_state.name.as_str());
         block_table.0.get(&block_name).unwrap().clone()
     }
 
     pub fn get_index_for_state(&self, block_data: &BlockData) -> Option<u16> {
-        self.palette.get_by_right(&block_data).copied()
+        self.palette.get_by_right(block_data).copied()
     }
 
     pub fn get_state_for_index(&self, index: usize) -> Option<BlockData> {
@@ -253,7 +253,7 @@ impl RawChunk {
         for i in 0..self.voxels.len() {
             if let Some(block_data) = old_pal.get_by_left(&self.voxels[i]) {
                 if let Some(new_index) = self.get_index_for_state(block_data) {
-                    self.voxels[i] = new_index as u16;
+                    self.voxels[i] = new_index;
                 } else {
                     self.voxels[i] = 0;
                 }
@@ -263,10 +263,8 @@ impl RawChunk {
     fn max_block_id(&self) -> u16 {
         let mut counter = 0;
         for id in self.palette.left_values().sorted() {
-            if *id != 0 {
-                if counter < id - 1 {
-                    return *id;
-                }
+            if *id != 0 && counter < id - 1 {
+                return *id;
             }
             counter = *id;
         }
@@ -300,17 +298,17 @@ impl RawChunk {
     // This actual chunks data starts at 1,1,1 and ends at chunk_size
     pub fn set_block(&mut self, pos: UVec3, block_data: &BlockData) {
         let index = RawChunk::linearize(pos);
-        if let Some(block_type) = self.get_index_for_state(&block_data) {
+        if let Some(block_type) = self.get_index_for_state(block_data) {
             if block_type == 0 {
                 self.voxels[index] = 0;
             } else {
-                self.voxels[index] = block_type as u16; // Set based off of transluency
+                self.voxels[index] = block_type; // Set based off of transluency
             }
         } else {
             warn!("Voxel doesn't exist");
         }
     }
-    pub fn get_block(&mut self, pos: UVec3) -> Option<BlockData> {
+    pub fn get_block(&self, pos: UVec3) -> Option<BlockData> {
         let index = RawChunk::linearize(pos);
         self.get_state_for_index(self.voxels[index] as usize)
     }
