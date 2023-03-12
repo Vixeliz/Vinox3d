@@ -93,20 +93,19 @@ pub struct MouseSensitivity(pub f32);
 #[allow(clippy::too_many_arguments)]
 pub fn movement_input(
     mut player: Query<&mut FPSCamera>,
-    player_position: Query<&Transform, With<ControlledPlayer>>,
+    mut player_position: Query<&mut Transform, With<ControlledPlayer>>,
     mut camera_transform: Query<&mut Transform, (With<Camera>, Without<ControlledPlayer>)>,
     mut mouse_events: EventReader<MouseMotion>,
     mouse_sensitivity: Res<MouseSensitivity>,
     key_events: Res<Input<KeyCode>>,
     windows: Query<&Window, With<PrimaryWindow>>,
-    // time: Res<Time>,
+    time: Res<Time>,
     mut stationary_frames: Local<i32>,
     current_chunks: Res<CurrentChunks>,
 ) {
-    if let Ok(translation) = player_position.get_single() {
-        let translation = translation.translation;
+    if let Ok(mut translation) = player_position.get_single_mut() {
         if current_chunks
-            .get_entity(world_to_chunk(translation))
+            .get_entity(world_to_chunk(translation.translation))
             .is_none()
         {
             return;
@@ -168,7 +167,7 @@ pub fn movement_input(
                 fps_camera.velocity *= 5.0;
             }
             fps_camera.velocity.y = y;
-            let chunk_pos = world_to_chunk(translation);
+            let chunk_pos = world_to_chunk(translation.translation);
 
             if current_chunks.get_entity(chunk_pos).is_none() {
                 return;
@@ -181,7 +180,7 @@ pub fn movement_input(
             );
 
             transform.look_at(looking_at, Vec3::new(0.0, 1.0, 0.0));
-
+            translation.translation += fps_camera.velocity * 10.0 * time.delta().as_secs_f32();
             // fps_camera.velocity.y -= 35.0 * time.delta().as_secs_f32().clamp(0.0, 0.1);
         }
     }
