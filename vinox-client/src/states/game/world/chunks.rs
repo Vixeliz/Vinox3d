@@ -45,20 +45,20 @@ pub struct ChunkQueue {
 
 impl PlayerChunk {
     pub fn is_in_radius(&self, pos: IVec3, view_radius: &ViewRadius) -> bool {
-        // for x in -view_radius.horizontal..view_radius.horizontal {
-        //     for z in -view_radius.horizontal..view_radius.horizontal {
-        // if x.pow(2) + z.pow(2) >= view_radius.horizontal.pow(2) {
-        //     continue;
-        // }
-        let delta: IVec3 = (pos - self.chunk_pos).abs();
-        // return !(delta.x.pow(2) + delta.z.pow(2) > view_radius.horizontal.pow(2)
-        //     || delta.y > view_radius.vertical);
-        return !(delta.x > view_radius.horizontal
-            || delta.z > view_radius.horizontal
-            || delta.y > view_radius.vertical);
-        //     }
-        // }
-        // false
+        for x in -view_radius.horizontal..view_radius.horizontal {
+            for z in -view_radius.horizontal..view_radius.horizontal {
+                if x.pow(2) + z.pow(2) >= view_radius.horizontal.pow(2) {
+                    continue;
+                }
+                let delta: IVec3 = (pos - self.chunk_pos).abs();
+                return !(delta.x.pow(2) + delta.z.pow(2) > view_radius.horizontal.pow(2)
+                    || delta.y > view_radius.vertical);
+                // return !(delta.x > view_radius.horizontal
+                //     || delta.z > view_radius.horizontal
+                //     || delta.y > view_radius.vertical);
+            }
+        }
+        false
     }
 }
 
@@ -93,9 +93,9 @@ impl<'w, 's> ChunkManager<'w, 's> {
         for x in -self.view_radius.horizontal..=self.view_radius.horizontal {
             for z in -self.view_radius.horizontal..=self.view_radius.horizontal {
                 for y in -self.view_radius.vertical..=self.view_radius.vertical {
-                    // if x.pow(2) + z.pow(2) >= self.view_radius.horizontal.pow(2) {
-                    //     continue;
-                    // }
+                    if x.pow(2) + z.pow(2) >= self.view_radius.horizontal.pow(2) {
+                        continue;
+                    }
 
                     let chunk_key = {
                         let pos: IVec3 = chunk_pos + IVec3::new(x, y, z);
