@@ -49,7 +49,7 @@ pub fn raycast_world(
                     .unwrap()
                     != VoxelVisibility::Empty
                 {
-                    return Some((chunk_pos, voxel_pos, origin));
+                    return Some((chunk_pos, voxel_pos, face));
                 }
             }
         }

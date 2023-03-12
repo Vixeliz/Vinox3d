@@ -264,25 +264,24 @@ pub fn interact(
                 &block_table,
             );
             if let Some((chunk_pos, voxel_pos, normal)) = hit {
+                // commands.spawn((PbrBundle {
+                //     mesh: meshes.add(shape::UVSphere::default().into()),
+                //     material: materials.add(Color::RED.into()).clone(),
+                //     transform: Transform::from_translation(normal),
+                //     ..default()
+                // },));
+
+                let mut point = voxel_to_world(voxel_pos, chunk_pos);
+                point += normal / Vec3::splat(2.0);
                 commands.spawn((PbrBundle {
                     mesh: meshes.add(shape::UVSphere::default().into()),
-                    material: materials.add(Color::RED.into()).clone(),
-                    transform: Transform::from_translation(normal),
+                    material: materials.add(Color::GREEN.into()).clone(),
+                    transform: Transform::from_translation(point),
                     ..default()
                 },));
 
-                let point = voxel_to_world(voxel_pos, chunk_pos);
-                // commands.spawn((PbrBundle {
-                //     mesh: meshes.add(shape::UVSphere::default().into()),
-                //     material: materials.add(Color::GREEN.into()).clone(),
-                //     transform: Transform::from_translation(point),
-                //     ..default()
-                // },));
-                // let point = if mouse_right {
-                //     point + (toi.normal / Vec3::splat(2.0))
-                // } else {
-                //     .point - (toi.normal / Vec3::splat(2.0))
-                // };
+                let (chunk_pos, voxel_pos) = world_to_voxel(point);
+
                 if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos) {
                     if let Ok((mut block_transform, mut block_visibility)) =
                         cube_position.get_single_mut()
