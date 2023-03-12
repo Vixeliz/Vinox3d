@@ -2,6 +2,7 @@ use super::components::{ClientData, ClientLobby, NetworkMapping, PlayerInfo};
 use crate::states::game::world::chunks::{ControlledPlayer, CreateChunkEvent, SetBlockEvent};
 use bevy::prelude::*;
 use bevy_quinnet::client::*;
+use bevy_spectator::Spectator;
 use bevy_tweening::{
     lens::{TransformPositionLens, TransformRotationLens},
     *,
@@ -89,11 +90,11 @@ pub fn get_messages(
                                 unlit: true,
                                 ..Default::default()
                             }),
-                            transform: Transform::from_xyz(0.0, 0.5, 0.0),
+                            transform: Transform::from_translation(translation),
                             ..default()
                         })
                         .insert(HighLightCube);
-                        cmd2.spawn(Camera3dBundle::default());
+                        cmd2.spawn((Camera3dBundle::default(), Spectator));
                         client_entity
                             .insert(player_builder.build(translation, id, true))
                             .insert(ControlledPlayer)

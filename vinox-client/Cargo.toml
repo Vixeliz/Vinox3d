@@ -20,4 +20,4 @@ futures-lite = "1.12.0"
 copy_dir = "0.1.2"
 rand.workspace=true
 zstd.workspace=true
-
+bevy_spectator = {version="0.2.0", default-features=false}

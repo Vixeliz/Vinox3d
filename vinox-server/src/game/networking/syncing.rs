@@ -1,3 +1,5 @@
+use std::io::Cursor;
+
 use rustc_data_structures::stable_set::FxHashSet;
 
 use bevy::prelude::*;
@@ -10,9 +12,10 @@ use vinox_common::{
         positions::world_to_chunk,
     },
 };
+use zstd::stream::copy_encode;
 
 use crate::game::world::{
-    chunk::LoadPoint,
+    chunk::{ChunkManager, LoadPoint},
     storage::{insert_chunk, WorldDatabase},
 };
 
@@ -139,4 +142,37 @@ pub fn get_messages(
 
 pub fn send_entities() {}
 
-pub fn send_chunks() {}
+pub fn send_chunks(
+    mut commands: Commands,
+    mut server: ResMut<Server>,
+    lobby: ResMut<ServerLobby>,
+    mut players: Query<(&Transform, &mut SentChunks), With<Player>>,
+    mut chunk_manager: ChunkManager,
+) {
+    let endpoint = server.endpoint_mut();
+    for client_id in endpoint.clients() {
+        if let Some(player_entity) = lobby.players.get(&client_id) {
+            if let Ok((player_transform, mut sent_chunks)) = players.get_mut(*player_entity) {
+                let chunk_pos = world_to_chunk(player_transform.translation);
+                let load_point = LoadPoint(chunk_pos);
+                commands.entity(*player_entity).insert(load_point.clone());
+                for chunk in chunk_manager.get_chunks_around_chunk(chunk_pos, &sent_chunks) {
+                    let raw_chunk = chunk.chunk_data.clone();
+                    if let Ok(raw_chunk_bin) = bincode::serialize(&raw_chunk) {
+                        let mut final_chunk = Cursor::new(raw_chunk_bin);
+                        let mut output = Cursor::new(Vec::new());
+                        copy_encode(&mut final_chunk, &mut output, 0).unwrap();
+                        server.endpoint_mut().try_send_message(
+                            client_id,
+                            ServerMessage::LevelData {
+                                chunk_data: output.get_ref().clone(),
+                                pos: chunk.pos.0,
+                            },
+                        );
+                        sent_chunks.chunks.insert(chunk.pos.0);
+                    }
+                }
+            }
+        }
+    }
+}

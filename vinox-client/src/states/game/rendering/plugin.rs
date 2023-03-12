@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_spectator::SpectatorPlugin;
 use vinox_common::networking::protocol::EntityBuffer;
 
 use crate::states::components::GameState;
@@ -12,7 +13,8 @@ pub struct RenderingPlugin;
 
 impl Plugin for RenderingPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(MeshQueue::default())
+        app.add_plugin(SpectatorPlugin)
+            .insert_resource(MeshQueue::default())
             .insert_resource(ChunkMaterial::default())
             .add_system(create_chunk_material.in_schedule(OnEnter(GameState::Game)))
             .add_systems(

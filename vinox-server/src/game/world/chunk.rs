@@ -32,9 +32,9 @@ impl LoadPoint {
                     continue;
                 }
                 let delta: IVec3 = pos - self.0;
-                return delta.x.pow(2) + delta.z.pow(2)
+                return !(delta.x.pow(2) + delta.z.pow(2)
                     > view_radius.horizontal.pow(2) * (CHUNK_SIZE as i32).pow(2)
-                    || delta.y.pow(2) > view_radius.vertical.pow(2) * (CHUNK_SIZE as i32).pow(2);
+                    || delta.y.pow(2) > view_radius.vertical.pow(2) * (CHUNK_SIZE as i32).pow(2));
             }
         }
         false

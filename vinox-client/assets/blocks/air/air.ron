@@ -1,0 +1,5 @@
+BlockDescriptor(
+    namespace: "vinox",
+    name: "air",
+    visibility: Some(Empty), 
+)

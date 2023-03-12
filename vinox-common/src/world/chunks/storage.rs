@@ -212,14 +212,19 @@ impl RawChunk {
         let mut block_name = block_state.namespace.clone();
         block_name.push(':');
         block_name.push_str(block_state.name.as_str());
-        let voxel_visibility = block_table.0.get(&block_name).unwrap().visibility;
-        if let Some(voxel_visibility) = voxel_visibility {
-            match voxel_visibility {
-                VoxelVisibility::Empty => VoxelType::Empty(block_id),
-                VoxelVisibility::Opaque => VoxelType::Opaque(block_id),
-                VoxelVisibility::Transparent => VoxelType::Transparent(block_id),
+        if let Some(voxel) = block_table.0.get(&block_name) {
+            let voxel_visibility = voxel.visibility;
+            if let Some(voxel_visibility) = voxel_visibility {
+                match voxel_visibility {
+                    VoxelVisibility::Empty => VoxelType::Empty(block_id),
+                    VoxelVisibility::Opaque => VoxelType::Opaque(block_id),
+                    VoxelVisibility::Transparent => VoxelType::Transparent(block_id),
+                }
+            } else {
+                VoxelType::Empty(0)
             }
         } else {
+            println!("No name: {block_name:?}");
             VoxelType::Empty(0)
         }
     }

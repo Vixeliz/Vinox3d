@@ -429,9 +429,6 @@ where
     buffer
 }
 
-#[derive(Component)]
-pub struct DirtyChunk;
-
 pub fn build_mesh(
     mut chunk_queue: ResMut<MeshQueue>,
     player_chunk: Res<PlayerChunk>,
@@ -595,6 +592,7 @@ pub fn process_task(
                 },));
 
                 commands.entity(chunk_entity).push_children(&[trans_entity]);
+                commands.entity(chunk_entity).remove::<NeedsMesh>();
                 commands.entity(entity).despawn_recursive();
             } else {
                 commands.entity(entity).despawn_recursive();

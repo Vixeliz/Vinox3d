@@ -1,0 +1,9 @@
+BlockDescriptor(
+    namespace: "vinox",
+    name: "dirt",
+    textures: Some({
+    Some("front"): Some("dirt.png"),
+    }),
+    break_tool: "shovel",
+    visibility: Some(Opaque), 
+)

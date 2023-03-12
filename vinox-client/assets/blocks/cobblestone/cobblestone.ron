@@ -1,0 +1,9 @@
+BlockDescriptor(
+    namespace: "vinox",
+    name: "cobblestone",
+    textures: Some({
+    Some("front"): Some("cobblestone.png"),
+    }),
+    break_tool: "pickaxe",
+    visibility: Some(Opaque), 
+)
