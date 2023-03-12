@@ -579,7 +579,6 @@ pub fn process_task(
                     )
                 };
 
-                //TODO: Spawn chunk collider at actual chunk position then have the mesh be a child instead?
                 let trans_entity = commands
                     .spawn((RenderedChunk {
                         aabb: Aabb {
