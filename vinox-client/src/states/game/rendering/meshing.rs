@@ -1,5 +1,3 @@
-use std::{collections::HashSet, ops::Deref, time::Duration};
-
 use bevy::{
     math::Vec3A,
     prelude::*,
@@ -9,6 +7,8 @@ use bevy::{
 use bevy_tweening::{lens::TransformPositionLens, *};
 use futures_lite::future;
 use itertools::Itertools;
+use rand::prelude::*;
+use std::{collections::HashSet, ops::Deref, time::Duration};
 use vinox_common::world::chunks::{
     ecs::{ChunkComp, CurrentChunks, ViewRadius},
     positions::voxel_to_world,
@@ -360,9 +360,8 @@ pub struct MeshQueue {
     pub mesh: Vec<(IVec3, ChunkBoundary)>,
 }
 
-pub struct MeshChunkEvent {
-    pub pos: IVec3,
-}
+#[derive(Component, Default)]
+pub struct NeedsMesh;
 
 pub fn generate_mesh<C, T>(chunk: &C, block_table: &BlockTable, solid_pass: bool) -> QuadGroups
 where
@@ -434,30 +433,22 @@ where
 pub struct DirtyChunk;
 
 pub fn build_mesh(
-    mut event: EventReader<MeshChunkEvent>,
     mut chunk_queue: ResMut<MeshQueue>,
     player_chunk: Res<PlayerChunk>,
     view_radius: Res<ViewRadius>,
-    chunks: Query<&ChunkComp>,
+    chunks: Query<&ChunkComp, With<NeedsMesh>>,
     current_chunks: Res<CurrentChunks>,
 ) {
-    let mut checked = HashSet::new();
-    for evt in event.iter() {
-        if !checked.contains(&evt.pos) {
-            checked.insert(evt.pos);
-            if player_chunk.is_in_radius(evt.pos, &view_radius) {
-                chunk_queue.mesh.push((
-                    evt.pos,
-                    ChunkBoundary::new(
-                        chunks
-                            .get(current_chunks.get_entity(evt.pos).unwrap())
-                            .unwrap()
-                            .chunk_data
-                            .clone(),
-                        Box::default(), //Replace with neighbors
-                    ),
-                ));
-            }
+    let mut rng = rand::thread_rng();
+    for chunk in chunks.iter().choose_multiple(&mut rng, 64) {
+        if player_chunk.is_in_radius(chunk.pos.0, &view_radius) {
+            chunk_queue.mesh.push((
+                chunk.pos.0,
+                ChunkBoundary::new(
+                    chunk.chunk_data.clone(),
+                    Box::default(), //Replace with neighbors
+                ),
+            ));
         }
     }
 }

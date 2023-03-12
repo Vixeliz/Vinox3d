@@ -4,6 +4,7 @@ use vinox_common::world::chunks::storage::BlockTable;
 use crate::states::{
     assets::load::LoadableAssets,
     components::{despawn_with, GameState, Loading},
+    game::networking::components::ClientData,
 };
 
 use super::ui::{load_blocks, new_client, setup_resources, switch, timeout, AssetsLoading};
@@ -12,7 +13,8 @@ pub struct LoadingPlugin;
 
 impl Plugin for LoadingPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(BlockTable::default())
+        app.insert_resource(ClientData::default())
+            .insert_resource(BlockTable::default())
             .insert_resource(LoadableAssets::default())
             .insert_resource(AssetsLoading::default())
             .add_systems(

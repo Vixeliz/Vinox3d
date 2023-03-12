@@ -8,7 +8,7 @@ use futures_lite::future;
 use rand::Rng;
 use vinox_common::world::chunks::{
     ecs::{ChunkComp, ChunkPos, CurrentChunks, RemoveChunk, SimulationRadius, ViewRadius},
-    storage::CHUNK_SIZE,
+    storage::{RawChunk, CHUNK_SIZE},
 };
 
 use crate::game::networking::components::SentChunks;
@@ -238,8 +238,8 @@ impl Plugin for ChunkPlugin {
         app.insert_resource(CurrentChunks::default())
             .insert_resource(ChunkQueue::default())
             .insert_resource(ViewRadius {
-                horizontal: 8,
-                vertical: 3,
+                horizontal: 10,
+                vertical: 4,
             })
             .insert_resource(SimulationRadius {
                 vertical: 4,

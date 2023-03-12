@@ -75,12 +75,18 @@ pub fn switch(
     }
 }
 
-pub fn timeout(mut commands: Commands, mut timer: Local<Timer>, time: Res<Time>) {
+pub fn timeout(
+    mut commands: Commands,
+    mut timer: Local<Timer>,
+    time: Res<Time>,
+    mut client: ResMut<Client>,
+) {
     timer.set_mode(TimerMode::Repeating);
     timer.set_duration(Duration::from_secs_f32(5.));
 
     timer.tick(time.delta());
     if timer.just_finished() {
+        client.close_all_connections().ok();
         commands.insert_resource(NextState(Some(GameState::Menu)));
     }
 }
