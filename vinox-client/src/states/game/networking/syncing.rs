@@ -93,7 +93,7 @@ pub fn get_messages(
                             ..default()
                         })
                         .insert(HighLightCube);
-
+                        cmd2.spawn(Camera3dBundle::default());
                         client_entity
                             .insert(player_builder.build(translation, id, true))
                             .insert(ControlledPlayer)

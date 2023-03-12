@@ -247,9 +247,8 @@ impl Plugin for ChunkPlugin {
             })
             .insert_resource(WorldSeed(rand::thread_rng().gen_range(0..u64::MAX)))
             .add_systems((clear_unloaded_chunks, unsend_chunks, generate_chunks_world))
-            .add_system(process_queue)
-            .add_system(process_task)
-            .add_system(destroy_chunks)
-            .add_system(process_task);
+            .add_system(process_queue.after(clear_unloaded_chunks))
+            .add_system(process_task.after(process_queue))
+            .add_system(destroy_chunks.after(process_task));
     }
 }
