@@ -9,11 +9,11 @@ use futures_lite::future;
 use itertools::Itertools;
 use rand::prelude::*;
 use serde_big_array::Array;
-use std::{collections::HashSet, ops::Deref, time::Duration};
+use std::{ops::Deref, time::Duration};
 use vinox_common::world::chunks::{
     ecs::{ChunkComp, CurrentChunks, ViewRadius},
     positions::voxel_to_world,
-    storage::{BlockTable, Chunk, RawChunk, Voxel, VoxelVisibility, CHUNK_SIZE},
+    storage::{BlockTable, Chunk, Voxel, VoxelVisibility, CHUNK_SIZE},
 };
 
 use crate::states::{
@@ -437,34 +437,30 @@ pub fn build_mesh(
     player_chunk: Res<PlayerChunk>,
     view_radius: Res<ViewRadius>,
     chunks: Query<&ChunkComp, With<NeedsMesh>>,
-    mut chunk_manager: ChunkManager,
+    chunk_manager: ChunkManager,
 ) {
     let mut rng = rand::thread_rng();
     for chunk in chunks.iter().choose_multiple(&mut rng, 128) {
-        if player_chunk.is_in_radius(chunk.pos.0, &view_radius) {
-            if chunk_manager
+        if player_chunk.is_in_radius(chunk.pos.0, &view_radius)
+            && chunk_manager
                 .current_chunks
                 .all_neighbors_exist(chunk.pos.clone())
-            {
-                if let Some(neighbors) = chunk_manager.get_neighbors(chunk.pos.clone()) {
-                    if let Ok(neighbors) = neighbors.try_into() {
-                        chunk_queue.mesh.push((
-                            chunk.pos.0,
-                            ChunkBoundary::new(
-                                chunk.chunk_data.clone(),
-                                Box::new(Array(neighbors)),
-                            ),
-                        ));
+        {
+            if let Some(neighbors) = chunk_manager.get_neighbors(chunk.pos.clone()) {
+                if let Ok(neighbors) = neighbors.try_into() {
+                    chunk_queue.mesh.push((
+                        chunk.pos.0,
+                        ChunkBoundary::new(chunk.chunk_data.clone(), Box::new(Array(neighbors))),
+                    ));
 
-                        commands
-                            .entity(
-                                chunk_manager
-                                    .current_chunks
-                                    .get_entity(chunk.pos.0)
-                                    .unwrap(),
-                            )
-                            .remove::<NeedsMesh>();
-                    }
+                    commands
+                        .entity(
+                            chunk_manager
+                                .current_chunks
+                                .get_entity(chunk.pos.0)
+                                .unwrap(),
+                        )
+                        .remove::<NeedsMesh>();
                 }
             }
         }

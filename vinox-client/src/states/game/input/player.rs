@@ -2,7 +2,6 @@ use std::f32::consts::{FRAC_PI_2, PI};
 
 use bevy::{
     input::mouse::MouseMotion,
-    pbr::NotShadowCaster,
     prelude::*,
     render::{camera::CameraProjection, primitives::Frustum},
     window::{CursorGrabMode, PrimaryWindow},
@@ -33,8 +32,6 @@ pub fn spawn_camera(
     player_entity: Query<Entity, With<ControlledPlayer>>,
     mut local: Local<bool>,
     mut windows: Query<&mut Window, With<PrimaryWindow>>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     if *local {
         return;
@@ -102,7 +99,7 @@ pub fn movement_input(
     mouse_sensitivity: Res<MouseSensitivity>,
     key_events: Res<Input<KeyCode>>,
     windows: Query<&Window, With<PrimaryWindow>>,
-    time: Res<Time>,
+    // time: Res<Time>,
     mut stationary_frames: Local<i32>,
     current_chunks: Res<CurrentChunks>,
 ) {
@@ -130,7 +127,7 @@ pub fn movement_input(
                 }
 
                 if key_events.pressed(KeyCode::W) {
-                    let mut fwd = transform.forward().clone();
+                    let mut fwd = transform.forward();
                     fwd.y = 0.0;
                     let fwd = fwd.normalize();
                     movement += fwd;
@@ -142,7 +139,7 @@ pub fn movement_input(
                     movement += transform.right()
                 }
                 if key_events.pressed(KeyCode::S) {
-                    let mut back = transform.back().clone();
+                    let mut back = transform.back();
                     back.y = 0.0;
                     let back = back.normalize();
                     movement += back;

@@ -6,9 +6,8 @@ use bevy::{
 };
 use futures_lite::future;
 use rand::Rng;
-use vinox_common::world::chunks::{
-    ecs::{ChunkComp, ChunkPos, CurrentChunks, RemoveChunk, SimulationRadius, ViewRadius},
-    storage::{RawChunk, CHUNK_SIZE},
+use vinox_common::world::chunks::ecs::{
+    ChunkComp, ChunkPos, CurrentChunks, RemoveChunk, SimulationRadius, ViewRadius,
 };
 
 use crate::game::networking::components::SentChunks;

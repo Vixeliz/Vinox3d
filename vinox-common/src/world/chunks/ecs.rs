@@ -17,9 +17,7 @@ pub struct ChunkPos(pub IVec3);
 
 impl ChunkPos {
     pub fn new(x: i32, y: i32, z: i32) -> Self {
-        Self {
-            0: IVec3::new(x, y, z),
-        }
+        Self(IVec3::new(x, y, z))
     }
 
     pub fn neighbors(&self) -> Vec<ChunkPos> {

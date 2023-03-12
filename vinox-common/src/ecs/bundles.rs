@@ -29,7 +29,6 @@ impl PlayerBundleBuilder {
                 transform: Transform::from_translation(translation),
                 ..default()
             },
-            ..Default::default()
         }
     }
 }

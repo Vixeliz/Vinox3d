@@ -2,7 +2,6 @@ use super::components::{ClientData, ClientLobby, NetworkMapping, PlayerInfo};
 use crate::states::game::world::chunks::{ControlledPlayer, CreateChunkEvent, SetBlockEvent};
 use bevy::prelude::*;
 use bevy_quinnet::client::*;
-use bevy_spectator::Spectator;
 use bevy_tweening::{
     lens::{TransformPositionLens, TransformRotationLens},
     *,

@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use noise::{BasicMulti, MultiFractal, NoiseFn, OpenSimplex, RidgedMulti};
+use noise::{MultiFractal, NoiseFn, OpenSimplex, RidgedMulti};
 use vinox_common::world::chunks::storage::{BlockData, RawChunk, CHUNK_SIZE};
 
 // Just some interesting stuff to look at while testing
@@ -45,6 +45,6 @@ pub fn generate_chunk(pos: IVec3, seed: u32) -> RawChunk {
             }
         }
     }
-    // add_grass(&mut raw_chunk);
+    add_grass(&mut raw_chunk);
     raw_chunk
 }
