@@ -93,7 +93,7 @@ impl<'w, 's> ChunkManager<'w, 's> {
                 }
             }
         }
-        // chunks.sort_unstable_by_key(|key| FloatOrd(key.as_vec3().distance(chunk_pos.as_vec3())));
+        chunks.sort_unstable_by_key(|key| FloatOrd(key.as_vec3().distance(chunk_pos.as_vec3())));
         chunks
     }
     pub fn get_chunks_around_chunk(

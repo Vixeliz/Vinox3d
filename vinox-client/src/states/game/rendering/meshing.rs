@@ -446,14 +446,6 @@ pub fn build_mesh(
                 .current_chunks
                 .all_neighbors_exist(chunk.pos.clone())
             {
-                commands
-                    .entity(
-                        chunk_manager
-                            .current_chunks
-                            .get_entity(chunk.pos.0)
-                            .unwrap(),
-                    )
-                    .remove::<NeedsMesh>();
                 if let Some(neighbors) = chunk_manager.get_neighbors(chunk.pos.clone()) {
                     if let Ok(neighbors) = neighbors.try_into() {
                         chunk_queue.mesh.push((
@@ -463,7 +455,15 @@ pub fn build_mesh(
                                 Box::new(Array(neighbors)),
                             ),
                         ));
-                    } else {
+
+                        commands
+                            .entity(
+                                chunk_manager
+                                    .current_chunks
+                                    .get_entity(chunk.pos.0)
+                                    .unwrap(),
+                            )
+                            .remove::<NeedsMesh>();
                     }
                 }
             }

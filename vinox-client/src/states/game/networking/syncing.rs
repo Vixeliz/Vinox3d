@@ -253,7 +253,7 @@ pub fn wait_for_chunks(
         if just_spawned.timer.finished() {
             commands.entity(entity).remove::<JustSpawned>();
         } else {
-            player_transform.translation = Vec3::new(0.0, 130.0, 0.0);
+            player_transform.translation = Vec3::new(0.0, 100.0, 0.0);
         }
     }
 }
