@@ -6,9 +6,21 @@ use bevy::{
     render::{camera::CameraProjection, primitives::Frustum},
     window::{CursorGrabMode, PrimaryWindow},
 };
-use vinox_common::world::chunks::{ecs::CurrentChunks, positions::world_to_chunk};
+use bevy_quinnet::client::Client;
+use vinox_common::{
+    collision::raycast::raycast_world,
+    networking::protocol::ClientMessage,
+    world::chunks::{
+        ecs::{ChunkComp, CurrentChunks},
+        positions::{voxel_to_world, world_to_chunk, world_to_voxel},
+        storage::{BlockData, BlockTable, CHUNK_SIZE},
+    },
+};
 
-use crate::states::game::world::chunks::ControlledPlayer;
+use crate::states::game::{
+    networking::syncing::HighLightCube, rendering::meshing::NeedsMesh,
+    world::chunks::ControlledPlayer,
+};
 
 #[derive(Component)]
 pub struct FPSCamera {
@@ -148,6 +160,11 @@ pub fn movement_input(
                     *stationary_frames = 0;
                     fps_camera.velocity.y = 12.0;
                 }
+                if key_events.pressed(KeyCode::C) {
+                    fps_camera.velocity.y = -5.0;
+                } else {
+                    fps_camera.velocity.y = 0.0;
+                }
             }
 
             movement = movement.normalize_or_zero();
@@ -182,6 +199,211 @@ pub fn movement_input(
             transform.look_at(looking_at, Vec3::new(0.0, 1.0, 0.0));
             translation.translation += fps_camera.velocity * 1.5 * time.delta().as_secs_f32();
             // fps_camera.velocity.y -= 35.0 * time.delta().as_secs_f32().clamp(0.0, 0.1);
+        }
+    }
+}
+
+// HEAVILY TEMPORARY BOYFRIEND WANTED ITEMS TO BUILD WITH
+#[derive(Default, Clone)]
+pub enum CurrentItem {
+    #[default]
+    Grass,
+    Dirt,
+    Cobblestone,
+    Glass,
+}
+
+#[allow(clippy::too_many_arguments)]
+#[allow(clippy::type_complexity)]
+pub fn interact(
+    mut commands: Commands,
+    mut chunks: Query<&mut ChunkComp>,
+    mouse_button_input: Res<Input<MouseButton>>,
+    keys: Res<Input<KeyCode>>,
+    current_chunks: Res<CurrentChunks>,
+    camera_query: Query<&GlobalTransform, With<Camera>>,
+    mut client: ResMut<Client>,
+    player_position: Query<&Transform, With<ControlledPlayer>>,
+    mut cube_position: Query<
+        (&mut Transform, &mut Visibility),
+        (With<HighLightCube>, Without<ControlledPlayer>),
+    >,
+    mut current_item: Local<CurrentItem>,
+    block_table: Res<BlockTable>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+) {
+    let item_string = match current_item.clone() {
+        CurrentItem::Grass => BlockData::new("vinox".to_string(), "grass".to_string()),
+        CurrentItem::Dirt => BlockData::new("vinox".to_string(), "dirt".to_string()),
+        CurrentItem::Cobblestone => BlockData::new("vinox".to_string(), "cobblestone".to_string()),
+        CurrentItem::Glass => BlockData::new("vinox".to_string(), "glass".to_string()),
+    };
+
+    for key in keys.get_just_pressed() {
+        match key {
+            KeyCode::Key1 => *current_item = CurrentItem::Dirt,
+            KeyCode::Key2 => *current_item = CurrentItem::Grass,
+            KeyCode::Key3 => *current_item = CurrentItem::Glass,
+            KeyCode::Key4 => *current_item = CurrentItem::Cobblestone,
+            _ => {}
+        }
+    }
+
+    let mouse_left = mouse_button_input.just_pressed(MouseButton::Left);
+    let mouse_right = mouse_button_input.just_pressed(MouseButton::Right);
+    if let Ok(player_transform) = player_position.get_single() {
+        if let Ok(camera_transform) = camera_query.get_single() {
+            // Then cast the ray.
+            let hit = raycast_world(
+                camera_transform.translation(),
+                camera_transform.forward(),
+                25.0,
+                &chunks,
+                &current_chunks,
+                &block_table,
+            );
+            if let Some((chunk_pos, voxel_pos, normal)) = hit {
+                commands.spawn((PbrBundle {
+                    mesh: meshes.add(shape::UVSphere::default().into()),
+                    material: materials.add(Color::RED.into()).clone(),
+                    transform: Transform::from_translation(normal),
+                    ..default()
+                },));
+
+                let point = voxel_to_world(voxel_pos, chunk_pos);
+                // commands.spawn((PbrBundle {
+                //     mesh: meshes.add(shape::UVSphere::default().into()),
+                //     material: materials.add(Color::GREEN.into()).clone(),
+                //     transform: Transform::from_translation(point),
+                //     ..default()
+                // },));
+                // let point = if mouse_right {
+                //     point + (toi.normal / Vec3::splat(2.0))
+                // } else {
+                //     .point - (toi.normal / Vec3::splat(2.0))
+                // };
+                if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos) {
+                    if let Ok((mut block_transform, mut block_visibility)) =
+                        cube_position.get_single_mut()
+                    {
+                        if *block_visibility == Visibility::Hidden {
+                            *block_visibility = Visibility::Visible;
+                        }
+                        block_transform.translation =
+                            voxel_to_world(voxel_pos, chunk_pos) - Vec3::splat(0.5);
+                    }
+                    if let Ok(mut chunk) = chunks.get_mut(chunk_entity) {
+                        if mouse_right {
+                            if (point.x <= player_transform.translation.x - 0.5
+                                || point.x >= player_transform.translation.x + 0.5)
+                                || (point.z <= player_transform.translation.z - 0.5
+                                    || point.z >= player_transform.translation.z + 0.5)
+                                || (point.y <= player_transform.translation.y - 2.0
+                                    || point.y >= player_transform.translation.y + 1.0)
+                            {
+                                chunk.chunk_data.add_block_state(&item_string);
+                                chunk.chunk_data.set_block(voxel_pos, &item_string);
+                                client.connection_mut().try_send_message(
+                                    ClientMessage::SentBlock {
+                                        chunk_pos: chunk_pos,
+                                        voxel_pos: [
+                                            voxel_pos.x as u8,
+                                            voxel_pos.y as u8,
+                                            voxel_pos.z as u8,
+                                        ],
+                                        block_type: item_string,
+                                    },
+                                );
+                            }
+                        } else if mouse_left {
+                            chunk.chunk_data.set_block(
+                                voxel_pos,
+                                &BlockData::new("vinox".to_string(), "air".to_string()),
+                            );
+                            client
+                                .connection_mut()
+                                .try_send_message(ClientMessage::SentBlock {
+                                    chunk_pos: chunk_pos,
+                                    voxel_pos: [
+                                        voxel_pos.x as u8,
+                                        voxel_pos.y as u8,
+                                        voxel_pos.z as u8,
+                                    ],
+                                    block_type: BlockData::new(
+                                        "vinox".to_string(),
+                                        "air".to_string(),
+                                    ),
+                                });
+                        }
+                        match voxel_pos.x {
+                            1 => {
+                                if let Some(neighbor_chunk) =
+                                    current_chunks.get_entity(chunk_pos + IVec3::new(-1, 0, 0))
+                                {
+                                    commands.entity(neighbor_chunk).insert(NeedsMesh);
+                                }
+                            }
+                            CHUNK_SIZE => {
+                                if let Some(neighbor_chunk) =
+                                    current_chunks.get_entity(chunk_pos + IVec3::new(1, 0, 0))
+                                {
+                                    commands.entity(neighbor_chunk).insert(NeedsMesh);
+                                }
+                            }
+                            _ => {}
+                        }
+                        match voxel_pos.y {
+                            1 => {
+                                if let Some(neighbor_chunk) =
+                                    current_chunks.get_entity(chunk_pos + IVec3::new(0, -1, 0))
+                                {
+                                    commands.entity(neighbor_chunk).insert(NeedsMesh);
+                                }
+                            }
+                            CHUNK_SIZE => {
+                                if let Some(neighbor_chunk) =
+                                    current_chunks.get_entity(chunk_pos + IVec3::new(0, 1, 0))
+                                {
+                                    commands.entity(neighbor_chunk).insert(NeedsMesh);
+                                }
+                            }
+                            _ => {}
+                        }
+                        match voxel_pos.z {
+                            1 => {
+                                if let Some(neighbor_chunk) =
+                                    current_chunks.get_entity(chunk_pos + IVec3::new(0, 0, -1))
+                                {
+                                    commands.entity(neighbor_chunk).insert(NeedsMesh);
+                                }
+                            }
+                            CHUNK_SIZE => {
+                                if let Some(neighbor_chunk) =
+                                    current_chunks.get_entity(chunk_pos + IVec3::new(0, 0, 1))
+                                {
+                                    commands.entity(neighbor_chunk).insert(NeedsMesh);
+                                }
+                            }
+                            _ => {}
+                        }
+                        println!(
+                            "Point: {}, Player Pos: {}",
+                            point,
+                            voxel_to_world(
+                                world_to_voxel(player_transform.translation).1,
+                                world_to_voxel(player_transform.translation).0
+                            )
+                        );
+
+                        commands.entity(chunk_entity).insert(NeedsMesh);
+                    }
+                }
+            } else if let Ok((_, mut block_visibility)) = cube_position.get_single_mut() {
+                if *block_visibility == Visibility::Visible {
+                    *block_visibility = Visibility::Hidden;
+                }
+            }
         }
     }
 }

@@ -1,3 +1,4 @@
+pub mod collision;
 pub mod ecs;
 pub mod networking;
 pub mod scripting;
