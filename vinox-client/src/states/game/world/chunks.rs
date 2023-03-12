@@ -1,7 +1,7 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, time::Duration};
 
 use bevy::{ecs::system::SystemParam, prelude::*, utils::FloatOrd};
-// use bevy_tweening::{lens::TransformPositionLens, *};
+use bevy_tweening::{lens::TransformPositionLens, *};
 use vinox_common::world::chunks::{
     ecs::{ChunkComp, ChunkPos, CurrentChunks, RemoveChunk, SimulationRadius, ViewRadius},
     positions::world_to_chunk,
@@ -56,9 +56,6 @@ impl PlayerChunk {
                 let delta: IVec3 = (pos - self.chunk_pos).abs();
                 return !(delta.x.pow(2) + delta.z.pow(2) > view_radius.horizontal.pow(2)
                     || delta.y > view_radius.vertical);
-                // return !(delta.x > view_radius.horizontal
-                //     || delta.z > view_radius.horizontal
-                //     || delta.y > view_radius.vertical);
             }
         }
         false
@@ -135,56 +132,44 @@ impl<'w, 's> ChunkManager<'w, 's> {
     }
 }
 
-// pub fn unload_chunks(
-//     mut commands: Commands,
-//     remove_chunks: Query<(&ChunkComp, Entity), With<RemoveChunk>>,
-//     mut chunk_queue: ResMut<ChunkQueue>,
-// ) {
-//     for (chunk, chunk_entity) in remove_chunks.iter() {
-//         if !chunk_queue.remove.contains(&chunk.pos.0) {
-//             let tween = Tween::new(
-//                 EaseFunction::QuadraticInOut,
-//                 Duration::from_secs(1),
-//                 TransformPositionLens {
-//                     end: Vec3::new(
-//                         (chunk.pos.0.x * (CHUNK_SIZE) as i32) as f32,
-//                         ((chunk.pos.0.y * (CHUNK_SIZE) as i32) as f32) - CHUNK_SIZE as f32,
-//                         (chunk.pos.0.z * (CHUNK_SIZE) as i32) as f32,
-//                     ),
-
-//                     start: Vec3::new(
-//                         (chunk.pos.0.x * (CHUNK_SIZE) as i32) as f32,
-//                         (chunk.pos.0.y * (CHUNK_SIZE) as i32) as f32,
-//                         (chunk.pos.0.z * (CHUNK_SIZE) as i32) as f32,
-//                     ),
-//                 },
-//             )
-//             .with_repeat_count(RepeatCount::Finite(1))
-//             .with_completed_event(0);
-//             commands.entity(chunk_entity).insert(Animator::new(tween));
-//             commands.entity(chunk_entity).remove::<RemoveChunk>();
-//             chunk_queue.remove.insert(chunk.pos.0);
-//         }
-//     }
-// }
-
-pub fn destroy_chunks(
+pub fn unload_chunks(
     mut commands: Commands,
+    remove_chunks: Query<(&ChunkComp, Entity), With<RemoveChunk>>,
     mut current_chunks: ResMut<CurrentChunks>,
-    // remove_chunks: Query<&ChunkComp>,
-    // mut query_event: EventReader<TweenCompleted>,
-    // mut chunk_queue: ResMut<ChunkQueue>,
-    remove_chunks: Query<&ChunkComp, With<RemoveChunk>>,
 ) {
-    // for evt in query_event.iter() {
-    // if evt.user_data == 0 {
-    for chunk in remove_chunks.iter() {
-        // chunk_queue.remove.remove(&chunk_pos);
-        commands
-            .entity(current_chunks.remove_entity(chunk.pos.0).unwrap())
-            .despawn_recursive();
+    for (chunk, chunk_entity) in remove_chunks.iter() {
+        let tween = Tween::new(
+            EaseFunction::QuadraticInOut,
+            Duration::from_secs(1),
+            TransformPositionLens {
+                end: Vec3::new(
+                    (chunk.pos.0.x * (CHUNK_SIZE) as i32) as f32,
+                    ((chunk.pos.0.y * (CHUNK_SIZE) as i32) as f32) - CHUNK_SIZE as f32,
+                    (chunk.pos.0.z * (CHUNK_SIZE) as i32) as f32,
+                ),
+
+                start: Vec3::new(
+                    (chunk.pos.0.x * (CHUNK_SIZE) as i32) as f32,
+                    (chunk.pos.0.y * (CHUNK_SIZE) as i32) as f32,
+                    (chunk.pos.0.z * (CHUNK_SIZE) as i32) as f32,
+                ),
+            },
+        )
+        .with_repeat_count(RepeatCount::Finite(1))
+        .with_completed_event(0);
+        commands.entity(chunk_entity).insert(Animator::new(tween));
+        commands.entity(chunk_entity).remove::<RemoveChunk>();
+        commands.entity(chunk_entity).remove::<ChunkComp>();
+        current_chunks.remove_entity(chunk.pos.0).unwrap();
     }
-    // }
+}
+
+pub fn destroy_chunks(mut commands: Commands, mut query_event: EventReader<TweenCompleted>) {
+    for evt in query_event.iter() {
+        if evt.user_data == 0 {
+            commands.entity(evt.entity).despawn_recursive();
+        }
+    }
 }
 
 pub fn clear_unloaded_chunks(
@@ -369,15 +354,15 @@ impl Plugin for ChunkPlugin {
                     .after(clear_unloaded_chunks)
                     .in_set(OnUpdate(GameState::Game)),
             )
-            // .add_system(
-            //     unload_chunks
-            //         .after(build_mesh)
-            //         .in_set(OnUpdate(GameState::Game)),
-            // )
+            .add_system(
+                unload_chunks
+                    .after(build_mesh)
+                    .in_set(OnUpdate(GameState::Game)),
+            )
             .add_system(
                 destroy_chunks
-                    // .after(unload_chunks)
-                    .after(build_mesh)
+                    .after(unload_chunks)
+                    // .after(build_mesh)
                     .in_set(OnUpdate(GameState::Game)),
             )
             .add_event::<UpdateChunkEvent>()

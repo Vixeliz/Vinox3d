@@ -37,22 +37,6 @@ impl LoadPoint {
         }
         false
     }
-    // pub fn is_in_radius(&self, pos: IVec3, view_radius: &ViewRadius) -> bool {
-    //     // for x in -view_radius.horizontal..view_radius.horizontal {
-    //     //     for z in -view_radius.horizontal..view_radius.horizontal {
-    //     // if x.pow(2) + z.pow(2) >= view_radius.horizontal.pow(2) {
-    //     //     continue;
-    //     // }
-    //     let delta: IVec3 = (pos - self.0).abs();
-    //     // return !(delta.x.pow(2) + delta.z.pow(2) > view_radius.horizontal.pow(2)
-    //     //     || delta.y > view_radius.vertical);
-    //     return !(delta.x > view_radius.horizontal
-    //         || delta.z > view_radius.horizontal
-    //         || delta.y > view_radius.vertical);
-    //     //     }
-    //     // }
-    //     // false
-    // }
 }
 
 #[derive(Default, Resource, Debug)]
