@@ -246,8 +246,8 @@ impl Plugin for ChunkPlugin {
         app.insert_resource(CurrentChunks::default())
             .insert_resource(ChunkQueue::default())
             .insert_resource(ViewRadius {
-                horizontal: 10,
-                vertical: 4,
+                horizontal: 12,
+                vertical: 5,
             })
             .insert_resource(SimulationRadius {
                 vertical: 4,

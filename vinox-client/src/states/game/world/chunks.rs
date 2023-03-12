@@ -301,8 +301,8 @@ impl Plugin for ChunkPlugin {
             .insert_resource(PlayerChunk::default())
             .insert_resource(PlayerBlock::default())
             .insert_resource(ViewRadius {
-                horizontal: 10,
-                vertical: 4,
+                horizontal: 12,
+                vertical: 5,
             })
             .insert_resource(SimulationRadius {
                 horizontal: 4,
