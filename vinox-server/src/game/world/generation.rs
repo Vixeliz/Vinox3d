@@ -4,9 +4,9 @@ use vinox_common::world::chunks::storage::{BlockData, RawChunk, CHUNK_SIZE};
 
 // Just some interesting stuff to look at while testing
 pub fn add_grass(raw_chunk: &mut RawChunk) {
-    for x in 1..=CHUNK_SIZE - 2 {
-        for z in 1..=CHUNK_SIZE - 2 {
-            for y in 1..=CHUNK_SIZE - 2 {
+    for x in 0..=CHUNK_SIZE - 1 {
+        for z in 0..=CHUNK_SIZE - 1 {
+            for y in 0..=CHUNK_SIZE - 2 {
                 if raw_chunk.get_identifier(UVec3::new(x, y + 1, z)) == "vinox:air"
                     && raw_chunk.get_identifier(UVec3::new(x, y, z)) == "vinox:cobblestone"
                 {
