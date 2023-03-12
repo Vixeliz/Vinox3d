@@ -3,6 +3,7 @@ use bevy::{
     prelude::*,
     render::{mesh::Indices, primitives::Aabb, render_resource::PrimitiveTopology},
     tasks::{AsyncComputeTaskPool, Task},
+    utils::FloatOrd,
 };
 use bevy_tweening::{lens::TransformPositionLens, *};
 use futures_lite::future;
@@ -440,7 +441,20 @@ pub fn build_mesh(
     chunk_manager: ChunkManager,
 ) {
     let mut rng = rand::thread_rng();
-    for chunk in chunks.iter().choose_multiple(&mut rng, 256) {
+
+    // chunks.sort_unstable_by_key(|key| FloatOrd(key.as_vec3().distance(chunk_pos.as_vec3())));
+    let mut count = 0;
+    for chunk in chunks.iter().sorted_unstable_by_key(|key| {
+        FloatOrd(
+            key.pos
+                .0
+                .as_vec3()
+                .distance(player_chunk.chunk_pos.as_vec3()),
+        )
+    }) {
+        if count > 128 {
+            break;
+        }
         if player_chunk.is_in_radius(chunk.pos.0, &view_radius)
             && chunk_manager
                 .current_chunks
@@ -448,6 +462,7 @@ pub fn build_mesh(
         {
             if let Some(neighbors) = chunk_manager.get_neighbors(chunk.pos.clone()) {
                 if let Ok(neighbors) = neighbors.try_into() {
+                    count += 1;
                     chunk_queue.mesh.push((
                         chunk.pos.0,
                         ChunkBoundary::new(chunk.chunk_data.clone(), Box::new(Array(neighbors))),

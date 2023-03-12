@@ -180,7 +180,7 @@ pub fn movement_input(
             );
 
             transform.look_at(looking_at, Vec3::new(0.0, 1.0, 0.0));
-            translation.translation += fps_camera.velocity * 10.0 * time.delta().as_secs_f32();
+            translation.translation += fps_camera.velocity * 1.5 * time.delta().as_secs_f32();
             // fps_camera.velocity.y -= 35.0 * time.delta().as_secs_f32().clamp(0.0, 0.1);
         }
     }
