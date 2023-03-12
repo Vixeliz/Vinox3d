@@ -3,6 +3,7 @@ use std::{fs::remove_dir_all, path::PathBuf};
 
 use bevy::prelude::*;
 use bevy_quinnet::client::QuinnetClientPlugin;
+use bevy_tweening::TweeningPlugin;
 use directories::*;
 use states::{
     components::GameState, game::plugin::GamePlugin, loading::plugin::LoadingPlugin,
@@ -36,6 +37,7 @@ fn main() {
         )
         .insert_resource(Msaa::Off)
         .add_plugin(QuinnetClientPlugin::default())
+        .add_plugin(TweeningPlugin)
         .add_state::<GameState>()
         .add_plugin(MenuPlugin)
         .add_plugin(LoadingPlugin)

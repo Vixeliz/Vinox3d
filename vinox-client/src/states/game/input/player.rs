@@ -2,6 +2,7 @@ use std::f32::consts::{FRAC_PI_2, PI};
 
 use bevy::{
     input::mouse::MouseMotion,
+    pbr::NotShadowCaster,
     prelude::*,
     render::{camera::CameraProjection, primitives::Frustum},
     window::{CursorGrabMode, PrimaryWindow},
@@ -32,6 +33,8 @@ pub fn spawn_camera(
     player_entity: Query<Entity, With<ControlledPlayer>>,
     mut local: Local<bool>,
     mut windows: Query<&mut Window, With<PrimaryWindow>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     if *local {
         return;
@@ -64,12 +67,25 @@ pub fn spawn_camera(
                 ..default()
             }
         };
+        commands.insert_resource(ClearColor(Color::rgba(0.5, 0.8, 0.9, 1.0)));
         commands.entity(player_entity).with_children(|c| {
             c.spawn((
                 GlobalTransform::default(),
                 Transform::from_xyz(0.0, 1.0, 0.0),
             ));
-            c.spawn((FPSCamera::default(), camera));
+            c.spawn((
+                FPSCamera::default(),
+                camera,
+                FogSettings {
+                    color: Color::rgba(0.5, 0.8, 0.9, 1.0),
+                    directional_light_color: Color::WHITE,
+                    directional_light_exponent: 30.0,
+                    falloff: FogFalloff::Linear {
+                        start: 200.0,
+                        end: 400.0,
+                    },
+                },
+            ));
         });
     }
 }
