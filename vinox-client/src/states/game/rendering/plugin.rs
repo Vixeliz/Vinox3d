@@ -21,6 +21,10 @@ impl Plugin for RenderingPlugin {
                 (process_queue, process_task, sort_faces, sort_chunks)
                     .in_set(OnUpdate(GameState::Game)),
             )
+            .insert_resource(AmbientLight {
+                color: Color::WHITE,
+                brightness: 1.0,
+            })
             .add_event::<SortFaces>();
     }
 }

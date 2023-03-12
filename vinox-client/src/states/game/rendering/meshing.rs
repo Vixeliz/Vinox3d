@@ -440,7 +440,7 @@ pub fn build_mesh(
     mut chunk_manager: ChunkManager,
 ) {
     let mut rng = rand::thread_rng();
-    for chunk in chunks.iter().choose_multiple(&mut rng, 32) {
+    for chunk in chunks.iter().choose_multiple(&mut rng, 128) {
         if player_chunk.is_in_radius(chunk.pos.0, &view_radius) {
             if chunk_manager
                 .current_chunks
