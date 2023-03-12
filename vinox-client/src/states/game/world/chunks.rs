@@ -1,7 +1,7 @@
-use std::{collections::HashSet, time::Duration};
+use std::collections::HashSet;
 
 use bevy::{ecs::system::SystemParam, prelude::*, utils::FloatOrd};
-use bevy_tweening::{lens::TransformPositionLens, *};
+// use bevy_tweening::{lens::TransformPositionLens, *};
 use vinox_common::world::chunks::{
     ecs::{ChunkComp, ChunkPos, CurrentChunks, RemoveChunk, SimulationRadius, ViewRadius},
     positions::world_to_chunk,
@@ -172,13 +172,13 @@ pub fn destroy_chunks(
     mut commands: Commands,
     mut current_chunks: ResMut<CurrentChunks>,
     // remove_chunks: Query<&ChunkComp>,
-    mut query_event: EventReader<TweenCompleted>,
+    // mut query_event: EventReader<TweenCompleted>,
     // mut chunk_queue: ResMut<ChunkQueue>,
     remove_chunks: Query<&ChunkComp, With<RemoveChunk>>,
 ) {
     // for evt in query_event.iter() {
     // if evt.user_data == 0 {
-    for (chunk) in remove_chunks.iter() {
+    for chunk in remove_chunks.iter() {
         // chunk_queue.remove.remove(&chunk_pos);
         commands
             .entity(current_chunks.remove_entity(chunk.pos.0).unwrap())

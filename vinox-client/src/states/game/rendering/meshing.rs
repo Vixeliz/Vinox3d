@@ -8,7 +8,7 @@ use bevy::{
 use bevy_tweening::{lens::TransformPositionLens, *};
 use futures_lite::future;
 use itertools::Itertools;
-use rand::prelude::*;
+// use rand::prelude::*;
 use serde_big_array::Array;
 use std::{ops::Deref, time::Duration};
 use vinox_common::world::chunks::{
@@ -440,7 +440,7 @@ pub fn build_mesh(
     chunks: Query<&ChunkComp, With<NeedsMesh>>,
     chunk_manager: ChunkManager,
 ) {
-    let mut rng = rand::thread_rng();
+    // let mut rng = rand::thread_rng();
 
     // chunks.sort_unstable_by_key(|key| FloatOrd(key.as_vec3().distance(chunk_pos.as_vec3())));
     let mut count = 0;
