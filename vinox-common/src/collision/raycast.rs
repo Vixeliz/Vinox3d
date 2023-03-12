@@ -35,7 +35,15 @@ pub fn raycast_world(
         / (direction.x * direction.x + direction.y * direction.y + direction.z * direction.z)
             .sqrt();
 
+    let mut counter = 0;
+
     loop {
+        // Infinite loop shouldve been prevented by tmax but it isn't for some reason all the time. This just breaks the loop after 4 x the radius which should be plenty of time to find the voxel
+        // It could be due to chunks or neighbors not existing?
+        counter += 1;
+        if counter > (radius * 4.0) as u32 {
+            break;
+        }
         let (chunk_pos, voxel_pos) = world_to_voxel(origin);
         if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos) {
             if let Ok(chunk) = chunks.get(chunk_entity) {

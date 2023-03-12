@@ -13,7 +13,7 @@ use vinox_common::{
     world::chunks::{
         ecs::{ChunkComp, CurrentChunks},
         positions::{voxel_to_world, world_to_chunk, world_to_voxel},
-        storage::{BlockData, BlockTable, CHUNK_SIZE},
+        storage::{BlockData, BlockTable, CHUNK_SIZE, CHUNK_SIZE_ARR},
     },
 };
 
@@ -258,34 +258,13 @@ pub fn interact(
             let hit = raycast_world(
                 camera_transform.translation(),
                 camera_transform.forward(),
-                25.0,
+                50.0,
                 &chunks,
                 &current_chunks,
                 &block_table,
             );
             if let Some((chunk_pos, voxel_pos, normal)) = hit {
-                // commands.spawn((PbrBundle {
-                //     mesh: meshes.add(shape::UVSphere::default().into()),
-                //     material: materials.add(Color::RED.into()).clone(),
-                //     transform: Transform::from_translation(normal),
-                //     ..default()
-                // },));
-
-                let mut point = voxel_to_world(voxel_pos, chunk_pos);
-                // point += normal / Vec3::splat(2.0);
-                // point = point.ceil();
-                // commands.spawn((PbrBundle {
-                //     mesh: meshes.add(
-                //         shape::UVSphere {
-                //             radius: 1.5,
-                //             ..default()
-                //         }
-                //         .into(),
-                //     ),
-                //     material: materials.add(Color::GREEN.into()).clone(),
-                //     transform: Transform::from_translation(point),
-                //     ..default()
-                // },));
+                let point = voxel_to_world(voxel_pos, chunk_pos);
 
                 let (chunk_pos, voxel_pos) = world_to_voxel(point);
 
@@ -296,7 +275,7 @@ pub fn interact(
                         if *block_visibility == Visibility::Hidden {
                             *block_visibility = Visibility::Visible;
                         }
-                        block_transform.translation = point - Vec3::splat(0.5);
+                        block_transform.translation = point + Vec3::splat(0.5);
                     }
                     if mouse_left || mouse_right {
                         if let Ok(mut chunk) = chunks.get_mut(chunk_entity) {
@@ -305,7 +284,7 @@ pub fn interact(
                                     || point.x >= player_transform.translation.x + 0.5)
                                     || (point.z <= player_transform.translation.z - 0.5
                                         || point.z >= player_transform.translation.z + 0.5)
-                                    || (point.y <= player_transform.translation.y - 2.0
+                                    || (point.y <= player_transform.translation.y - 1.0
                                         || point.y >= player_transform.translation.y + 1.0)
                                 {
                                     chunk.chunk_data.add_block_state(&item_string);
@@ -352,14 +331,14 @@ pub fn interact(
                                 );
                             }
                             match voxel_pos.x {
-                                1 => {
+                                0 => {
                                     if let Some(neighbor_chunk) =
                                         current_chunks.get_entity(chunk_pos + IVec3::new(-1, 0, 0))
                                     {
                                         commands.entity(neighbor_chunk).insert(NeedsMesh);
                                     }
                                 }
-                                CHUNK_SIZE => {
+                                CHUNK_SIZE_ARR => {
                                     if let Some(neighbor_chunk) =
                                         current_chunks.get_entity(chunk_pos + IVec3::new(1, 0, 0))
                                     {
@@ -369,14 +348,14 @@ pub fn interact(
                                 _ => {}
                             }
                             match voxel_pos.y {
-                                1 => {
+                                0 => {
                                     if let Some(neighbor_chunk) =
                                         current_chunks.get_entity(chunk_pos + IVec3::new(0, -1, 0))
                                     {
                                         commands.entity(neighbor_chunk).insert(NeedsMesh);
                                     }
                                 }
-                                CHUNK_SIZE => {
+                                CHUNK_SIZE_ARR => {
                                     if let Some(neighbor_chunk) =
                                         current_chunks.get_entity(chunk_pos + IVec3::new(0, 1, 0))
                                     {
@@ -386,14 +365,14 @@ pub fn interact(
                                 _ => {}
                             }
                             match voxel_pos.z {
-                                1 => {
+                                0 => {
                                     if let Some(neighbor_chunk) =
                                         current_chunks.get_entity(chunk_pos + IVec3::new(0, 0, -1))
                                     {
                                         commands.entity(neighbor_chunk).insert(NeedsMesh);
                                     }
                                 }
-                                CHUNK_SIZE => {
+                                CHUNK_SIZE_ARR => {
                                     if let Some(neighbor_chunk) =
                                         current_chunks.get_entity(chunk_pos + IVec3::new(0, 0, 1))
                                     {

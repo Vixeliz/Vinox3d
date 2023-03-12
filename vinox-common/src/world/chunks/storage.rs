@@ -10,6 +10,7 @@ use strum::EnumString;
 use crate::storage::blocks::descriptor::BlockDescriptor;
 
 pub const CHUNK_SIZE: u32 = 32;
+pub const CHUNK_SIZE_ARR: u32 = CHUNK_SIZE - 1;
 pub const TOTAL_CHUNK_SIZE: usize =
     (CHUNK_SIZE as usize) * (CHUNK_SIZE as usize) * (CHUNK_SIZE as usize);
 
