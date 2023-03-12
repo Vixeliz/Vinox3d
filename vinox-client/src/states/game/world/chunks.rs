@@ -1,4 +1,7 @@
+use std::time::Duration;
+
 use bevy::{ecs::system::SystemParam, prelude::*, utils::FloatOrd};
+use bevy_tweening::{lens::TransformPositionLens, *};
 use vinox_common::world::chunks::{
     ecs::{ChunkComp, ChunkPos, CurrentChunks, RemoveChunk, SimulationRadius, ViewRadius},
     positions::world_to_chunk,
@@ -132,15 +135,51 @@ impl<'w, 's> ChunkManager<'w, 's> {
     }
 }
 
+pub fn unload_chunks(
+    mut commands: Commands,
+    remove_chunks: Query<(&ChunkPos, Entity), With<RemoveChunk>>,
+) {
+    for (chunk, chunk_entity) in remove_chunks.iter() {
+        let tween = Tween::new(
+            EaseFunction::QuadraticInOut,
+            Duration::from_secs(1),
+            TransformPositionLens {
+                end: Vec3::new(
+                    (chunk.0.x * (CHUNK_SIZE) as i32) as f32,
+                    ((chunk.0.y * (CHUNK_SIZE) as i32) as f32) - CHUNK_SIZE as f32,
+                    (chunk.0.z * (CHUNK_SIZE) as i32) as f32,
+                ),
+
+                start: Vec3::new(
+                    (chunk.0.x * (CHUNK_SIZE) as i32) as f32,
+                    (chunk.0.y * (CHUNK_SIZE) as i32) as f32,
+                    (chunk.0.z * (CHUNK_SIZE) as i32) as f32,
+                ),
+            },
+        )
+        .with_repeat_count(RepeatCount::Finite(1))
+        .with_completed_event(0);
+        commands.entity(chunk_entity).insert(Animator::new(tween));
+        commands.entity(chunk_entity).remove::<RemoveChunk>();
+    }
+}
+
 pub fn destroy_chunks(
     mut commands: Commands,
     mut current_chunks: ResMut<CurrentChunks>,
-    remove_chunks: Query<&ChunkPos, With<RemoveChunk>>,
+    remove_chunks: Query<&ChunkPos>,
+    mut query_event: EventReader<TweenCompleted>,
 ) {
-    for chunk in remove_chunks.iter() {
-        commands
-            .entity(current_chunks.remove_entity(chunk.0).unwrap())
-            .despawn_recursive();
+    for evt in query_event.iter() {
+        if evt.user_data == 0 {
+            commands
+                .entity(
+                    current_chunks
+                        .remove_entity(remove_chunks.get(evt.entity).unwrap().0)
+                        .unwrap(),
+                )
+                .despawn_recursive();
+        }
     }
 }
 
@@ -327,8 +366,13 @@ impl Plugin for ChunkPlugin {
                     .in_set(OnUpdate(GameState::Game)),
             )
             .add_system(
-                destroy_chunks
+                unload_chunks
                     .after(build_mesh)
+                    .in_set(OnUpdate(GameState::Game)),
+            )
+            .add_system(
+                destroy_chunks
+                    .after(unload_chunks)
                     .in_set(OnUpdate(GameState::Game)),
             )
             .add_event::<UpdateChunkEvent>()
