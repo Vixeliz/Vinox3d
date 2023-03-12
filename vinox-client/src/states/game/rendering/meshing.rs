@@ -8,16 +8,17 @@ use bevy_tweening::{lens::TransformPositionLens, *};
 use futures_lite::future;
 use itertools::Itertools;
 use rand::prelude::*;
+use serde_big_array::Array;
 use std::{collections::HashSet, ops::Deref, time::Duration};
 use vinox_common::world::chunks::{
     ecs::{ChunkComp, CurrentChunks, ViewRadius},
     positions::voxel_to_world,
-    storage::{BlockTable, Chunk, Voxel, VoxelVisibility, CHUNK_SIZE},
+    storage::{BlockTable, Chunk, RawChunk, Voxel, VoxelVisibility, CHUNK_SIZE},
 };
 
 use crate::states::{
     assets::load::LoadableAssets,
-    game::world::chunks::{PlayerBlock, PlayerChunk},
+    game::world::chunks::{ChunkManager, PlayerBlock, PlayerChunk},
 };
 
 use super::chunk::ChunkBoundary;
@@ -426,26 +427,46 @@ where
             }
         }
     }
+
     buffer
 }
 
 pub fn build_mesh(
+    mut commands: Commands,
     mut chunk_queue: ResMut<MeshQueue>,
     player_chunk: Res<PlayerChunk>,
     view_radius: Res<ViewRadius>,
     chunks: Query<&ChunkComp, With<NeedsMesh>>,
-    current_chunks: Res<CurrentChunks>,
+    mut chunk_manager: ChunkManager,
 ) {
     let mut rng = rand::thread_rng();
-    for chunk in chunks.iter().choose_multiple(&mut rng, 64) {
+    for chunk in chunks.iter().choose_multiple(&mut rng, 32) {
         if player_chunk.is_in_radius(chunk.pos.0, &view_radius) {
-            chunk_queue.mesh.push((
-                chunk.pos.0,
-                ChunkBoundary::new(
-                    chunk.chunk_data.clone(),
-                    Box::default(), //Replace with neighbors
-                ),
-            ));
+            if chunk_manager
+                .current_chunks
+                .all_neighbors_exist(chunk.pos.clone())
+            {
+                commands
+                    .entity(
+                        chunk_manager
+                            .current_chunks
+                            .get_entity(chunk.pos.0)
+                            .unwrap(),
+                    )
+                    .remove::<NeedsMesh>();
+                if let Some(neighbors) = chunk_manager.get_neighbors(chunk.pos.clone()) {
+                    if let Ok(neighbors) = neighbors.try_into() {
+                        chunk_queue.mesh.push((
+                            chunk.pos.0,
+                            ChunkBoundary::new(
+                                chunk.chunk_data.clone(),
+                                Box::new(Array(neighbors)),
+                            ),
+                        ));
+                    } else {
+                    }
+                }
+            }
         }
     }
 }
@@ -592,7 +613,6 @@ pub fn process_task(
                 },));
 
                 commands.entity(chunk_entity).push_children(&[trans_entity]);
-                commands.entity(chunk_entity).remove::<NeedsMesh>();
                 commands.entity(entity).despawn_recursive();
             } else {
                 commands.entity(entity).despawn_recursive();
@@ -733,7 +753,6 @@ pub fn process_queue(
                     transparent_mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions.clone());
                     transparent_mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
                     transparent_mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
-
                     MeshedChunk {
                         transparent_mesh,
                         chunk_mesh: mesh,
@@ -743,7 +762,7 @@ pub fn process_queue(
             )
         })
         .for_each(|(_chunk_pos, chunk)| {
-            let _chunk_id = commands.spawn(chunk).id();
+            commands.spawn(chunk);
         });
 }
 

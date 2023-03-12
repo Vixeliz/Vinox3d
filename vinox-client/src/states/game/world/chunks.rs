@@ -45,18 +45,20 @@ pub struct ChunkQueue {
 
 impl PlayerChunk {
     pub fn is_in_radius(&self, pos: IVec3, view_radius: &ViewRadius) -> bool {
-        for x in -view_radius.horizontal..view_radius.horizontal {
-            for z in -view_radius.horizontal..view_radius.horizontal {
-                if x.pow(2) + z.pow(2) >= view_radius.horizontal.pow(2) {
-                    continue;
-                }
-                let delta: IVec3 = pos - self.chunk_pos;
-                return !(delta.x.pow(2) + delta.z.pow(2)
-                    > view_radius.horizontal.pow(2) * (CHUNK_SIZE as i32).pow(2)
-                    || delta.y.pow(2) > view_radius.vertical.pow(2) * (CHUNK_SIZE as i32).pow(2));
-            }
-        }
-        false
+        // for x in -view_radius.horizontal..view_radius.horizontal {
+        //     for z in -view_radius.horizontal..view_radius.horizontal {
+        // if x.pow(2) + z.pow(2) >= view_radius.horizontal.pow(2) {
+        //     continue;
+        // }
+        let delta: IVec3 = (pos - self.chunk_pos).abs();
+        // return !(delta.x.pow(2) + delta.z.pow(2) > view_radius.horizontal.pow(2)
+        //     || delta.y > view_radius.vertical);
+        return !(delta.x > view_radius.horizontal
+            || delta.z > view_radius.horizontal
+            || delta.y > view_radius.vertical);
+        //     }
+        // }
+        // false
     }
 }
 
@@ -79,31 +81,24 @@ pub fn update_player_location(
 #[derive(SystemParam)]
 pub struct ChunkManager<'w, 's> {
     // commands: Commands<'w, 's>,
-    current_chunks: ResMut<'w, CurrentChunks>,
+    pub current_chunks: ResMut<'w, CurrentChunks>,
     // chunk_queue: ResMut<'w, ChunkQueue>,
-    view_radius: Res<'w, ViewRadius>,
-    chunk_query: Query<'w, 's, &'static ChunkComp>,
+    pub view_radius: Res<'w, ViewRadius>,
+    pub chunk_query: Query<'w, 's, &'static ChunkComp>,
 }
 
 impl<'w, 's> ChunkManager<'w, 's> {
     pub fn get_chunk_positions(&mut self, chunk_pos: IVec3) -> Vec<IVec3> {
         let mut chunks = Vec::new();
-        for x in -self.view_radius.horizontal..self.view_radius.horizontal {
-            for z in -self.view_radius.horizontal..self.view_radius.horizontal {
-                for y in -self.view_radius.vertical..self.view_radius.vertical {
-                    if x.pow(2) + z.pow(2) >= self.view_radius.horizontal.pow(2) {
-                        continue;
-                    }
+        for x in -self.view_radius.horizontal..=self.view_radius.horizontal {
+            for z in -self.view_radius.horizontal..=self.view_radius.horizontal {
+                for y in -self.view_radius.vertical..=self.view_radius.vertical {
+                    // if x.pow(2) + z.pow(2) >= self.view_radius.horizontal.pow(2) {
+                    //     continue;
+                    // }
 
                     let chunk_key = {
-                        let mut pos: IVec3 = chunk_pos
-                            + IVec3::new(
-                                x * CHUNK_SIZE as i32,
-                                y * CHUNK_SIZE as i32,
-                                z * CHUNK_SIZE as i32,
-                            );
-
-                        pos.y = pos.y.max(0);
+                        let pos: IVec3 = chunk_pos + IVec3::new(x, y, z);
 
                         pos
                     };
@@ -125,6 +120,15 @@ impl<'w, 's> ChunkManager<'w, 's> {
         }
 
         res
+    }
+    pub fn get_neighbors(&self, pos: ChunkPos) -> Option<Vec<RawChunk>> {
+        let mut res = Vec::with_capacity(26);
+        for chunk_entity in self.current_chunks.get_all_neighbors(pos) {
+            if let Ok(chunk) = self.chunk_query.get(chunk_entity) {
+                res.push(chunk.chunk_data.clone())
+            }
+        }
+        return Some(res);
     }
 }
 
@@ -164,54 +168,55 @@ pub fn receive_chunks(
     view_radius: Res<ViewRadius>,
 ) {
     for evt in event.iter() {
-        if player_chunk.is_in_radius(evt.pos, &view_radius) {
-            if let Some(chunk_id) = current_chunks.get_entity(evt.pos) {
-                commands.entity(chunk_id).insert(ChunkComp {
+        // if player_chunk.is_in_radius(evt.pos, &view_radius) {
+        if let Some(chunk_id) = current_chunks.get_entity(evt.pos) {
+            commands.entity(chunk_id).insert(ChunkComp {
+                pos: ChunkPos(evt.pos),
+                chunk_data: evt.raw_chunk.to_owned(),
+                saved_entities: Vec::new(),
+                entities: Vec::new(),
+            });
+            let mut empty = true;
+            for block in evt.raw_chunk.palette.right_values() {
+                let mut identifier = block.namespace.clone();
+                identifier.push(':');
+                identifier.push_str(&block.name);
+                if identifier != "vinox:air" {
+                    empty = false;
+                }
+            }
+
+            if !empty {
+                commands.entity(chunk_id).insert(NeedsMesh);
+            }
+        } else {
+            let chunk_id = commands
+                .spawn(ChunkComp {
                     pos: ChunkPos(evt.pos),
                     chunk_data: evt.raw_chunk.to_owned(),
                     saved_entities: Vec::new(),
                     entities: Vec::new(),
-                });
-                let mut empty = true;
-                for block in evt.raw_chunk.palette.right_values() {
-                    let mut identifier = block.namespace.clone();
-                    identifier.push(':');
-                    identifier.push_str(&block.name);
-                    if identifier != "vinox:air" {
-                        empty = false;
-                    }
-                }
+                })
+                .id();
 
-                if !empty {
-                    commands.entity(chunk_id).insert(NeedsMesh);
-                }
-            } else {
-                let chunk_id = commands
-                    .spawn(ChunkComp {
-                        pos: ChunkPos(evt.pos),
-                        chunk_data: evt.raw_chunk.to_owned(),
-                        saved_entities: Vec::new(),
-                        entities: Vec::new(),
-                    })
-                    .id();
-                current_chunks.insert_entity(evt.pos, chunk_id);
+            current_chunks.insert_entity(evt.pos, chunk_id);
 
-                let mut empty = true;
-                for block in evt.raw_chunk.palette.right_values() {
-                    let mut identifier = block.namespace.clone();
-                    identifier.push(':');
-                    identifier.push_str(&block.name);
-                    if identifier != "vinox:air" {
-                        empty = false;
-                    }
+            let mut empty = true;
+            for block in evt.raw_chunk.palette.right_values() {
+                let mut identifier = block.namespace.clone();
+                identifier.push(':');
+                identifier.push_str(&block.name);
+                if identifier != "vinox:air" {
+                    empty = false;
                 }
+            }
 
-                if !empty {
-                    commands.entity(chunk_id).insert(NeedsMesh);
-                }
+            if !empty {
+                commands.entity(chunk_id).insert(NeedsMesh);
             }
         }
     }
+    // }
 }
 
 pub fn set_block(

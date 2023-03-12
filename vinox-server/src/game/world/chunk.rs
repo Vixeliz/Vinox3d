@@ -19,25 +19,43 @@ use super::{
 };
 
 #[derive(Resource, Default)]
-pub struct WorldSeed(pub u64);
+pub struct WorldSeed(pub u32);
 
 #[derive(Component, Default, Clone)]
 pub struct LoadPoint(pub IVec3);
 
 impl LoadPoint {
+    // pub fn is_in_radius(&self, pos: IVec3, view_radius: &ViewRadius) -> bool {
+    //     for x in -view_radius.horizontal..view_radius.horizontal {
+    //         for z in -view_radius.horizontal..view_radius.horizontal {
+    //             // if x.pow(2) + z.pow(2) >= view_radius.horizontal.pow(2) {
+    //             //     continue;
+    //             // }
+    //             let delta: IVec3 = pos - self.0;
+    //             // return !(delta.x.pow(2) + delta.z.pow(2) > view_radius.horizontal.pow(2)
+    //             //     || delta.y > view_radius.vertical);
+    //             return !(delta.x > view_radius.horizontal
+    //                 || delta.z > view_radius.horizontal
+    //                 || delta.y > view_radius.vertical);
+    //         }
+    //     }
+    //     false
+    // }
     pub fn is_in_radius(&self, pos: IVec3, view_radius: &ViewRadius) -> bool {
-        for x in -view_radius.horizontal..view_radius.horizontal {
-            for z in -view_radius.horizontal..view_radius.horizontal {
-                if x.pow(2) + z.pow(2) >= view_radius.horizontal.pow(2) {
-                    continue;
-                }
-                let delta: IVec3 = pos - self.0;
-                return !(delta.x.pow(2) + delta.z.pow(2)
-                    > view_radius.horizontal.pow(2) * (CHUNK_SIZE as i32).pow(2)
-                    || delta.y.pow(2) > view_radius.vertical.pow(2) * (CHUNK_SIZE as i32).pow(2));
-            }
-        }
-        false
+        // for x in -view_radius.horizontal..view_radius.horizontal {
+        //     for z in -view_radius.horizontal..view_radius.horizontal {
+        // if x.pow(2) + z.pow(2) >= view_radius.horizontal.pow(2) {
+        //     continue;
+        // }
+        let delta: IVec3 = (pos - self.0).abs();
+        // return !(delta.x.pow(2) + delta.z.pow(2) > view_radius.horizontal.pow(2)
+        //     || delta.y > view_radius.vertical);
+        return !(delta.x > view_radius.horizontal
+            || delta.z > view_radius.horizontal
+            || delta.y > view_radius.vertical);
+        //     }
+        // }
+        // false
     }
 }
 
@@ -59,22 +77,15 @@ pub struct ChunkManager<'w, 's> {
 impl<'w, 's> ChunkManager<'w, 's> {
     pub fn get_chunk_positions(&mut self, chunk_pos: IVec3) -> Vec<IVec3> {
         let mut chunks = Vec::new();
-        for x in -self.view_radius.horizontal..self.view_radius.horizontal {
-            for z in -self.view_radius.horizontal..self.view_radius.horizontal {
-                for y in -self.view_radius.vertical..self.view_radius.vertical {
-                    if x.pow(2) + z.pow(2) >= self.view_radius.horizontal.pow(2) {
-                        continue;
-                    }
+        for x in -self.view_radius.horizontal..=self.view_radius.horizontal {
+            for z in -self.view_radius.horizontal..=self.view_radius.horizontal {
+                for y in -self.view_radius.vertical..=self.view_radius.vertical {
+                    // if x.pow(2) + z.pow(2) >= self.view_radius.horizontal.pow(2) {
+                    //     continue;
+                    // }
 
                     let chunk_key = {
-                        let mut pos: IVec3 = chunk_pos
-                            + IVec3::new(
-                                x * CHUNK_SIZE as i32,
-                                y * CHUNK_SIZE as i32,
-                                z * CHUNK_SIZE as i32,
-                            );
-
-                        pos.y = pos.y.max(0);
+                        let pos: IVec3 = chunk_pos + IVec3::new(x, y, z);
 
                         pos
                     };
@@ -82,7 +93,7 @@ impl<'w, 's> ChunkManager<'w, 's> {
                 }
             }
         }
-        chunks.sort_unstable_by_key(|key| FloatOrd(key.as_vec3().distance(chunk_pos.as_vec3())));
+        // chunks.sort_unstable_by_key(|key| FloatOrd(key.as_vec3().distance(chunk_pos.as_vec3())));
         chunks
     }
     pub fn get_chunks_around_chunk(
@@ -245,7 +256,7 @@ impl Plugin for ChunkPlugin {
                 vertical: 4,
                 horizontal: 4,
             })
-            .insert_resource(WorldSeed(rand::thread_rng().gen_range(0..u64::MAX)))
+            .insert_resource(WorldSeed(rand::thread_rng().gen_range(0..u32::MAX)))
             .add_systems((clear_unloaded_chunks, unsend_chunks, generate_chunks_world))
             .add_system(process_queue.after(clear_unloaded_chunks))
             .add_system(process_task.after(process_queue))

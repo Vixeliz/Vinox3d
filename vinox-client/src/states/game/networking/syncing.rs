@@ -90,11 +90,13 @@ pub fn get_messages(
                                 unlit: true,
                                 ..Default::default()
                             }),
-                            transform: Transform::from_translation(translation),
+                            transform: Transform::from_translation(
+                                translation + Vec3::new(0.0, 0.0, -5.0),
+                            ),
                             ..default()
                         })
                         .insert(HighLightCube);
-                        cmd2.spawn((Camera3dBundle::default(), Spectator));
+
                         client_entity
                             .insert(player_builder.build(translation, id, true))
                             .insert(ControlledPlayer)

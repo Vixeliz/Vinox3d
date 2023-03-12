@@ -16,4 +16,4 @@ rand.workspace=true
 vinox-common = {path="../vinox-common"}
 rustc_data_structures.workspace=true
 futures-lite = "1.12.0"
-bracket-noise = "~0.8"
+noise = "0.8.2"
