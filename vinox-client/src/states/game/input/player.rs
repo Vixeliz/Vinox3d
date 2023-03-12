@@ -263,7 +263,7 @@ pub fn interact(
                 &current_chunks,
                 &block_table,
             );
-            if let Some((chunk_pos, voxel_pos, normal)) = hit {
+            if let Some((chunk_pos, voxel_pos, _normal)) = hit {
                 let point = voxel_to_world(voxel_pos, chunk_pos);
 
                 let (chunk_pos, voxel_pos) = world_to_voxel(point);
@@ -293,7 +293,7 @@ pub fn interact(
                                         ClientMessage::SentBlock {
                                             chunk_pos: chunk_pos,
                                             voxel_pos: [
-                                                voxel_pos.x as u8,
+                                                voxel_pos.x as u8, // TODO: use normal and make sure to get neighbor chunk if needed
                                                 voxel_pos.y as u8,
                                                 voxel_pos.z as u8,
                                             ],
