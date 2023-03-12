@@ -272,9 +272,14 @@ pub fn interact(
                 // },));
 
                 let mut point = voxel_to_world(voxel_pos, chunk_pos);
-                point += normal / Vec3::splat(2.0);
                 commands.spawn((PbrBundle {
-                    mesh: meshes.add(shape::UVSphere::default().into()),
+                    mesh: meshes.add(
+                        shape::UVSphere {
+                            radius: 1.5,
+                            ..default()
+                        }
+                        .into(),
+                    ),
                     material: materials.add(Color::GREEN.into()).clone(),
                     transform: Transform::from_translation(point),
                     ..default()

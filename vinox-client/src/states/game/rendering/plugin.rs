@@ -22,6 +22,24 @@ impl Plugin for RenderingPlugin {
                 color: Color::WHITE,
                 brightness: 1.0,
             })
+            .add_startup_system(|mut commands: Commands, assets: Res<AssetServer>| {
+                commands
+                    .spawn(NodeBundle {
+                        style: Style {
+                            size: Size::new(Val::Percent(100.), Val::Auto),
+                            justify_content: JustifyContent::Center,
+                            align_items: AlignItems::Center,
+                            ..default()
+                        },
+                        ..default()
+                    })
+                    .with_children(|parent| {
+                        parent.spawn(ImageBundle {
+                            image: assets.load("crosshair.png").into(),
+                            ..default()
+                        });
+                    });
+            })
             .add_event::<SortFaces>();
     }
 }
