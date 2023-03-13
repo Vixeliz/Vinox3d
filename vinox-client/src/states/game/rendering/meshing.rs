@@ -697,7 +697,7 @@ pub fn build_mesh(
                 .distance(player_chunk.chunk_pos.as_vec3()),
         )
     }) {
-        if count > 128 {
+        if count > 32 {
             break;
         }
         if chunk_manager
