@@ -5,7 +5,7 @@ use bevy_tweening::{lens::TransformPositionLens, *};
 use vinox_common::world::chunks::{
     ecs::{ChunkComp, ChunkPos, CurrentChunks, RemoveChunk, SimulationRadius, ViewRadius},
     positions::world_to_chunk,
-    storage::{BlockData, RawChunk, CHUNK_SIZE},
+    storage::{BlockData, RawChunk, CHUNK_SIZE, HORIZONTAL_DISTANCE, VERTICAL_DISTANCE},
 };
 
 use crate::states::{
@@ -309,8 +309,8 @@ impl Plugin for ChunkPlugin {
             .insert_resource(PlayerChunk::default())
             .insert_resource(PlayerBlock::default())
             .insert_resource(ViewRadius {
-                horizontal: 10,
-                vertical: 5,
+                horizontal: HORIZONTAL_DISTANCE,
+                vertical: VERTICAL_DISTANCE,
             })
             .insert_resource(SimulationRadius {
                 horizontal: 4,

@@ -45,9 +45,9 @@ mod test {
         assert_eq!(world_to_chunk(Vec3::splat(1.0)), IVec3::splat(0));
         assert_eq!(world_to_chunk(Vec3::splat(15.0)), IVec3::splat(0));
 
-        assert_eq!(world_to_chunk(Vec3::splat(32.0)), IVec3::splat(1));
-        assert_eq!(world_to_chunk(Vec3::splat(33.0)), IVec3::splat(1));
-        assert_eq!(world_to_chunk(Vec3::splat(63.0)), IVec3::splat(1));
+        assert_eq!(world_to_chunk(Vec3::splat(16.0)), IVec3::splat(1));
+        assert_eq!(world_to_chunk(Vec3::splat(17.0)), IVec3::splat(1));
+        assert_eq!(world_to_chunk(Vec3::splat(31.0)), IVec3::splat(1));
 
         assert_eq!(world_to_chunk(Vec3::splat(-1.0)), IVec3::splat(-1));
         assert_eq!(world_to_chunk(Vec3::splat(-15.0)), IVec3::splat(-1));
@@ -86,13 +86,13 @@ mod test {
         assert_eq!(world_to_offsets(Vec3::splat(1.0)), UVec3::splat(1));
         assert_eq!(world_to_offsets(Vec3::splat(15.0)), UVec3::splat(15));
 
-        assert_eq!(world_to_offsets(Vec3::splat(32.0)), UVec3::splat(0));
-        assert_eq!(world_to_offsets(Vec3::splat(33.0)), UVec3::splat(1));
-        assert_eq!(world_to_offsets(Vec3::splat(63.0)), UVec3::splat(31));
+        assert_eq!(world_to_offsets(Vec3::splat(16.0)), UVec3::splat(0));
+        assert_eq!(world_to_offsets(Vec3::splat(17.0)), UVec3::splat(1));
+        assert_eq!(world_to_offsets(Vec3::splat(31.0)), UVec3::splat(15));
 
-        assert_eq!(world_to_offsets(Vec3::splat(-16.0)), UVec3::splat(16));
-        assert_eq!(world_to_offsets(Vec3::splat(-15.0)), UVec3::splat(17));
-        assert_eq!(world_to_offsets(Vec3::splat(-1.0)), UVec3::splat(31));
+        assert_eq!(world_to_offsets(Vec3::splat(-16.0)), UVec3::splat(0));
+        assert_eq!(world_to_offsets(Vec3::splat(-15.0)), UVec3::splat(1));
+        assert_eq!(world_to_offsets(Vec3::splat(-1.0)), UVec3::splat(15));
 
         assert_eq!(world_to_offsets(Vec3::splat(-32.0)), UVec3::splat(0));
         assert_eq!(world_to_offsets(Vec3::splat(-31.0)), UVec3::splat(1));
@@ -100,40 +100,40 @@ mod test {
 
         assert_eq!(
             world_to_offsets(Vec3::new(-2.0, 1.0, 5.0)),
-            UVec3::new(30, 1, 5)
+            UVec3::new(14, 1, 5)
         );
         assert_eq!(
             world_to_offsets(Vec3::new(2.0, -1.0, 5.0)),
-            UVec3::new(2, 31, 5)
+            UVec3::new(2, 15, 5)
         );
         assert_eq!(
             world_to_offsets(Vec3::new(2.0, 1.0, -5.0)),
-            UVec3::new(2, 1, 27)
+            UVec3::new(2, 1, 11)
         );
 
         assert_eq!(
             world_to_offsets(Vec3::new(-15.0, 1.0, 5.0)),
-            UVec3::new(17, 1, 5)
+            UVec3::new(1, 1, 5)
         );
         assert_eq!(
             world_to_offsets(Vec3::new(15.0, -1.0, 5.0)),
-            UVec3::new(15, 31, 5)
+            UVec3::new(15, 15, 5)
         );
         assert_eq!(
             world_to_offsets(Vec3::new(15.0, 1.0, -5.0)),
-            UVec3::new(15, 1, 27)
+            UVec3::new(15, 1, 11)
         );
 
         // With fractions
         assert_eq!(world_to_offsets(Vec3::splat(0.1)), UVec3::splat(0));
-        assert_eq!(world_to_offsets(Vec3::splat(16.1)), UVec3::splat(16));
-        assert_eq!(world_to_offsets(Vec3::splat(-15.9)), UVec3::splat(16));
-        assert_eq!(world_to_offsets(Vec3::splat(-15.1)), UVec3::splat(16));
+        assert_eq!(world_to_offsets(Vec3::splat(16.1)), UVec3::splat(0));
+        assert_eq!(world_to_offsets(Vec3::splat(-15.9)), UVec3::splat(0));
+        assert_eq!(world_to_offsets(Vec3::splat(-15.1)), UVec3::splat(0));
 
         assert_eq!(world_to_offsets(Vec3::splat(15.9)), UVec3::splat(15));
-        assert_eq!(world_to_offsets(Vec3::splat(31.9)), UVec3::splat(31));
-        assert_eq!(world_to_offsets(Vec3::splat(-0.9)), UVec3::splat(31));
-        assert_eq!(world_to_offsets(Vec3::splat(-0.1)), UVec3::splat(31));
+        assert_eq!(world_to_offsets(Vec3::splat(31.9)), UVec3::splat(15));
+        assert_eq!(world_to_offsets(Vec3::splat(-0.9)), UVec3::splat(15));
+        assert_eq!(world_to_offsets(Vec3::splat(-0.1)), UVec3::splat(15));
     }
 
     #[test]
@@ -153,37 +153,37 @@ mod test {
 
         assert_eq!(
             voxel_to_world(UVec3::splat(0), IVec3::splat(1)),
-            Vec3::splat(32.0)
+            Vec3::splat(16.0)
         );
         assert_eq!(
             voxel_to_world(UVec3::splat(1), IVec3::splat(1)),
-            Vec3::splat(33.0)
+            Vec3::splat(17.0)
         );
         assert_eq!(
             voxel_to_world(UVec3::splat(15), IVec3::splat(1)),
-            Vec3::splat(47.0)
+            Vec3::splat(31.0)
         );
 
         assert_eq!(
             voxel_to_world(UVec3::splat(0), IVec3::splat(-1)),
-            Vec3::splat(-32.0)
+            Vec3::splat(-16.0)
         );
         assert_eq!(
             voxel_to_world(UVec3::splat(1), IVec3::splat(-1)),
-            Vec3::splat(-31.0)
+            Vec3::splat(-15.0)
         );
         assert_eq!(
             voxel_to_world(UVec3::splat(15), IVec3::splat(-1)),
-            Vec3::splat(-17.0)
+            Vec3::splat(-1.0)
         );
 
         assert_eq!(
             voxel_to_world(UVec3::new(0, 1, 15), IVec3::splat(-1)),
-            Vec3::new(-32.0, -31.0, -17.0)
+            Vec3::new(-16.0, -15.0, -1.0)
         );
         assert_eq!(
             voxel_to_world(UVec3::new(0, 1, 15), IVec3::new(0, 1, 0)),
-            Vec3::new(0.0, 33.0, 15.0)
+            Vec3::new(0.0, 17.0, 15.0)
         );
     }
 

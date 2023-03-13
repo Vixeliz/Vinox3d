@@ -6,8 +6,9 @@ use bevy::{
 };
 use futures_lite::future;
 use rand::Rng;
-use vinox_common::world::chunks::ecs::{
-    ChunkComp, ChunkPos, CurrentChunks, RemoveChunk, SimulationRadius, ViewRadius,
+use vinox_common::world::chunks::{
+    ecs::{ChunkComp, ChunkPos, CurrentChunks, RemoveChunk, SimulationRadius, ViewRadius},
+    storage::{HORIZONTAL_DISTANCE, VERTICAL_DISTANCE},
 };
 
 use crate::game::networking::components::SentChunks;
@@ -229,8 +230,8 @@ impl Plugin for ChunkPlugin {
         app.insert_resource(CurrentChunks::default())
             .insert_resource(ChunkQueue::default())
             .insert_resource(ViewRadius {
-                horizontal: 10,
-                vertical: 5,
+                horizontal: HORIZONTAL_DISTANCE,
+                vertical: VERTICAL_DISTANCE,
             })
             .insert_resource(SimulationRadius {
                 vertical: 4,

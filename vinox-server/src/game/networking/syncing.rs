@@ -162,14 +162,19 @@ pub fn send_chunks(
                         let mut final_chunk = Cursor::new(raw_chunk_bin);
                         let mut output = Cursor::new(Vec::new());
                         copy_encode(&mut final_chunk, &mut output, 0).unwrap();
-                        server.endpoint_mut().try_send_message(
-                            client_id,
-                            ServerMessage::LevelData {
-                                chunk_data: output.get_ref().clone(),
-                                pos: chunk.pos.0,
-                            },
-                        );
-                        sent_chunks.chunks.insert(chunk.pos.0);
+                        if server
+                            .endpoint_mut()
+                            .send_message(
+                                client_id,
+                                ServerMessage::LevelData {
+                                    chunk_data: output.get_ref().clone(),
+                                    pos: chunk.pos.0,
+                                },
+                            )
+                            .is_ok()
+                        {
+                            sent_chunks.chunks.insert(chunk.pos.0);
+                        }
                     }
                 }
             }

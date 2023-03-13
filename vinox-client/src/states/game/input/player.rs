@@ -13,7 +13,7 @@ use vinox_common::{
     world::chunks::{
         ecs::{ChunkComp, CurrentChunks},
         positions::{voxel_to_world, world_to_chunk, world_to_voxel},
-        storage::{BlockData, BlockTable, CHUNK_SIZE_ARR},
+        storage::{BlockData, BlockTable, CHUNK_SIZE, CHUNK_SIZE_ARR, HORIZONTAL_DISTANCE},
     },
 };
 
@@ -90,8 +90,8 @@ pub fn spawn_camera(
                     directional_light_color: Color::WHITE,
                     directional_light_exponent: 30.0,
                     falloff: FogFalloff::Linear {
-                        start: 250.0,
-                        end: 500.0,
+                        start: ((HORIZONTAL_DISTANCE - 2) * CHUNK_SIZE as i32) as f32,
+                        end: ((HORIZONTAL_DISTANCE + 2) * CHUNK_SIZE as i32) as f32,
                     },
                 },
             ));
