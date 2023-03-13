@@ -9,17 +9,14 @@ use bevy_tweening::{lens::TransformPositionLens, *};
 use futures_lite::future;
 use itertools::Itertools;
 use rand::seq::IteratorRandom;
+use tokio::sync::mpsc::{Receiver, Sender};
 // use rand::prelude::*;
 use serde_big_array::Array;
-use std::{
-    ops::Deref,
-    sync::mpsc::{Receiver, Sender, SyncSender},
-    time::Duration,
-};
+use std::{ops::Deref, time::Duration};
 use vinox_common::world::chunks::{
     ecs::{ChunkComp, CurrentChunks, ViewRadius},
     positions::voxel_to_world,
-    storage::{BlockTable, Chunk, Voxel, VoxelVisibility, CHUNK_SIZE},
+    storage::{BlockTable, Chunk, RawChunk, Voxel, VoxelVisibility, CHUNK_SIZE},
 };
 
 use crate::states::{
@@ -374,6 +371,12 @@ pub struct NeedsMesh;
 #[derive(Component, Default)]
 pub struct PriorityMesh;
 
+#[derive(Resource)]
+pub struct PriorityMeshChannel(pub (Sender<MeshedChunk>, Receiver<MeshedChunk>));
+
+#[derive(Resource)]
+pub struct MeshChannel(pub (Sender<MeshedChunk>, Receiver<MeshedChunk>));
+
 pub fn generate_mesh<C, T>(chunk: &C, block_table: &BlockTable, solid_pass: bool) -> QuadGroups
 where
     C: Chunk<Output = T>,
@@ -441,6 +444,122 @@ where
     buffer
 }
 
+fn full_mesh(
+    raw_chunk: &ChunkBoundary,
+    block_table: &BlockTable,
+    loadable_assets: &LoadableAssets,
+    texture_atlas: &TextureAtlas,
+    chunk_pos: IVec3,
+) -> MeshedChunk {
+    let mesh_result = generate_mesh(raw_chunk, block_table, true);
+    let mut positions = Vec::new();
+    let mut indices = Vec::new();
+    let mut normals = Vec::new();
+    let mut uvs = Vec::new();
+    let mut ao = Vec::new();
+    for face in mesh_result.iter_with_ao(raw_chunk, block_table) {
+        indices.extend_from_slice(&face.indices(positions.len() as u32));
+        positions.extend_from_slice(&face.positions(1.0)); // Voxel size is 1m
+        normals.extend_from_slice(&face.normals());
+        ao.extend_from_slice(&face.aos());
+
+        let matched_index = match (face.side.axis, face.side.positive) {
+            (Axis::X, false) => 2,
+            (Axis::X, true) => 3,
+            (Axis::Y, false) => 1,
+            (Axis::Y, true) => 0,
+            (Axis::Z, false) => 5,
+            (Axis::Z, true) => 4,
+        };
+        let block = raw_chunk
+            .get_block(
+                face.voxel()[0] as u32,
+                face.voxel()[1] as u32,
+                face.voxel()[2] as u32,
+            )
+            .unwrap();
+        let mut block_name = block.namespace.clone();
+        block_name.push(':');
+        block_name.push_str(&block.name);
+
+        if let Some(texture_index) = texture_atlas.get_texture_index(
+            &loadable_assets.block_textures.get(&block_name).unwrap()[matched_index],
+        ) {
+            let face_coords =
+                calculate_coords(texture_index, Vec2::new(16.0, 16.0), texture_atlas.size);
+            uvs.push(face_coords[0]);
+            uvs.push(face_coords[1]);
+            uvs.push(face_coords[2]);
+            uvs.push(face_coords[3]);
+        } else {
+            uvs.extend_from_slice(&face.uvs(false, false));
+        }
+    }
+
+    let final_ao = ao_convert(ao);
+    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
+    mesh.set_indices(Some(Indices::U32(indices)));
+    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions.clone());
+    mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, final_ao);
+
+    //Transparent Mesh
+    let mesh_result = generate_mesh(raw_chunk, block_table, false);
+    let mut positions = Vec::new();
+    let mut indices = Vec::new();
+    let mut normals = Vec::new();
+    let mut uvs = Vec::new();
+    for face in mesh_result.iter() {
+        indices.extend_from_slice(&face.indices(positions.len() as u32));
+        positions.extend_from_slice(&face.positions(1.0)); // Voxel size is 1m
+        normals.extend_from_slice(&face.normals());
+
+        let matched_index = match (face.side.axis, face.side.positive) {
+            (Axis::X, false) => 2,
+            (Axis::X, true) => 3,
+            (Axis::Y, false) => 1,
+            (Axis::Y, true) => 0,
+            (Axis::Z, false) => 5,
+            (Axis::Z, true) => 4,
+        };
+
+        let block = &raw_chunk
+            .get_block(
+                face.voxel()[0] as u32,
+                face.voxel()[1] as u32,
+                face.voxel()[2] as u32,
+            )
+            .unwrap();
+        let mut block_name = block.namespace.clone();
+        block_name.push(':');
+        block_name.push_str(&block.name);
+
+        if let Some(texture_index) = texture_atlas.get_texture_index(
+            &loadable_assets.block_textures.get(&block_name).unwrap()[matched_index],
+        ) {
+            let face_coords =
+                calculate_coords(texture_index, Vec2::new(16.0, 16.0), texture_atlas.size);
+            uvs.push(face_coords[0]);
+            uvs.push(face_coords[1]);
+            uvs.push(face_coords[2]);
+            uvs.push(face_coords[3]);
+        } else {
+            uvs.extend_from_slice(&face.uvs(false, false));
+        }
+    }
+    let mut transparent_mesh = Mesh::new(PrimitiveTopology::TriangleList);
+    transparent_mesh.set_indices(Some(Indices::U32(indices)));
+    transparent_mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions.clone());
+    transparent_mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
+    transparent_mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
+    MeshedChunk {
+        chunk_mesh: mesh,
+        transparent_mesh,
+        pos: chunk_pos,
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 pub fn process_priority_queue(
     mut chunk_queue: ResMut<MeshQueue>,
@@ -448,142 +567,123 @@ pub fn process_priority_queue(
     loadable_assets: ResMut<LoadableAssets>,
     block_table: Res<BlockTable>,
     texture_atlas: Res<Assets<TextureAtlas>>,
+    mut priority_channel: ResMut<PriorityMeshChannel>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    chunk_material: Res<ChunkMaterial>,
+    current_chunks: ResMut<CurrentChunks>,
+    chunks: Query<&Handle<Mesh>>,
 ) {
-    //TODO: Look into some other way to do this and profile it. Lots of clones for every chunk
     let task_pool = ComputeTaskPool::get();
     let block_atlas: TextureAtlas = texture_atlas
         .get(&loadable_assets.block_atlas)
         .unwrap()
         .clone();
-    chunk_queue
-        .priority
-        .drain(..)
-        .map(|(chunk_pos, raw_chunk)| {
-            let cloned_table: BlockTable = block_table.clone();
-            let cloned_assets: LoadableAssets = loadable_assets.clone();
-            let clone_atlas: TextureAtlas = block_atlas.clone();
-            (
-                chunk_pos,
-                PriorityTask(task_pool.spawn(async move {
-                    let mesh_result = generate_mesh(&raw_chunk, &cloned_table, true);
-                    let mut positions = Vec::new();
-                    let mut indices = Vec::new();
-                    let mut normals = Vec::new();
-                    let mut uvs = Vec::new();
-                    let mut ao = Vec::new();
-                    for face in mesh_result.iter_with_ao(&raw_chunk, &cloned_table) {
-                        indices.extend_from_slice(&face.indices(positions.len() as u32));
-                        positions.extend_from_slice(&face.positions(1.0)); // Voxel size is 1m
-                        normals.extend_from_slice(&face.normals());
-                        ao.extend_from_slice(&face.aos());
+    for (chunk_pos, raw_chunk) in chunk_queue.priority.drain(..) {
+        let cloned_table: BlockTable = block_table.clone();
+        let cloned_assets: LoadableAssets = loadable_assets.clone();
+        let clone_atlas: TextureAtlas = block_atlas.clone();
+        let cloned_sender = priority_channel.0 .0.clone();
 
-                        let matched_index = match (face.side.axis, face.side.positive) {
-                            (Axis::X, false) => 2,
-                            (Axis::X, true) => 3,
-                            (Axis::Y, false) => 1,
-                            (Axis::Y, true) => 0,
-                            (Axis::Z, false) => 5,
-                            (Axis::Z, true) => 4,
-                        };
-                        let block = &raw_chunk
-                            .get_block(
-                                face.voxel()[0] as u32,
-                                face.voxel()[1] as u32,
-                                face.voxel()[2] as u32,
-                            )
-                            .unwrap();
-                        let mut block_name = block.namespace.clone();
-                        block_name.push(':');
-                        block_name.push_str(&block.name);
+        task_pool
+            .spawn(async move {
+                cloned_sender
+                    .send(full_mesh(
+                        &raw_chunk,
+                        &cloned_table,
+                        &cloned_assets,
+                        &clone_atlas,
+                        chunk_pos,
+                    ))
+                    .await
+                    .ok();
+            })
+            .detach()
+    }
 
-                        if let Some(texture_index) = clone_atlas.get_texture_index(
-                            &cloned_assets.block_textures.get(&block_name).unwrap()[matched_index],
-                        ) {
-                            let face_coords = calculate_coords(
-                                texture_index,
-                                Vec2::new(16.0, 16.0),
-                                clone_atlas.size,
-                            );
-                            uvs.push(face_coords[0]);
-                            uvs.push(face_coords[1]);
-                            uvs.push(face_coords[2]);
-                            uvs.push(face_coords[3]);
-                        } else {
-                            uvs.extend_from_slice(&face.uvs(false, false));
-                        }
-                    }
+    while let Ok(chunk) = priority_channel.0 .1.try_recv() {
+        if let Some(chunk_entity) = current_chunks.get_entity(chunk.pos) {
+            commands.entity(chunk_entity).despawn_descendants();
+            let tween = Tween::new(
+                EaseFunction::QuadraticInOut,
+                Duration::from_secs(1),
+                TransformPositionLens {
+                    start: Vec3::new(
+                        (chunk.pos[0] * (CHUNK_SIZE) as i32) as f32,
+                        ((chunk.pos[1] * (CHUNK_SIZE) as i32) as f32) - CHUNK_SIZE as f32,
+                        (chunk.pos[2] * (CHUNK_SIZE) as i32) as f32,
+                    ),
 
-                    let final_ao = ao_convert(ao);
-                    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
-                    mesh.set_indices(Some(Indices::U32(indices)));
-                    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions.clone());
-                    mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
-                    mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
-                    mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, final_ao);
-
-                    //Transparent Mesh
-                    let mesh_result = generate_mesh(&raw_chunk, &cloned_table, false);
-                    let mut positions = Vec::new();
-                    let mut indices = Vec::new();
-                    let mut normals = Vec::new();
-                    let mut uvs = Vec::new();
-                    for face in mesh_result.iter() {
-                        indices.extend_from_slice(&face.indices(positions.len() as u32));
-                        positions.extend_from_slice(&face.positions(1.0)); // Voxel size is 1m
-                        normals.extend_from_slice(&face.normals());
-
-                        let matched_index = match (face.side.axis, face.side.positive) {
-                            (Axis::X, false) => 2,
-                            (Axis::X, true) => 3,
-                            (Axis::Y, false) => 1,
-                            (Axis::Y, true) => 0,
-                            (Axis::Z, false) => 5,
-                            (Axis::Z, true) => 4,
-                        };
-
-                        let block = &raw_chunk
-                            .get_block(
-                                face.voxel()[0] as u32,
-                                face.voxel()[1] as u32,
-                                face.voxel()[2] as u32,
-                            )
-                            .unwrap();
-                        let mut block_name = block.namespace.clone();
-                        block_name.push(':');
-                        block_name.push_str(&block.name);
-
-                        if let Some(texture_index) = clone_atlas.get_texture_index(
-                            &cloned_assets.block_textures.get(&block_name).unwrap()[matched_index],
-                        ) {
-                            let face_coords = calculate_coords(
-                                texture_index,
-                                Vec2::new(16.0, 16.0),
-                                clone_atlas.size,
-                            );
-                            uvs.push(face_coords[0]);
-                            uvs.push(face_coords[1]);
-                            uvs.push(face_coords[2]);
-                            uvs.push(face_coords[3]);
-                        } else {
-                            uvs.extend_from_slice(&face.uvs(false, false));
-                        }
-                    }
-                    let mut transparent_mesh = Mesh::new(PrimitiveTopology::TriangleList);
-                    transparent_mesh.set_indices(Some(Indices::U32(indices)));
-                    transparent_mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions.clone());
-                    transparent_mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
-                    transparent_mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
-                    MeshedChunk {
-                        transparent_mesh,
-                        chunk_mesh: mesh,
-                        pos: chunk_pos,
-                    }
-                })),
+                    end: Vec3::new(
+                        (chunk.pos[0] * (CHUNK_SIZE) as i32) as f32,
+                        (chunk.pos[1] * (CHUNK_SIZE) as i32) as f32,
+                        (chunk.pos[2] * (CHUNK_SIZE) as i32) as f32,
+                    ),
+                },
             )
-        })
-        .for_each(|(_chunk_pos, chunk)| {
-            commands.spawn(chunk);
-        });
+            .with_repeat_count(RepeatCount::Finite(1));
+
+            let chunk_pos = if chunks.get(chunk_entity).is_err() {
+                commands.entity(chunk_entity).insert(Animator::new(tween));
+                Vec3::new(
+                    (chunk.pos[0] * (CHUNK_SIZE) as i32) as f32,
+                    ((chunk.pos[1] * (CHUNK_SIZE) as i32) as f32) - CHUNK_SIZE as f32,
+                    (chunk.pos[2] * (CHUNK_SIZE) as i32) as f32,
+                )
+            } else {
+                Vec3::new(
+                    (chunk.pos[0] * (CHUNK_SIZE) as i32) as f32,
+                    (chunk.pos[1] * (CHUNK_SIZE) as i32) as f32,
+                    (chunk.pos[2] * (CHUNK_SIZE) as i32) as f32,
+                )
+            };
+
+            let trans_entity = commands
+                .spawn((RenderedChunk {
+                    aabb: Aabb {
+                        center: Vec3A::new(
+                            (CHUNK_SIZE / 2) as f32,
+                            (CHUNK_SIZE / 2) as f32,
+                            (CHUNK_SIZE / 2) as f32,
+                        ),
+                        half_extents: Vec3A::new(
+                            (CHUNK_SIZE / 2) as f32,
+                            (CHUNK_SIZE / 2) as f32,
+                            (CHUNK_SIZE / 2) as f32,
+                        ),
+                    },
+                    mesh: PbrBundle {
+                        mesh: meshes.add(chunk.transparent_mesh.clone()),
+                        material: chunk_material.transparent.clone(),
+                        ..Default::default()
+                    },
+                },))
+                .id();
+
+            commands.entity(chunk_entity).insert((RenderedChunk {
+                aabb: Aabb {
+                    center: Vec3A::new(
+                        (CHUNK_SIZE / 2) as f32,
+                        (CHUNK_SIZE / 2) as f32,
+                        (CHUNK_SIZE / 2) as f32,
+                    ),
+                    half_extents: Vec3A::new(
+                        (CHUNK_SIZE / 2) as f32,
+                        (CHUNK_SIZE / 2) as f32,
+                        (CHUNK_SIZE / 2) as f32,
+                    ),
+                },
+                mesh: PbrBundle {
+                    mesh: meshes.add(chunk.chunk_mesh.clone()),
+                    material: chunk_material.opaque.clone(),
+                    transform: Transform::from_translation(chunk_pos),
+                    ..Default::default()
+                },
+            },));
+
+            commands.entity(chunk_entity).push_children(&[trans_entity]);
+        } else {
+        }
+    }
 }
 
 pub fn priority_mesh(
@@ -620,7 +720,7 @@ pub fn build_mesh(
 ) {
     let mut rng = rand::thread_rng();
 
-    for chunk in chunks.iter().choose_multiple(&mut rng, 64) {
+    for chunk in chunks.iter().choose_multiple(&mut rng, 128) {
         if let Some(neighbors) = chunk_manager.get_neighbors(chunk.pos.clone()) {
             if let Ok(neighbors) = neighbors.try_into() {
                 chunk_queue.mesh.push((
@@ -649,10 +749,10 @@ pub struct MeshedChunk {
 }
 
 #[derive(Component)]
-pub struct ChunkGenTask(Task<MeshedChunk>);
+pub struct ChunkGenTask(Task<()>);
 
 #[derive(Component)]
-pub struct PriorityTask(Task<MeshedChunk>);
+pub struct PriorityTask(Task<()>);
 
 #[derive(Resource, Default)]
 pub struct ChunkMaterial {
@@ -693,196 +793,6 @@ pub fn create_chunk_material(
         ..default()
     });
 }
-
-#[allow(clippy::too_many_arguments)]
-pub fn process_task(
-    mut commands: Commands,
-    mut chunk_query: Query<(Entity, &mut ChunkGenTask)>,
-    mut priority_query: Query<(Entity, &mut PriorityTask)>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    chunk_material: Res<ChunkMaterial>,
-    current_chunks: ResMut<CurrentChunks>,
-    chunks: Query<&Handle<Mesh>>,
-) {
-    for (entity, mut chunk_task) in &mut priority_query {
-        if let Some(chunk) = future::block_on(future::poll_once(&mut chunk_task.0)) {
-            if let Some(chunk_entity) = current_chunks.get_entity(chunk.pos) {
-                commands.entity(chunk_entity).despawn_descendants();
-                let tween = Tween::new(
-                    EaseFunction::QuadraticInOut,
-                    Duration::from_secs(1),
-                    TransformPositionLens {
-                        start: Vec3::new(
-                            (chunk.pos[0] * (CHUNK_SIZE) as i32) as f32,
-                            ((chunk.pos[1] * (CHUNK_SIZE) as i32) as f32) - CHUNK_SIZE as f32,
-                            (chunk.pos[2] * (CHUNK_SIZE) as i32) as f32,
-                        ),
-
-                        end: Vec3::new(
-                            (chunk.pos[0] * (CHUNK_SIZE) as i32) as f32,
-                            (chunk.pos[1] * (CHUNK_SIZE) as i32) as f32,
-                            (chunk.pos[2] * (CHUNK_SIZE) as i32) as f32,
-                        ),
-                    },
-                )
-                .with_repeat_count(RepeatCount::Finite(1));
-
-                let chunk_pos = if chunks.get(chunk_entity).is_err() {
-                    commands.entity(chunk_entity).insert(Animator::new(tween));
-                    Vec3::new(
-                        (chunk.pos[0] * (CHUNK_SIZE) as i32) as f32,
-                        ((chunk.pos[1] * (CHUNK_SIZE) as i32) as f32) - CHUNK_SIZE as f32,
-                        (chunk.pos[2] * (CHUNK_SIZE) as i32) as f32,
-                    )
-                } else {
-                    Vec3::new(
-                        (chunk.pos[0] * (CHUNK_SIZE) as i32) as f32,
-                        (chunk.pos[1] * (CHUNK_SIZE) as i32) as f32,
-                        (chunk.pos[2] * (CHUNK_SIZE) as i32) as f32,
-                    )
-                };
-
-                let trans_entity = commands
-                    .spawn((RenderedChunk {
-                        aabb: Aabb {
-                            center: Vec3A::new(
-                                (CHUNK_SIZE / 2) as f32,
-                                (CHUNK_SIZE / 2) as f32,
-                                (CHUNK_SIZE / 2) as f32,
-                            ),
-                            half_extents: Vec3A::new(
-                                (CHUNK_SIZE / 2) as f32,
-                                (CHUNK_SIZE / 2) as f32,
-                                (CHUNK_SIZE / 2) as f32,
-                            ),
-                        },
-                        mesh: PbrBundle {
-                            mesh: meshes.add(chunk.transparent_mesh.clone()),
-                            material: chunk_material.transparent.clone(),
-                            ..Default::default()
-                        },
-                    },))
-                    .id();
-
-                commands.entity(chunk_entity).insert((RenderedChunk {
-                    aabb: Aabb {
-                        center: Vec3A::new(
-                            (CHUNK_SIZE / 2) as f32,
-                            (CHUNK_SIZE / 2) as f32,
-                            (CHUNK_SIZE / 2) as f32,
-                        ),
-                        half_extents: Vec3A::new(
-                            (CHUNK_SIZE / 2) as f32,
-                            (CHUNK_SIZE / 2) as f32,
-                            (CHUNK_SIZE / 2) as f32,
-                        ),
-                    },
-                    mesh: PbrBundle {
-                        mesh: meshes.add(chunk.chunk_mesh.clone()),
-                        material: chunk_material.opaque.clone(),
-                        transform: Transform::from_translation(chunk_pos),
-                        ..Default::default()
-                    },
-                },));
-
-                commands.entity(chunk_entity).push_children(&[trans_entity]);
-                commands.entity(entity).despawn_recursive();
-            } else {
-                commands.entity(entity).despawn_recursive();
-            }
-        }
-    }
-
-    for (entity, mut chunk_task) in &mut chunk_query {
-        if let Some(chunk) = future::block_on(future::poll_once(&mut chunk_task.0)) {
-            if let Some(chunk_entity) = current_chunks.get_entity(chunk.pos) {
-                commands.entity(chunk_entity).despawn_descendants();
-                let tween = Tween::new(
-                    EaseFunction::QuadraticInOut,
-                    Duration::from_secs(1),
-                    TransformPositionLens {
-                        start: Vec3::new(
-                            (chunk.pos[0] * (CHUNK_SIZE) as i32) as f32,
-                            ((chunk.pos[1] * (CHUNK_SIZE) as i32) as f32) - CHUNK_SIZE as f32,
-                            (chunk.pos[2] * (CHUNK_SIZE) as i32) as f32,
-                        ),
-
-                        end: Vec3::new(
-                            (chunk.pos[0] * (CHUNK_SIZE) as i32) as f32,
-                            (chunk.pos[1] * (CHUNK_SIZE) as i32) as f32,
-                            (chunk.pos[2] * (CHUNK_SIZE) as i32) as f32,
-                        ),
-                    },
-                )
-                .with_repeat_count(RepeatCount::Finite(1));
-
-                let chunk_pos = if chunks.get(chunk_entity).is_err() {
-                    commands.entity(chunk_entity).insert(Animator::new(tween));
-                    Vec3::new(
-                        (chunk.pos[0] * (CHUNK_SIZE) as i32) as f32,
-                        ((chunk.pos[1] * (CHUNK_SIZE) as i32) as f32) - CHUNK_SIZE as f32,
-                        (chunk.pos[2] * (CHUNK_SIZE) as i32) as f32,
-                    )
-                } else {
-                    Vec3::new(
-                        (chunk.pos[0] * (CHUNK_SIZE) as i32) as f32,
-                        (chunk.pos[1] * (CHUNK_SIZE) as i32) as f32,
-                        (chunk.pos[2] * (CHUNK_SIZE) as i32) as f32,
-                    )
-                };
-
-                let trans_entity = commands
-                    .spawn((RenderedChunk {
-                        aabb: Aabb {
-                            center: Vec3A::new(
-                                (CHUNK_SIZE / 2) as f32,
-                                (CHUNK_SIZE / 2) as f32,
-                                (CHUNK_SIZE / 2) as f32,
-                            ),
-                            half_extents: Vec3A::new(
-                                (CHUNK_SIZE / 2) as f32,
-                                (CHUNK_SIZE / 2) as f32,
-                                (CHUNK_SIZE / 2) as f32,
-                            ),
-                        },
-                        mesh: PbrBundle {
-                            mesh: meshes.add(chunk.transparent_mesh.clone()),
-                            material: chunk_material.transparent.clone(),
-                            ..Default::default()
-                        },
-                    },))
-                    .id();
-
-                commands.entity(chunk_entity).insert((RenderedChunk {
-                    aabb: Aabb {
-                        center: Vec3A::new(
-                            (CHUNK_SIZE / 2) as f32,
-                            (CHUNK_SIZE / 2) as f32,
-                            (CHUNK_SIZE / 2) as f32,
-                        ),
-                        half_extents: Vec3A::new(
-                            (CHUNK_SIZE / 2) as f32,
-                            (CHUNK_SIZE / 2) as f32,
-                            (CHUNK_SIZE / 2) as f32,
-                        ),
-                    },
-                    mesh: PbrBundle {
-                        mesh: meshes.add(chunk.chunk_mesh.clone()),
-                        material: chunk_material.opaque.clone(),
-                        transform: Transform::from_translation(chunk_pos),
-                        ..Default::default()
-                    },
-                },));
-
-                commands.entity(chunk_entity).push_children(&[trans_entity]);
-                commands.entity(entity).despawn_recursive();
-            } else {
-                commands.entity(entity).despawn_recursive();
-            }
-        }
-    }
-}
-
 #[allow(clippy::too_many_arguments)]
 pub fn process_queue(
     mut chunk_queue: ResMut<MeshQueue>,
@@ -890,142 +800,123 @@ pub fn process_queue(
     loadable_assets: ResMut<LoadableAssets>,
     block_table: Res<BlockTable>,
     texture_atlas: Res<Assets<TextureAtlas>>,
+    mut mesh_channel: ResMut<MeshChannel>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    chunk_material: Res<ChunkMaterial>,
+    current_chunks: ResMut<CurrentChunks>,
+    chunks: Query<&Handle<Mesh>>,
 ) {
-    //TODO: Look into some other way to do this and profile it. Lots of clones for every chunk
     let task_pool = AsyncComputeTaskPool::get();
     let block_atlas: TextureAtlas = texture_atlas
         .get(&loadable_assets.block_atlas)
         .unwrap()
         .clone();
-    chunk_queue
-        .mesh
-        .drain(..)
-        .map(|(chunk_pos, raw_chunk)| {
-            let cloned_table: BlockTable = block_table.clone();
-            let cloned_assets: LoadableAssets = loadable_assets.clone();
-            let clone_atlas: TextureAtlas = block_atlas.clone();
-            (
-                chunk_pos,
-                ChunkGenTask(task_pool.spawn(async move {
-                    let mesh_result = generate_mesh(&raw_chunk, &cloned_table, true);
-                    let mut positions = Vec::new();
-                    let mut indices = Vec::new();
-                    let mut normals = Vec::new();
-                    let mut uvs = Vec::new();
-                    let mut ao = Vec::new();
-                    for face in mesh_result.iter_with_ao(&raw_chunk, &cloned_table) {
-                        indices.extend_from_slice(&face.indices(positions.len() as u32));
-                        positions.extend_from_slice(&face.positions(1.0)); // Voxel size is 1m
-                        normals.extend_from_slice(&face.normals());
-                        ao.extend_from_slice(&face.aos());
+    for (chunk_pos, raw_chunk) in chunk_queue.mesh.drain(..) {
+        let cloned_table: BlockTable = block_table.clone();
+        let cloned_assets: LoadableAssets = loadable_assets.clone();
+        let clone_atlas: TextureAtlas = block_atlas.clone();
+        let cloned_sender = mesh_channel.0 .0.clone();
 
-                        let matched_index = match (face.side.axis, face.side.positive) {
-                            (Axis::X, false) => 2,
-                            (Axis::X, true) => 3,
-                            (Axis::Y, false) => 1,
-                            (Axis::Y, true) => 0,
-                            (Axis::Z, false) => 5,
-                            (Axis::Z, true) => 4,
-                        };
-                        let block = &raw_chunk
-                            .get_block(
-                                face.voxel()[0] as u32,
-                                face.voxel()[1] as u32,
-                                face.voxel()[2] as u32,
-                            )
-                            .unwrap();
-                        let mut block_name = block.namespace.clone();
-                        block_name.push(':');
-                        block_name.push_str(&block.name);
+        task_pool
+            .spawn(async move {
+                cloned_sender
+                    .send(full_mesh(
+                        &raw_chunk,
+                        &cloned_table,
+                        &cloned_assets,
+                        &clone_atlas,
+                        chunk_pos,
+                    ))
+                    .await
+                    .ok();
+            })
+            .detach()
+    }
 
-                        if let Some(texture_index) = clone_atlas.get_texture_index(
-                            &cloned_assets.block_textures.get(&block_name).unwrap()[matched_index],
-                        ) {
-                            let face_coords = calculate_coords(
-                                texture_index,
-                                Vec2::new(16.0, 16.0),
-                                clone_atlas.size,
-                            );
-                            uvs.push(face_coords[0]);
-                            uvs.push(face_coords[1]);
-                            uvs.push(face_coords[2]);
-                            uvs.push(face_coords[3]);
-                        } else {
-                            uvs.extend_from_slice(&face.uvs(false, false));
-                        }
-                    }
+    while let Ok(chunk) = mesh_channel.0 .1.try_recv() {
+        if let Some(chunk_entity) = current_chunks.get_entity(chunk.pos) {
+            commands.entity(chunk_entity).despawn_descendants();
+            let tween = Tween::new(
+                EaseFunction::QuadraticInOut,
+                Duration::from_secs(1),
+                TransformPositionLens {
+                    start: Vec3::new(
+                        (chunk.pos[0] * (CHUNK_SIZE) as i32) as f32,
+                        ((chunk.pos[1] * (CHUNK_SIZE) as i32) as f32) - CHUNK_SIZE as f32,
+                        (chunk.pos[2] * (CHUNK_SIZE) as i32) as f32,
+                    ),
 
-                    let final_ao = ao_convert(ao);
-                    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
-                    mesh.set_indices(Some(Indices::U32(indices)));
-                    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions.clone());
-                    mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
-                    mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
-                    mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, final_ao);
-
-                    //Transparent Mesh
-                    let mesh_result = generate_mesh(&raw_chunk, &cloned_table, false);
-                    let mut positions = Vec::new();
-                    let mut indices = Vec::new();
-                    let mut normals = Vec::new();
-                    let mut uvs = Vec::new();
-                    for face in mesh_result.iter() {
-                        indices.extend_from_slice(&face.indices(positions.len() as u32));
-                        positions.extend_from_slice(&face.positions(1.0)); // Voxel size is 1m
-                        normals.extend_from_slice(&face.normals());
-
-                        let matched_index = match (face.side.axis, face.side.positive) {
-                            (Axis::X, false) => 2,
-                            (Axis::X, true) => 3,
-                            (Axis::Y, false) => 1,
-                            (Axis::Y, true) => 0,
-                            (Axis::Z, false) => 5,
-                            (Axis::Z, true) => 4,
-                        };
-
-                        let block = &raw_chunk
-                            .get_block(
-                                face.voxel()[0] as u32,
-                                face.voxel()[1] as u32,
-                                face.voxel()[2] as u32,
-                            )
-                            .unwrap();
-                        let mut block_name = block.namespace.clone();
-                        block_name.push(':');
-                        block_name.push_str(&block.name);
-
-                        if let Some(texture_index) = clone_atlas.get_texture_index(
-                            &cloned_assets.block_textures.get(&block_name).unwrap()[matched_index],
-                        ) {
-                            let face_coords = calculate_coords(
-                                texture_index,
-                                Vec2::new(16.0, 16.0),
-                                clone_atlas.size,
-                            );
-                            uvs.push(face_coords[0]);
-                            uvs.push(face_coords[1]);
-                            uvs.push(face_coords[2]);
-                            uvs.push(face_coords[3]);
-                        } else {
-                            uvs.extend_from_slice(&face.uvs(false, false));
-                        }
-                    }
-                    let mut transparent_mesh = Mesh::new(PrimitiveTopology::TriangleList);
-                    transparent_mesh.set_indices(Some(Indices::U32(indices)));
-                    transparent_mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions.clone());
-                    transparent_mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
-                    transparent_mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
-                    MeshedChunk {
-                        transparent_mesh,
-                        chunk_mesh: mesh,
-                        pos: chunk_pos,
-                    }
-                })),
+                    end: Vec3::new(
+                        (chunk.pos[0] * (CHUNK_SIZE) as i32) as f32,
+                        (chunk.pos[1] * (CHUNK_SIZE) as i32) as f32,
+                        (chunk.pos[2] * (CHUNK_SIZE) as i32) as f32,
+                    ),
+                },
             )
-        })
-        .for_each(|(_chunk_pos, chunk)| {
-            commands.spawn(chunk);
-        });
+            .with_repeat_count(RepeatCount::Finite(1));
+
+            let chunk_pos = if chunks.get(chunk_entity).is_err() {
+                commands.entity(chunk_entity).insert(Animator::new(tween));
+                Vec3::new(
+                    (chunk.pos[0] * (CHUNK_SIZE) as i32) as f32,
+                    ((chunk.pos[1] * (CHUNK_SIZE) as i32) as f32) - CHUNK_SIZE as f32,
+                    (chunk.pos[2] * (CHUNK_SIZE) as i32) as f32,
+                )
+            } else {
+                Vec3::new(
+                    (chunk.pos[0] * (CHUNK_SIZE) as i32) as f32,
+                    (chunk.pos[1] * (CHUNK_SIZE) as i32) as f32,
+                    (chunk.pos[2] * (CHUNK_SIZE) as i32) as f32,
+                )
+            };
+
+            let trans_entity = commands
+                .spawn((RenderedChunk {
+                    aabb: Aabb {
+                        center: Vec3A::new(
+                            (CHUNK_SIZE / 2) as f32,
+                            (CHUNK_SIZE / 2) as f32,
+                            (CHUNK_SIZE / 2) as f32,
+                        ),
+                        half_extents: Vec3A::new(
+                            (CHUNK_SIZE / 2) as f32,
+                            (CHUNK_SIZE / 2) as f32,
+                            (CHUNK_SIZE / 2) as f32,
+                        ),
+                    },
+                    mesh: PbrBundle {
+                        mesh: meshes.add(chunk.transparent_mesh.clone()),
+                        material: chunk_material.transparent.clone(),
+                        ..Default::default()
+                    },
+                },))
+                .id();
+
+            commands.entity(chunk_entity).insert((RenderedChunk {
+                aabb: Aabb {
+                    center: Vec3A::new(
+                        (CHUNK_SIZE / 2) as f32,
+                        (CHUNK_SIZE / 2) as f32,
+                        (CHUNK_SIZE / 2) as f32,
+                    ),
+                    half_extents: Vec3A::new(
+                        (CHUNK_SIZE / 2) as f32,
+                        (CHUNK_SIZE / 2) as f32,
+                        (CHUNK_SIZE / 2) as f32,
+                    ),
+                },
+                mesh: PbrBundle {
+                    mesh: meshes.add(chunk.chunk_mesh.clone()),
+                    material: chunk_material.opaque.clone(),
+                    transform: Transform::from_translation(chunk_pos),
+                    ..Default::default()
+                },
+            },));
+
+            commands.entity(chunk_entity).push_children(&[trans_entity]);
+        } else {
+        }
+    }
 }
 
 // TODO: Change this to actually use the values the texture atlas provides for the start and end of a texture.

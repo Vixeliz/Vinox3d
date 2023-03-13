@@ -21,3 +21,4 @@ futures-lite = "1.12.0"
 copy_dir = "0.1.2"
 rand.workspace=true
 zstd.workspace=true
+tokio.workspace=true
