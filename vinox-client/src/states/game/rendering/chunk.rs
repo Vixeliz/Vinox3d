@@ -9,6 +9,7 @@ const TOTAL_CHUNK_SIZE_PADDED: usize =
     (CHUNK_SIZE_PADDED as usize) * (CHUNK_SIZE_PADDED as usize) * (CHUNK_SIZE_PADDED as usize);
 const CHUNK_SIZE_PADDED: u32 = CHUNK_SIZE + 2;
 
+#[derive(Clone)]
 pub struct ChunkBoundary {
     center: RawChunk,
     neighbors: Box<Array<RawChunk, 26>>,
