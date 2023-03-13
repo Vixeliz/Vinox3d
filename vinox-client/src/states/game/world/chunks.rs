@@ -10,7 +10,7 @@ use vinox_common::world::chunks::{
 
 use crate::states::{
     components::GameState,
-    game::rendering::meshing::{build_mesh, priority_mesh, NeedsMesh},
+    game::rendering::meshing::{build_mesh, priority_mesh, NeedsMesh, PriorityMesh},
 };
 
 #[derive(Component)]
@@ -197,27 +197,7 @@ pub fn receive_chunks(
 ) {
     for evt in event.iter() {
         if player_chunk.is_in_radius(evt.pos, &view_radius) {
-            if let Some(chunk_id) = current_chunks.get_entity(evt.pos) {
-                commands.entity(chunk_id).insert(ChunkComp {
-                    pos: ChunkPos(evt.pos),
-                    chunk_data: evt.raw_chunk.to_owned(),
-                    saved_entities: Vec::new(),
-                    entities: Vec::new(),
-                });
-                let mut empty = true;
-                for block in evt.raw_chunk.palette.right_values() {
-                    let mut identifier = block.namespace.clone();
-                    identifier.push(':');
-                    identifier.push_str(&block.name);
-                    if identifier != "vinox:air" {
-                        empty = false;
-                    }
-                }
-
-                if !empty {
-                    commands.entity(chunk_id).insert(NeedsMesh);
-                }
-            } else {
+            if let None = current_chunks.get_entity(evt.pos) {
                 let chunk_id = commands
                     .spawn(ChunkComp {
                         pos: ChunkPos(evt.pos),
@@ -264,14 +244,14 @@ pub fn set_block(
                         if let Some(neighbor_chunk) =
                             current_chunks.get_entity(evt.chunk_pos + IVec3::new(-1, 0, 0))
                         {
-                            commands.entity(neighbor_chunk).insert(NeedsMesh);
+                            commands.entity(neighbor_chunk).insert(PriorityMesh);
                         }
                     }
                     CHUNK_SIZE => {
                         if let Some(neighbor_chunk) =
                             current_chunks.get_entity(evt.chunk_pos + IVec3::new(1, 0, 0))
                         {
-                            commands.entity(neighbor_chunk).insert(NeedsMesh);
+                            commands.entity(neighbor_chunk).insert(PriorityMesh);
                         }
                     }
                     _ => {}
@@ -281,14 +261,14 @@ pub fn set_block(
                         if let Some(neighbor_chunk) =
                             current_chunks.get_entity(evt.chunk_pos + IVec3::new(0, -1, 0))
                         {
-                            commands.entity(neighbor_chunk).insert(NeedsMesh);
+                            commands.entity(neighbor_chunk).insert(PriorityMesh);
                         }
                     }
                     CHUNK_SIZE => {
                         if let Some(neighbor_chunk) =
                             current_chunks.get_entity(evt.chunk_pos + IVec3::new(0, 1, 0))
                         {
-                            commands.entity(neighbor_chunk).insert(NeedsMesh);
+                            commands.entity(neighbor_chunk).insert(PriorityMesh);
                         }
                     }
                     _ => {}
@@ -298,20 +278,20 @@ pub fn set_block(
                         if let Some(neighbor_chunk) =
                             current_chunks.get_entity(evt.chunk_pos + IVec3::new(0, 0, -1))
                         {
-                            commands.entity(neighbor_chunk).insert(NeedsMesh);
+                            commands.entity(neighbor_chunk).insert(PriorityMesh);
                         }
                     }
                     CHUNK_SIZE => {
                         if let Some(neighbor_chunk) =
                             current_chunks.get_entity(evt.chunk_pos + IVec3::new(0, 0, 1))
                         {
-                            commands.entity(neighbor_chunk).insert(NeedsMesh);
+                            commands.entity(neighbor_chunk).insert(PriorityMesh);
                         }
                     }
                     _ => {}
                 }
             }
-            commands.entity(chunk_entity).insert(NeedsMesh);
+            commands.entity(chunk_entity).insert(PriorityMesh);
         }
     }
 }
@@ -329,7 +309,7 @@ impl Plugin for ChunkPlugin {
             .insert_resource(PlayerChunk::default())
             .insert_resource(PlayerBlock::default())
             .insert_resource(ViewRadius {
-                horizontal: 12,
+                horizontal: 10,
                 vertical: 5,
             })
             .insert_resource(SimulationRadius {

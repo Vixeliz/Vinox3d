@@ -3,10 +3,10 @@ use bevy::{
     prelude::*,
     render::{mesh::Indices, primitives::Aabb, render_resource::PrimitiveTopology},
     tasks::{AsyncComputeTaskPool, ComputeTaskPool, Task},
-    utils::FloatOrd,
 };
 use bevy_tweening::{lens::TransformPositionLens, *};
 use itertools::Itertools;
+use rand::{seq::IteratorRandom, thread_rng};
 use tokio::sync::mpsc::{Receiver, Sender};
 // use rand::prelude::*;
 use serde_big_array::Array;
@@ -569,7 +569,6 @@ pub fn process_priority_queue(
     mut meshes: ResMut<Assets<Mesh>>,
     chunk_material: Res<ChunkMaterial>,
     current_chunks: ResMut<CurrentChunks>,
-    chunks: Query<&Handle<Mesh>>,
 ) {
     let task_pool = ComputeTaskPool::get();
     let block_atlas: TextureAtlas = texture_atlas
@@ -601,39 +600,12 @@ pub fn process_priority_queue(
     while let Ok(chunk) = priority_channel.0 .1.try_recv() {
         if let Some(chunk_entity) = current_chunks.get_entity(chunk.pos) {
             commands.entity(chunk_entity).despawn_descendants();
-            let tween = Tween::new(
-                EaseFunction::QuadraticInOut,
-                Duration::from_secs(1),
-                TransformPositionLens {
-                    start: Vec3::new(
-                        (chunk.pos[0] * (CHUNK_SIZE) as i32) as f32,
-                        ((chunk.pos[1] * (CHUNK_SIZE) as i32) as f32) - CHUNK_SIZE as f32,
-                        (chunk.pos[2] * (CHUNK_SIZE) as i32) as f32,
-                    ),
 
-                    end: Vec3::new(
-                        (chunk.pos[0] * (CHUNK_SIZE) as i32) as f32,
-                        (chunk.pos[1] * (CHUNK_SIZE) as i32) as f32,
-                        (chunk.pos[2] * (CHUNK_SIZE) as i32) as f32,
-                    ),
-                },
-            )
-            .with_repeat_count(RepeatCount::Finite(1));
-
-            let chunk_pos = if chunks.get(chunk_entity).is_err() {
-                commands.entity(chunk_entity).insert(Animator::new(tween));
-                Vec3::new(
-                    (chunk.pos[0] * (CHUNK_SIZE) as i32) as f32,
-                    ((chunk.pos[1] * (CHUNK_SIZE) as i32) as f32) - CHUNK_SIZE as f32,
-                    (chunk.pos[2] * (CHUNK_SIZE) as i32) as f32,
-                )
-            } else {
-                Vec3::new(
-                    (chunk.pos[0] * (CHUNK_SIZE) as i32) as f32,
-                    (chunk.pos[1] * (CHUNK_SIZE) as i32) as f32,
-                    (chunk.pos[2] * (CHUNK_SIZE) as i32) as f32,
-                )
-            };
+            let chunk_pos = Vec3::new(
+                (chunk.pos[0] * (CHUNK_SIZE) as i32) as f32,
+                (chunk.pos[1] * (CHUNK_SIZE) as i32) as f32,
+                (chunk.pos[2] * (CHUNK_SIZE) as i32) as f32,
+            );
 
             let trans_entity = commands
                 .spawn((RenderedChunk {
@@ -715,36 +687,29 @@ pub fn build_mesh(
     mut chunk_queue: ResMut<MeshQueue>,
     chunks: Query<&ChunkComp, With<NeedsMesh>>,
     chunk_manager: ChunkManager,
-    player_chunk: Res<PlayerChunk>,
 ) {
-    let mut count = 0;
-    for chunk in chunks.iter().sorted_unstable_by_key(|key| {
-        FloatOrd(
-            key.pos
-                .0
-                .as_vec3()
-                .distance(player_chunk.chunk_pos.as_vec3()),
-        )
-    }) {
-        if count > 96 {
-            break;
-        }
-        if let Some(neighbors) = chunk_manager.get_neighbors(chunk.pos.clone()) {
-            count += 1;
-            if let Ok(neighbors) = neighbors.try_into() {
-                chunk_queue.mesh.push((
-                    chunk.pos.0,
-                    ChunkBoundary::new(chunk.chunk_data.clone(), Box::new(Array(neighbors))),
-                ));
+    let mut rng = thread_rng();
+    for chunk in chunks.iter().choose_multiple(&mut rng, 512) {
+        if chunk_manager
+            .current_chunks
+            .all_neighbors_exist(chunk.pos.clone())
+        {
+            if let Some(neighbors) = chunk_manager.get_neighbors(chunk.pos.clone()) {
+                if let Ok(neighbors) = neighbors.try_into() {
+                    chunk_queue.mesh.push((
+                        chunk.pos.0,
+                        ChunkBoundary::new(chunk.chunk_data.clone(), Box::new(Array(neighbors))),
+                    ));
 
-                commands
-                    .entity(
-                        chunk_manager
-                            .current_chunks
-                            .get_entity(chunk.pos.0)
-                            .unwrap(),
-                    )
-                    .remove::<NeedsMesh>();
+                    commands
+                        .entity(
+                            chunk_manager
+                                .current_chunks
+                                .get_entity(chunk.pos.0)
+                                .unwrap(),
+                        )
+                        .remove::<NeedsMesh>();
+                }
             }
         }
     }
