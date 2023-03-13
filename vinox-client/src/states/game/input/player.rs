@@ -13,7 +13,7 @@ use vinox_common::{
     world::chunks::{
         ecs::{ChunkComp, CurrentChunks},
         positions::{voxel_to_world, world_to_chunk, world_to_voxel},
-        storage::{BlockData, BlockTable, CHUNK_SIZE, CHUNK_SIZE_ARR},
+        storage::{BlockData, BlockTable, CHUNK_SIZE_ARR},
     },
 };
 
@@ -230,8 +230,8 @@ pub fn interact(
     >,
     mut current_item: Local<CurrentItem>,
     block_table: Res<BlockTable>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    mut meshes: ResMut<Assets<Mesh>>,
+    // mut materials: ResMut<Assets<StandardMaterial>>,
+    // mut meshes: ResMut<Assets<Mesh>>,
 ) {
     let item_string = match current_item.clone() {
         CurrentItem::Grass => BlockData::new("vinox".to_string(), "grass".to_string()),
@@ -291,7 +291,7 @@ pub fn interact(
                                     chunk.chunk_data.set_block(voxel_pos, &item_string);
                                     client.connection_mut().try_send_message(
                                         ClientMessage::SentBlock {
-                                            chunk_pos: chunk_pos,
+                                            chunk_pos,
                                             voxel_pos: [
                                                 voxel_pos.x as u8, // TODO: use normal and make sure to get neighbor chunk if needed
                                                 voxel_pos.y as u8,
@@ -302,22 +302,13 @@ pub fn interact(
                                     );
                                 }
                             } else if mouse_left {
-                                println!(
-                                    "Point: {}, Player Pos: {}",
-                                    point,
-                                    voxel_to_world(
-                                        world_to_voxel(player_transform.translation).1,
-                                        world_to_voxel(player_transform.translation).0
-                                    )
-                                );
-
                                 chunk.chunk_data.set_block(
                                     voxel_pos,
                                     &BlockData::new("vinox".to_string(), "air".to_string()),
                                 );
                                 client.connection_mut().try_send_message(
                                     ClientMessage::SentBlock {
-                                        chunk_pos: chunk_pos,
+                                        chunk_pos,
                                         voxel_pos: [
                                             voxel_pos.x as u8,
                                             voxel_pos.y as u8,

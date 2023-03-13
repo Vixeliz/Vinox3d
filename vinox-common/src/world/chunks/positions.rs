@@ -10,7 +10,7 @@ pub fn world_to_chunk(pos: Vec3) -> IVec3 {
     )
 }
 
-pub fn world_to_global_voxel(voxel_pos: Vec3) -> (IVec3) {
+pub fn world_to_global_voxel(voxel_pos: Vec3) -> IVec3 {
     voxel_pos.floor().as_ivec3()
 }
 

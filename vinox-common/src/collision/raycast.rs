@@ -82,26 +82,24 @@ pub fn raycast_world(
                 face.y = 0.0;
                 face.z = -step.z;
             }
-        } else {
-            if tmax.y < tmax.z {
-                if tmax.y > radius {
-                    break;
-                }
-                origin.y += step.y;
-                tmax.y += tdelta.y;
-                face.x = 0.0;
-                face.y = -step.y;
-                face.z = 0.0;
-            } else {
-                if tmax.z > radius {
-                    break;
-                }
-                origin.z += step.z;
-                tmax.z += tdelta.z;
-                face.x = 0.0;
-                face.y = 0.0;
-                face.z = -step.z;
+        } else if tmax.y < tmax.z {
+            if tmax.y > radius {
+                break;
             }
+            origin.y += step.y;
+            tmax.y += tdelta.y;
+            face.x = 0.0;
+            face.y = -step.y;
+            face.z = 0.0;
+        } else {
+            if tmax.z > radius {
+                break;
+            }
+            origin.z += step.z;
+            tmax.z += tdelta.z;
+            face.x = 0.0;
+            face.y = 0.0;
+            face.z = -step.z;
         }
     }
     None
@@ -114,11 +112,7 @@ fn intbound(s: f32, ds: f32) -> f32 {
     }
 
     if ds > 0.0 {
-        if s.ceil() == 0.0 {
-            return 1.0 - s;
-        } else {
-            s.ceil() - s
-        }
+        s.ceil() - s
     } else {
         s - (s.floor() / ds.abs())
     }

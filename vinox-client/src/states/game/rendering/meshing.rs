@@ -6,17 +6,15 @@ use bevy::{
     utils::FloatOrd,
 };
 use bevy_tweening::{lens::TransformPositionLens, *};
-use futures_lite::future;
 use itertools::Itertools;
-use rand::seq::IteratorRandom;
 use tokio::sync::mpsc::{Receiver, Sender};
 // use rand::prelude::*;
 use serde_big_array::Array;
 use std::{ops::Deref, time::Duration};
 use vinox_common::world::chunks::{
-    ecs::{ChunkComp, CurrentChunks, ViewRadius},
+    ecs::{ChunkComp, CurrentChunks},
     positions::voxel_to_world,
-    storage::{BlockTable, Chunk, RawChunk, Voxel, VoxelVisibility, CHUNK_SIZE},
+    storage::{BlockTable, Chunk, Voxel, VoxelVisibility, CHUNK_SIZE},
 };
 
 use crate::states::{
@@ -696,7 +694,7 @@ pub fn priority_mesh(
         if let Some(neighbors) = chunk_manager.get_neighbors(chunk.pos.clone()) {
             if let Ok(neighbors) = neighbors.try_into() {
                 chunk_queue.priority.push((
-                    chunk.pos.0.clone(),
+                    chunk.pos.0,
                     ChunkBoundary::new(chunk.chunk_data.clone(), Box::new(Array(neighbors))),
                 ));
                 commands
@@ -732,8 +730,8 @@ pub fn build_mesh(
             break;
         }
         if let Some(neighbors) = chunk_manager.get_neighbors(chunk.pos.clone()) {
+            count += 1;
             if let Ok(neighbors) = neighbors.try_into() {
-                count += 1;
                 chunk_queue.mesh.push((
                     chunk.pos.0,
                     ChunkBoundary::new(chunk.chunk_data.clone(), Box::new(Array(neighbors))),
