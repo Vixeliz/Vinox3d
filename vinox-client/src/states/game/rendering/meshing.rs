@@ -689,7 +689,7 @@ pub fn build_mesh(
     chunk_manager: ChunkManager,
 ) {
     let mut rng = thread_rng();
-    for chunk in chunks.iter().choose_multiple(&mut rng, 512) {
+    for chunk in chunks.iter().choose_multiple(&mut rng, 256) {
         if chunk_manager
             .current_chunks
             .all_neighbors_exist(chunk.pos.clone())
