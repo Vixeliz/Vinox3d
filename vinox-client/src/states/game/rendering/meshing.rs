@@ -3,14 +3,13 @@ use bevy::{
     prelude::*,
     render::{mesh::Indices, primitives::Aabb, render_resource::PrimitiveTopology},
     tasks::{AsyncComputeTaskPool, ComputeTaskPool, Task},
+    utils::FloatOrd,
 };
 use bevy_tweening::{lens::TransformPositionLens, *};
 use itertools::Itertools;
-use rand::{seq::IteratorRandom, thread_rng};
-use tokio::sync::mpsc::{Receiver, Sender};
-// use rand::prelude::*;
 use serde_big_array::Array;
 use std::{ops::Deref, time::Duration};
+use tokio::sync::mpsc::{Receiver, Sender};
 use vinox_common::world::chunks::{
     ecs::{ChunkComp, CurrentChunks},
     positions::voxel_to_world,
@@ -687,13 +686,25 @@ pub fn build_mesh(
     mut chunk_queue: ResMut<MeshQueue>,
     chunks: Query<&ChunkComp, With<NeedsMesh>>,
     chunk_manager: ChunkManager,
+    player_chunk: Res<PlayerChunk>,
 ) {
-    let mut rng = thread_rng();
-    for chunk in chunks.iter().choose_multiple(&mut rng, 256) {
+    let mut count = 0;
+    for chunk in chunks.iter().sorted_unstable_by_key(|key| {
+        FloatOrd(
+            key.pos
+                .0
+                .as_vec3()
+                .distance(player_chunk.chunk_pos.as_vec3()),
+        )
+    }) {
+        if count > 64 {
+            break;
+        }
         if chunk_manager
             .current_chunks
             .all_neighbors_exist(chunk.pos.clone())
         {
+            count += 1;
             if let Some(neighbors) = chunk_manager.get_neighbors(chunk.pos.clone()) {
                 if let Ok(neighbors) = neighbors.try_into() {
                     chunk_queue.mesh.push((
@@ -779,13 +790,16 @@ pub fn process_queue(
     chunk_material: Res<ChunkMaterial>,
     current_chunks: ResMut<CurrentChunks>,
     chunks: Query<&Handle<Mesh>>,
+    player_chunk: Res<PlayerChunk>,
 ) {
     let task_pool = AsyncComputeTaskPool::get();
     let block_atlas: TextureAtlas = texture_atlas
         .get(&loadable_assets.block_atlas)
         .unwrap()
         .clone();
-    for (chunk_pos, raw_chunk) in chunk_queue.mesh.drain(..) {
+    for (chunk_pos, raw_chunk) in chunk_queue.mesh.drain(..).sorted_unstable_by_key(|key| {
+        FloatOrd(key.0.as_vec3().distance(player_chunk.chunk_pos.as_vec3()))
+    }) {
         let cloned_table: BlockTable = block_table.clone();
         let cloned_assets: LoadableAssets = loadable_assets.clone();
         let clone_atlas: TextureAtlas = block_atlas.clone();
