@@ -15,11 +15,6 @@ use vinox_common::{
 use zstd::stream::copy_decode;
 
 #[derive(Component)]
-pub struct JustSpawned {
-    timer: Timer,
-}
-
-#[derive(Component)]
 pub struct HighLightCube;
 
 pub fn get_id(
@@ -98,10 +93,7 @@ pub fn get_messages(
 
                         client_entity
                             .insert(player_builder.build(translation, id, true))
-                            .insert(ControlledPlayer)
-                            .insert(JustSpawned {
-                                timer: Timer::new(Duration::from_secs(10), TimerMode::Once),
-                            });
+                            .insert(ControlledPlayer);
                     } else {
                         println!("Player {id} connected.");
                         client_entity.insert(player_builder.build(translation, id, false));
@@ -235,24 +227,6 @@ pub fn client_send_naive_position(
                     },
                 )
                 .unwrap();
-        }
-    }
-}
-
-// TODO: Have a more elegant way to wait on loading section or by actually waiting till all the intial chunks are loaded
-pub fn wait_for_chunks(
-    mut just_spawned_query: Query<(&mut JustSpawned, Entity, &mut Transform)>,
-    time: Res<Time>,
-    mut commands: Commands,
-) {
-    if let Ok((mut just_spawned, entity, mut player_transform)) =
-        just_spawned_query.get_single_mut()
-    {
-        just_spawned.timer.tick(time.delta());
-        if just_spawned.timer.finished() {
-            commands.entity(entity).remove::<JustSpawned>();
-        } else {
-            player_transform.translation = Vec3::new(0.0, 110.0, 0.0);
         }
     }
 }
