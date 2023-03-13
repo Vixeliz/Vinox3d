@@ -197,7 +197,7 @@ pub fn receive_chunks(
 ) {
     for evt in event.iter() {
         if player_chunk.is_in_radius(evt.pos, &view_radius) {
-            if let None = current_chunks.get_entity(evt.pos) {
+            if current_chunks.get_entity(evt.pos).is_none() {
                 let chunk_id = commands
                     .spawn(ChunkComp {
                         pos: ChunkPos(evt.pos),
