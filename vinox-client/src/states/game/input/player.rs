@@ -18,7 +18,7 @@ use vinox_common::{
 };
 
 use crate::states::game::{
-    networking::syncing::HighLightCube, rendering::meshing::NeedsMesh,
+    networking::syncing::HighLightCube, rendering::meshing::PriorityMesh,
     world::chunks::ControlledPlayer,
 };
 
@@ -335,14 +335,14 @@ pub fn interact(
                                     if let Some(neighbor_chunk) =
                                         current_chunks.get_entity(chunk_pos + IVec3::new(-1, 0, 0))
                                     {
-                                        commands.entity(neighbor_chunk).insert(NeedsMesh);
+                                        commands.entity(neighbor_chunk).insert(PriorityMesh);
                                     }
                                 }
                                 CHUNK_SIZE_ARR => {
                                     if let Some(neighbor_chunk) =
                                         current_chunks.get_entity(chunk_pos + IVec3::new(1, 0, 0))
                                     {
-                                        commands.entity(neighbor_chunk).insert(NeedsMesh);
+                                        commands.entity(neighbor_chunk).insert(PriorityMesh);
                                     }
                                 }
                                 _ => {}
@@ -352,14 +352,14 @@ pub fn interact(
                                     if let Some(neighbor_chunk) =
                                         current_chunks.get_entity(chunk_pos + IVec3::new(0, -1, 0))
                                     {
-                                        commands.entity(neighbor_chunk).insert(NeedsMesh);
+                                        commands.entity(neighbor_chunk).insert(PriorityMesh);
                                     }
                                 }
                                 CHUNK_SIZE_ARR => {
                                     if let Some(neighbor_chunk) =
                                         current_chunks.get_entity(chunk_pos + IVec3::new(0, 1, 0))
                                     {
-                                        commands.entity(neighbor_chunk).insert(NeedsMesh);
+                                        commands.entity(neighbor_chunk).insert(PriorityMesh);
                                     }
                                 }
                                 _ => {}
@@ -369,19 +369,19 @@ pub fn interact(
                                     if let Some(neighbor_chunk) =
                                         current_chunks.get_entity(chunk_pos + IVec3::new(0, 0, -1))
                                     {
-                                        commands.entity(neighbor_chunk).insert(NeedsMesh);
+                                        commands.entity(neighbor_chunk).insert(PriorityMesh);
                                     }
                                 }
                                 CHUNK_SIZE_ARR => {
                                     if let Some(neighbor_chunk) =
                                         current_chunks.get_entity(chunk_pos + IVec3::new(0, 0, 1))
                                     {
-                                        commands.entity(neighbor_chunk).insert(NeedsMesh);
+                                        commands.entity(neighbor_chunk).insert(PriorityMesh);
                                     }
                                 }
                                 _ => {}
                             }
-                            commands.entity(chunk_entity).insert(NeedsMesh);
+                            commands.entity(chunk_entity).insert(PriorityMesh);
                         }
                     }
                 } else if let Ok((_, mut block_visibility)) = cube_position.get_single_mut() {

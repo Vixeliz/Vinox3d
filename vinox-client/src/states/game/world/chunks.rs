@@ -10,7 +10,7 @@ use vinox_common::world::chunks::{
 
 use crate::states::{
     components::GameState,
-    game::rendering::meshing::{build_mesh, NeedsMesh},
+    game::rendering::meshing::{build_mesh, priority_mesh, NeedsMesh},
 };
 
 #[derive(Component)]
@@ -351,6 +351,11 @@ impl Plugin for ChunkPlugin {
             )
             .add_system(
                 build_mesh
+                    .after(clear_unloaded_chunks)
+                    .in_set(OnUpdate(GameState::Game)),
+            )
+            .add_system(
+                priority_mesh
                     .after(clear_unloaded_chunks)
                     .in_set(OnUpdate(GameState::Game)),
             )

@@ -108,8 +108,6 @@ pub fn raycast_world(
 }
 
 fn intbound(s: f32, ds: f32) -> f32 {
-    // Some kind of edge case, see:
-    // http://gamedev.stackexchange.com/questions/47362/cast-ray-to-select-block-in-voxel-game#comment160436_49423
     let is_int = s == s.round();
     if ds < 0.0 && is_int {
         return 0.0;
