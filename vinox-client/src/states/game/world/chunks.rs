@@ -196,32 +196,32 @@ pub fn receive_chunks(
     view_radius: Res<ViewRadius>,
 ) {
     for evt in event.iter() {
-        if player_chunk.is_in_radius(evt.pos, &view_radius) {
-            if current_chunks.get_entity(evt.pos).is_none() {
-                let chunk_id = commands
-                    .spawn(ChunkComp {
-                        pos: ChunkPos(evt.pos),
-                        chunk_data: evt.raw_chunk.to_owned(),
-                        saved_entities: Vec::new(),
-                        entities: Vec::new(),
-                    })
-                    .id();
+        if player_chunk.is_in_radius(evt.pos, &view_radius)
+            && current_chunks.get_entity(evt.pos).is_none()
+        {
+            let chunk_id = commands
+                .spawn(ChunkComp {
+                    pos: ChunkPos(evt.pos),
+                    chunk_data: evt.raw_chunk.to_owned(),
+                    saved_entities: Vec::new(),
+                    entities: Vec::new(),
+                })
+                .id();
 
-                current_chunks.insert_entity(evt.pos, chunk_id);
+            current_chunks.insert_entity(evt.pos, chunk_id);
 
-                let mut empty = true;
-                for block in evt.raw_chunk.palette.right_values() {
-                    let mut identifier = block.namespace.clone();
-                    identifier.push(':');
-                    identifier.push_str(&block.name);
-                    if identifier != "vinox:air" {
-                        empty = false;
-                    }
+            let mut empty = true;
+            for block in evt.raw_chunk.palette.right_values() {
+                let mut identifier = block.namespace.clone();
+                identifier.push(':');
+                identifier.push_str(&block.name);
+                if identifier != "vinox:air" {
+                    empty = false;
                 }
+            }
 
-                if !empty {
-                    commands.entity(chunk_id).insert(NeedsMesh);
-                }
+            if !empty {
+                commands.entity(chunk_id).insert(NeedsMesh);
             }
         }
     }
