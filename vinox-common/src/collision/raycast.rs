@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::world::chunks::{
     ecs::{ChunkComp, CurrentChunks},
-    positions::world_to_voxel,
+    positions::{voxel_to_world, world_to_voxel},
     storage::{BlockTable, Chunk, RawChunk, VoxelVisibility},
 };
 // Takes in absolute world positions returns a chunk pos and a voxel pos for whatever face it hits and a normal
