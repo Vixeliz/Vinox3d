@@ -1,6 +1,6 @@
 use std::{collections::HashSet, time::Duration};
 
-use bevy::{ecs::system::SystemParam, prelude::*, utils::FloatOrd};
+use bevy::{ecs::system::SystemParam, math::Vec3Swizzles, prelude::*, utils::FloatOrd};
 use bevy_tweening::{lens::TransformPositionLens, *};
 use vinox_common::world::chunks::{
     ecs::{ChunkComp, ChunkPos, CurrentChunks, RemoveChunk, SimulationRadius, ViewRadius},
@@ -48,17 +48,19 @@ pub struct ChunkQueue {
 
 impl PlayerChunk {
     pub fn is_in_radius(&self, pos: IVec3, view_radius: &ViewRadius) -> bool {
-        for x in -view_radius.horizontal..view_radius.horizontal {
-            for z in -view_radius.horizontal..view_radius.horizontal {
-                if x.pow(2) + z.pow(2) >= view_radius.horizontal.pow(2) {
-                    continue;
-                }
-                let delta: IVec3 = (pos - self.chunk_pos).abs();
-                return !(delta.x.pow(2) + delta.z.pow(2) > view_radius.horizontal.pow(2)
-                    || delta.y > view_radius.vertical);
-            }
+        if pos
+            .xz()
+            .as_vec2()
+            .distance(self.chunk_pos.xz().as_vec2())
+            .abs()
+            .floor() as i32
+            > view_radius.horizontal
+            || (pos.y - self.chunk_pos.y).abs() > view_radius.vertical
+        {
+            return false;
+        } else {
+            return true;
         }
-        false
     }
 }
 
