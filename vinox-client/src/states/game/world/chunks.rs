@@ -4,7 +4,7 @@ use bevy::{ecs::system::SystemParam, math::Vec3Swizzles, prelude::*, utils::Floa
 use bevy_tweening::{lens::TransformPositionLens, *};
 use vinox_common::world::chunks::{
     ecs::{ChunkComp, ChunkPos, CurrentChunks, RemoveChunk, SimulationRadius, ViewRadius},
-    positions::world_to_chunk,
+    positions::{circle_points, world_to_chunk},
     storage::{BlockData, RawChunk, CHUNK_SIZE, HORIZONTAL_DISTANCE, VERTICAL_DISTANCE},
 };
 
@@ -87,22 +87,13 @@ pub struct ChunkManager<'w, 's> {
 impl<'w, 's> ChunkManager<'w, 's> {
     pub fn get_chunk_positions(&mut self, chunk_pos: IVec3) -> Vec<IVec3> {
         let mut chunks = Vec::new();
-        for x in -self.view_radius.horizontal..=self.view_radius.horizontal {
-            for z in -self.view_radius.horizontal..=self.view_radius.horizontal {
-                for y in -self.view_radius.vertical..=self.view_radius.vertical {
-                    if x.pow(2) + z.pow(2) >= self.view_radius.horizontal.pow(2) {
-                        continue;
-                    }
 
-                    let chunk_key = {
-                        let pos: IVec3 = chunk_pos + IVec3::new(x, y, z);
-
-                        pos
-                    };
-                    chunks.push(chunk_key);
-                }
+        for point in circle_points(&self.view_radius) {
+            for y in -self.view_radius.vertical..=self.view_radius.vertical {
+                chunks.push(chunk_pos + IVec3::new(point.x, y, point.y));
             }
         }
+
         chunks.sort_unstable_by_key(|key| {
             FloatOrd(key.xz().as_vec2().distance(chunk_pos.xz().as_vec2()))
         });
