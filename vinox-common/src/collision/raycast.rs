@@ -35,9 +35,8 @@ pub fn raycast_world(
     let radius = radius
         / (direction.x * direction.x + direction.y * direction.y + direction.z * direction.z)
             .sqrt();
-
+    let mut lastmax = 0.0;
     let mut counter = 0;
-
     loop {
         // Infinite loop shouldve been prevented by tmax but it isn't for some reason all the time. This just breaks the loop after 4 x the radius which should be plenty of time to find the voxel
         // It could be due to chunks or neighbors not existing?
@@ -58,8 +57,9 @@ pub fn raycast_world(
                     .unwrap()
                     != VoxelVisibility::Empty
                 {
+                    let toi = lastmax * direction.length();
                     // TODO: Get time of impact
-                    return Some((chunk_pos, voxel_pos, face, 0.0));
+                    return Some((chunk_pos, voxel_pos, face, toi));
                 }
             }
         }
@@ -69,6 +69,7 @@ pub fn raycast_world(
                 if tmax.x > radius {
                     break;
                 }
+                lastmax = tmax.x;
                 current_block.x += step.x;
                 tmax.x += tdelta.x;
                 face.x = -step.x;
@@ -78,6 +79,7 @@ pub fn raycast_world(
                 if tmax.z > radius {
                     break;
                 }
+                lastmax = tmax.z;
                 current_block.z += step.z;
                 tmax.z += tdelta.z;
                 face.x = 0.0;
@@ -88,6 +90,7 @@ pub fn raycast_world(
             if tmax.y > radius {
                 break;
             }
+            lastmax = tmax.y;
             current_block.y += step.y;
             tmax.y += tdelta.y;
             face.x = 0.0;
@@ -97,6 +100,7 @@ pub fn raycast_world(
             if tmax.z > radius {
                 break;
             }
+            lastmax = tmax.z;
             current_block.z += step.z;
             tmax.z += tdelta.z;
             face.x = 0.0;

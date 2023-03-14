@@ -432,10 +432,14 @@ pub fn collision_movement_system(
                         position + movement_left + Vec3::new(0.0, 0.495, 0.0);
                     break;
                 }
-                Some((chunk_pos, voxel_pos, normal, _)) => {
-                    // if toi.status != Converged {
-                    //     let unstuck_vector =
-                    //         transforms.get(collision_entity).unwrap().translation - position;
+                Some((chunk_pos, voxel_pos, normal, toi)) => {
+                    // TODO: We will use aabb to get unstuck instead of this
+                    // if toi < 0.0 {
+                    //     let unstuck_vector = transforms
+                    //         .get(current_chunks.get_entity(chunk_pos).unwrap())
+                    //         .unwrap()
+                    //         .translation
+                    //         - position;
                     //     transforms.get_mut(entity_player).unwrap().translation -=
                     //         unstuck_vector.normalize() * 0.01;
                     //     fps_camera.velocity = Vec3::new(0.0, 0.0, 0.0);
