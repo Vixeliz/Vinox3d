@@ -383,10 +383,10 @@ pub fn interact(
                             commands.entity(chunk_entity).insert(PriorityMesh);
                         }
                     }
-                } else if let Ok((_, mut block_visibility)) = cube_position.get_single_mut() {
-                    if *block_visibility == Visibility::Visible {
-                        *block_visibility = Visibility::Hidden;
-                    }
+                }
+            } else if let Ok((_, mut block_visibility)) = cube_position.get_single_mut() {
+                if *block_visibility == Visibility::Visible {
+                    *block_visibility = Visibility::Hidden;
                 }
             }
         }
