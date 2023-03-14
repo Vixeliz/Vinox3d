@@ -12,7 +12,7 @@ use vinox_common::{
     networking::protocol::ClientMessage,
     world::chunks::{
         ecs::{ChunkComp, CurrentChunks},
-        positions::{voxel_to_world, world_to_chunk},
+        positions::{relative_voxel_to_world, voxel_to_world, world_to_chunk, world_to_voxel},
         storage::{BlockData, BlockTable, CHUNK_SIZE, CHUNK_SIZE_ARR, HORIZONTAL_DISTANCE},
     },
 };
@@ -286,28 +286,29 @@ pub fn interact(
                                         || point.y >= player_transform.translation.y + 1.0)
                                 {
                                     // TODO: Get neighboring chunk when needed instead of just disregarding
-                                    let final_pos = UVec3::new(
-                                        (voxel_pos.x as f32 + normal.x) as u32,
-                                        (voxel_pos.y as f32 + normal.y) as u32,
-                                        (voxel_pos.z as f32 + normal.z) as u32,
-                                    )
-                                    .clamp(
-                                        UVec3::new(0, 0, 0),
-                                        UVec3::new(CHUNK_SIZE_ARR, CHUNK_SIZE_ARR, CHUNK_SIZE_ARR),
-                                    );
-                                    chunk.chunk_data.add_block_state(&item_string);
-                                    chunk.chunk_data.set_block(final_pos, &item_string);
-                                    client.connection_mut().try_send_message(
-                                        ClientMessage::SentBlock {
+                                    let (chunk_pos, voxel_pos) =
+                                        world_to_voxel(relative_voxel_to_world(
+                                            voxel_pos.as_ivec3() + normal.as_ivec3(),
                                             chunk_pos,
-                                            voxel_pos: [
-                                                final_pos.x as u8, // TODO: use normal and make sure to get neighbor chunk if needed
-                                                final_pos.y as u8,
-                                                final_pos.z as u8,
-                                            ],
-                                            block_type: item_string,
-                                        },
-                                    );
+                                        ));
+                                    if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos)
+                                    {
+                                        if let Ok(mut chunk) = chunks.get_mut(chunk_entity) {
+                                            chunk.chunk_data.add_block_state(&item_string);
+                                            chunk.chunk_data.set_block(voxel_pos, &item_string);
+                                            client.connection_mut().try_send_message(
+                                                ClientMessage::SentBlock {
+                                                    chunk_pos,
+                                                    voxel_pos: [
+                                                        voxel_pos.x as u8, // TODO: use normal and make sure to get neighbor chunk if needed
+                                                        voxel_pos.y as u8,
+                                                        voxel_pos.z as u8,
+                                                    ],
+                                                    block_type: item_string,
+                                                },
+                                            );
+                                        }
+                                    }
                                 }
                             } else if mouse_left {
                                 chunk.chunk_data.set_block(

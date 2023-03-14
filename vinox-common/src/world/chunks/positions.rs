@@ -53,6 +53,15 @@ pub fn voxel_to_world(voxel_pos: UVec3, chunk_pos: IVec3) -> Vec3 {
     )
 }
 
+pub fn relative_voxel_to_world(voxel_pos: IVec3, chunk_pos: IVec3) -> Vec3 {
+    let world_chunk = chunk_pos * IVec3::splat(CHUNK_SIZE as i32);
+    Vec3::new(
+        (world_chunk.x as f32) + voxel_pos.x as f32,
+        (world_chunk.y as f32) + voxel_pos.y as f32,
+        (world_chunk.z as f32) + voxel_pos.z as f32,
+    )
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
