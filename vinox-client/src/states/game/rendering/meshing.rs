@@ -1,8 +1,8 @@
 use bevy::{
-    math::Vec3A,
+    math::{Vec3A, Vec3Swizzles},
     prelude::*,
     render::{mesh::Indices, primitives::Aabb, render_resource::PrimitiveTopology},
-    tasks::{AsyncComputeTaskPool, ComputeTaskPool, Task},
+    tasks::{AsyncComputeTaskPool, ComputeTaskPool},
     utils::FloatOrd,
 };
 use bevy_tweening::{lens::TransformPositionLens, *};
@@ -693,8 +693,9 @@ pub fn build_mesh(
         FloatOrd(
             key.pos
                 .0
-                .as_vec3()
-                .distance(player_chunk.chunk_pos.as_vec3()),
+                .xz()
+                .as_vec2()
+                .distance(player_chunk.chunk_pos.xz().as_vec2()),
         )
     }) {
         if count > 32 {
@@ -784,16 +785,13 @@ pub fn process_queue(
     chunk_material: Res<ChunkMaterial>,
     current_chunks: ResMut<CurrentChunks>,
     chunks: Query<&Handle<Mesh>>,
-    player_chunk: Res<PlayerChunk>,
 ) {
     let task_pool = AsyncComputeTaskPool::get();
     let block_atlas: TextureAtlas = texture_atlas
         .get(&loadable_assets.block_atlas)
         .unwrap()
         .clone();
-    for (chunk_pos, raw_chunk) in chunk_queue.mesh.drain(..).sorted_unstable_by_key(|key| {
-        FloatOrd(key.0.as_vec3().distance(player_chunk.chunk_pos.as_vec3()))
-    }) {
+    for (chunk_pos, raw_chunk) in chunk_queue.mesh.drain(..).rev() {
         let cloned_table: BlockTable = block_table.clone();
         let cloned_assets: LoadableAssets = loadable_assets.clone();
         let clone_atlas: TextureAtlas = block_atlas.clone();

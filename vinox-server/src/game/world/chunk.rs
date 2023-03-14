@@ -3,9 +3,8 @@ use bevy::{
     math::Vec3Swizzles,
     // utils::FloatOrd,
     prelude::*,
-    tasks::{AsyncComputeTaskPool, Task},
+    tasks::AsyncComputeTaskPool,
 };
-use futures_lite::future;
 use rand::Rng;
 use tokio::sync::mpsc::{Receiver, Sender};
 use vinox_common::world::chunks::{
@@ -28,19 +27,14 @@ pub struct LoadPoint(pub IVec3);
 
 impl LoadPoint {
     pub fn is_in_radius(&self, pos: IVec3, view_radius: &ViewRadius) -> bool {
-        if pos
+        !(pos
             .xz()
             .as_vec2()
             .distance(self.0.xz().as_vec2())
             .abs()
             .floor() as i32
             > view_radius.horizontal
-            || (pos.y - self.0.y).abs() > view_radius.vertical
-        {
-            return false;
-        } else {
-            return true;
-        }
+            || (pos.y - self.0.y).abs() > view_radius.vertical)
     }
 }
 
@@ -78,7 +72,6 @@ impl<'w, 's> ChunkManager<'w, 's> {
                 }
             }
         }
-        // chunks.sort_unstable_by_key(|key| FloatOrd(key.as_vec3().distance(chunk_pos.as_vec3())));
         chunks
     }
     pub fn get_chunks_around_chunk(
@@ -209,7 +202,7 @@ pub fn process_queue(
             .detach();
     }
     while let Ok(chunk) = chunk_channel.0 .1.try_recv() {
-        let chunk_pos = chunk.pos.0.clone();
+        let chunk_pos = chunk.pos.0;
         let data = database.connection.lock().unwrap();
         insert_chunk(chunk.pos.0, &chunk.chunk_data, &data);
         let chunk_id = commands.spawn(chunk).id();

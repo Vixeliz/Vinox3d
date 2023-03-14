@@ -48,19 +48,14 @@ pub struct ChunkQueue {
 
 impl PlayerChunk {
     pub fn is_in_radius(&self, pos: IVec3, view_radius: &ViewRadius) -> bool {
-        if pos
+        !(pos
             .xz()
             .as_vec2()
             .distance(self.chunk_pos.xz().as_vec2())
             .abs()
             .floor() as i32
             > view_radius.horizontal
-            || (pos.y - self.chunk_pos.y).abs() > view_radius.vertical
-        {
-            return false;
-        } else {
-            return true;
-        }
+            || (pos.y - self.chunk_pos.y).abs() > view_radius.vertical)
     }
 }
 
@@ -108,7 +103,9 @@ impl<'w, 's> ChunkManager<'w, 's> {
                 }
             }
         }
-        chunks.sort_unstable_by_key(|key| FloatOrd(key.as_vec3().distance(chunk_pos.as_vec3())));
+        chunks.sort_unstable_by_key(|key| {
+            FloatOrd(key.xz().as_vec2().distance(chunk_pos.xz().as_vec2()))
+        });
         chunks
     }
     pub fn get_chunks_around_chunk(&mut self, pos: IVec3) -> Vec<&ChunkComp> {
