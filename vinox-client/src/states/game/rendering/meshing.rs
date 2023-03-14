@@ -733,12 +733,6 @@ pub struct MeshedChunk {
     pos: IVec3,
 }
 
-#[derive(Component)]
-pub struct ChunkGenTask(Task<()>);
-
-#[derive(Component)]
-pub struct PriorityTask(Task<()>);
-
 #[derive(Resource, Default)]
 pub struct ChunkMaterial {
     opaque: Handle<StandardMaterial>,

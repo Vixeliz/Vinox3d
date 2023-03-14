@@ -2,10 +2,11 @@ use bevy::{
     ecs::system::SystemParam,
     prelude::*,
     tasks::{AsyncComputeTaskPool, Task},
-    utils::FloatOrd,
+    // utils::FloatOrd,
 };
 use futures_lite::future;
 use rand::Rng;
+use tokio::sync::mpsc::{Receiver, Sender};
 use vinox_common::world::chunks::{
     ecs::{ChunkComp, ChunkPos, CurrentChunks, RemoveChunk, SimulationRadius, ViewRadius},
     storage::{HORIZONTAL_DISTANCE, VERTICAL_DISTANCE},
@@ -74,7 +75,7 @@ impl<'w, 's> ChunkManager<'w, 's> {
                 }
             }
         }
-        chunks.sort_unstable_by_key(|key| FloatOrd(key.as_vec3().distance(chunk_pos.as_vec3())));
+        // chunks.sort_unstable_by_key(|key| FloatOrd(key.as_vec3().distance(chunk_pos.as_vec3())));
         chunks
     }
     pub fn get_chunks_around_chunk(
@@ -175,52 +176,42 @@ pub fn unsend_chunks(
     }
 }
 
-#[derive(Component)]
-pub struct ChunkGenTask(Task<ChunkComp>);
-
-pub fn process_task(
-    mut commands: Commands,
-    mut chunk_query: Query<(Entity, &mut ChunkGenTask)>,
-    database: Res<WorldDatabase>,
-) {
-    for (entity, mut chunk_task) in &mut chunk_query {
-        if let Some(chunk) = future::block_on(future::poll_once(&mut chunk_task.0)) {
-            let data = database.connection.lock().unwrap();
-            insert_chunk(chunk.pos.0, &chunk.chunk_data, &data);
-            commands.entity(entity).insert(chunk);
-            commands.entity(entity).remove::<ChunkGenTask>();
-        }
-    }
-}
+#[derive(Resource)]
+pub struct ChunkChannel(pub (Sender<ChunkComp>, Receiver<ChunkComp>));
 
 pub fn process_queue(
     mut commands: Commands,
     mut chunk_queue: ResMut<ChunkQueue>,
+    mut chunk_channel: ResMut<ChunkChannel>,
     mut current_chunks: ResMut<CurrentChunks>,
     seed: Res<WorldSeed>,
+    database: Res<WorldDatabase>,
 ) {
     let cloned_seed = seed.0;
     let task_pool = AsyncComputeTaskPool::get();
-    chunk_queue
-        .create
-        .drain(..)
-        .map(|chunk_pos| {
-            (
-                chunk_pos,
-                ChunkGenTask(task_pool.spawn(async move {
-                    ChunkComp {
+    for chunk_pos in chunk_queue.create.drain(..) {
+        let cloned_sender = chunk_channel.0 .0.clone();
+        task_pool
+            .spawn(async move {
+                cloned_sender
+                    .send(ChunkComp {
                         pos: ChunkPos(chunk_pos),
                         chunk_data: generate_chunk(chunk_pos, cloned_seed),
                         entities: Vec::new(),
                         saved_entities: Vec::new(),
-                    }
-                })),
-            )
-        })
-        .for_each(|(chunk_pos, chunk)| {
-            let chunk_id = commands.spawn(chunk).id();
-            current_chunks.insert_entity(chunk_pos, chunk_id);
-        });
+                    })
+                    .await
+                    .ok();
+            })
+            .detach();
+    }
+    while let Ok(chunk) = chunk_channel.0 .1.try_recv() {
+        let chunk_pos = chunk.pos.0.clone();
+        let data = database.connection.lock().unwrap();
+        insert_chunk(chunk.pos.0, &chunk.chunk_data, &data);
+        let chunk_id = commands.spawn(chunk).id();
+        current_chunks.insert_entity(chunk_pos, chunk_id);
+    }
 }
 
 pub struct ChunkPlugin;
@@ -240,7 +231,9 @@ impl Plugin for ChunkPlugin {
             .insert_resource(WorldSeed(rand::thread_rng().gen_range(0..u32::MAX)))
             .add_systems((clear_unloaded_chunks, unsend_chunks, generate_chunks_world))
             .add_system(process_queue.after(clear_unloaded_chunks))
-            .add_system(process_task.after(process_queue))
-            .add_system(destroy_chunks.after(process_task));
+            .add_startup_system(|mut commands: Commands| {
+                commands.insert_resource(ChunkChannel(tokio::sync::mpsc::channel(512)));
+            })
+            .add_system(destroy_chunks.after(process_queue));
     }
 }

@@ -17,3 +17,4 @@ vinox-common = {path="../vinox-common"}
 rustc_data_structures.workspace=true
 futures-lite = "1.12.0"
 noise = "0.8.2"
+tokio.workspace=true
