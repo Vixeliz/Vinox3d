@@ -410,9 +410,11 @@ pub fn collision_movement_system(
 
         let mut movement_left = fps_camera.velocity * time.delta().as_secs_f32();
         let leg_height = 0.26;
-
+        let mut max_iter = 0;
         loop {
-            if movement_left.length() <= 0.0 {
+            max_iter += 1;
+            // TODO: Don't do this hacky solution and actually get the player unstuck instead of continulously running the loop
+            if movement_left.length() <= 0.0 || max_iter > 1000 {
                 break;
             }
             let mut player_transform = transforms.get_mut(entity_player).unwrap();
