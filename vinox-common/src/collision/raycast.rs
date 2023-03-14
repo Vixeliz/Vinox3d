@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::world::chunks::{
     ecs::{ChunkComp, CurrentChunks},
-    positions::{voxel_to_world, world_to_voxel},
+    positions::{world_to_global_voxel, world_to_voxel},
     storage::{BlockTable, Chunk, RawChunk, VoxelVisibility},
 };
 // Takes in absolute world positions returns a chunk pos and a voxel pos for whatever face it hits and a normal
@@ -14,14 +14,15 @@ pub fn raycast_world(
     current_chunks: &CurrentChunks,
     block_table: &BlockTable,
 ) -> Option<(IVec3, UVec3, Vec3)> {
-    let mut origin = origin.floor();
-    let step = direction.signum();
-
+    // TMax needs the fractional part of origin to work.
     let mut tmax = Vec3::new(
         intbound(origin.x, direction.x),
         intbound(origin.y, direction.y),
         intbound(origin.z, direction.z),
     );
+
+    let mut current_block = world_to_global_voxel(origin).as_vec3();
+    let step = direction.signum();
 
     let tdelta = step / direction;
 
@@ -44,7 +45,7 @@ pub fn raycast_world(
         if counter > (radius * 4.0) as u32 {
             break;
         }
-        let (chunk_pos, voxel_pos) = world_to_voxel(origin);
+        let (chunk_pos, voxel_pos) = world_to_voxel(current_block);
         if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos) {
             if let Ok(chunk) = chunks.get(chunk_entity) {
                 if chunk
@@ -67,7 +68,7 @@ pub fn raycast_world(
                 if tmax.x > radius {
                     break;
                 }
-                origin.x += step.x;
+                current_block.x += step.x;
                 tmax.x += tdelta.x;
                 face.x = -step.x;
                 face.y = 0.0;
@@ -76,7 +77,7 @@ pub fn raycast_world(
                 if tmax.z > radius {
                     break;
                 }
-                origin.z += step.z;
+                current_block.z += step.z;
                 tmax.z += tdelta.z;
                 face.x = 0.0;
                 face.y = 0.0;
@@ -86,7 +87,7 @@ pub fn raycast_world(
             if tmax.y > radius {
                 break;
             }
-            origin.y += step.y;
+            current_block.y += step.y;
             tmax.y += tdelta.y;
             face.x = 0.0;
             face.y = -step.y;
@@ -95,7 +96,7 @@ pub fn raycast_world(
             if tmax.z > radius {
                 break;
             }
-            origin.z += step.z;
+            current_block.z += step.z;
             tmax.z += tdelta.z;
             face.x = 0.0;
             face.y = 0.0;

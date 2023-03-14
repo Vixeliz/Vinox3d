@@ -12,7 +12,7 @@ use vinox_common::{
     networking::protocol::ClientMessage,
     world::chunks::{
         ecs::{ChunkComp, CurrentChunks},
-        positions::{voxel_to_world, world_to_chunk, world_to_voxel},
+        positions::{voxel_to_world, world_to_chunk, world_to_global_voxel, world_to_voxel},
         storage::{BlockData, BlockTable, CHUNK_SIZE, CHUNK_SIZE_ARR, HORIZONTAL_DISTANCE},
     },
 };
@@ -265,8 +265,6 @@ pub fn interact(
             );
             if let Some((chunk_pos, voxel_pos, _normal)) = hit {
                 let point = voxel_to_world(voxel_pos, chunk_pos);
-
-                let (chunk_pos, voxel_pos) = world_to_voxel(point);
 
                 if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos) {
                     if let Ok((mut block_transform, mut block_visibility)) =
