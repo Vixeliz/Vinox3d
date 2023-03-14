@@ -115,7 +115,7 @@ pub fn movement_input(
     mut stationary_frames: Local<i32>,
     current_chunks: Res<CurrentChunks>,
 ) {
-    if let Ok(mut translation) = player_position.get_single_mut() {
+    if let Ok(translation) = player_position.get_single_mut() {
         if current_chunks
             .get_entity(world_to_chunk(translation.translation))
             .is_none()
@@ -192,7 +192,6 @@ pub fn movement_input(
             );
 
             transform.look_at(looking_at, Vec3::new(0.0, 1.0, 0.0));
-            // translation.translation += fps_camera.velocity * 1.5 * time.delta().as_secs_f32();
             fps_camera.velocity.y -= 35.0 * time.delta().as_secs_f32().clamp(0.0, 0.1);
         }
     }
@@ -393,7 +392,7 @@ pub fn collision_movement_system(
     player: Query<Entity, With<ControlledPlayer>>,
     mut transforms: Query<&mut Transform>,
     time: Res<Time>,
-    mut chunks: Query<&mut ChunkComp>,
+    chunks: Query<&mut ChunkComp>,
     current_chunks: Res<CurrentChunks>,
     block_table: Res<BlockTable>,
 ) {
@@ -432,7 +431,7 @@ pub fn collision_movement_system(
                         position + movement_left + Vec3::new(0.0, 0.495, 0.0);
                     break;
                 }
-                Some((chunk_pos, voxel_pos, normal, toi)) => {
+                Some((_chunk_pos, _voxel_pos, normal, _toi)) => {
                     // TODO: We will use aabb to get unstuck instead of this
                     // if toi < 0.0 {
                     //     let unstuck_vector = transforms
@@ -455,7 +454,7 @@ pub fn collision_movement_system(
             let position =
                 transforms.get(entity_player).unwrap().translation - Vec3::new(0.0, 1.19, 0.0);
 
-            if let Some((chunk_pos, voxel_pos, normal, toi)) = raycast_world(
+            if let Some((_chunk_pos, _voxel_pos, _normal, toi)) = raycast_world(
                 position,
                 Vec3::new(0.0, -1.0, 0.0),
                 leg_height,
