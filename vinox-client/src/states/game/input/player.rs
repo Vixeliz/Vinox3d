@@ -160,11 +160,6 @@ pub fn movement_input(
                     *stationary_frames = 0;
                     fps_camera.velocity.y = 12.0;
                 }
-                if key_events.pressed(KeyCode::C) {
-                    fps_camera.velocity.y = -5.0;
-                } else {
-                    fps_camera.velocity.y = 0.0;
-                }
             }
 
             movement = movement.normalize_or_zero();
@@ -197,8 +192,8 @@ pub fn movement_input(
             );
 
             transform.look_at(looking_at, Vec3::new(0.0, 1.0, 0.0));
-            translation.translation += fps_camera.velocity * 1.5 * time.delta().as_secs_f32();
-            // fps_camera.velocity.y -= 35.0 * time.delta().as_secs_f32().clamp(0.0, 0.1);
+            // translation.translation += fps_camera.velocity * 1.5 * time.delta().as_secs_f32();
+            fps_camera.velocity.y -= 35.0 * time.delta().as_secs_f32().clamp(0.0, 0.1);
         }
     }
 }
@@ -217,10 +212,8 @@ pub enum CurrentItem {
 #[allow(clippy::type_complexity)]
 pub fn interact(
     mut commands: Commands,
-    mut chunks: Query<&mut ChunkComp>,
     mouse_button_input: Res<Input<MouseButton>>,
     keys: Res<Input<KeyCode>>,
-    current_chunks: Res<CurrentChunks>,
     camera_query: Query<&GlobalTransform, With<Camera>>,
     mut client: ResMut<Client>,
     player_position: Query<&Transform, With<ControlledPlayer>>,
@@ -229,9 +222,9 @@ pub fn interact(
         (With<HighLightCube>, Without<ControlledPlayer>),
     >,
     mut current_item: Local<CurrentItem>,
+    mut chunks: Query<&mut ChunkComp>,
+    current_chunks: Res<CurrentChunks>,
     block_table: Res<BlockTable>,
-    // mut materials: ResMut<Assets<StandardMaterial>>,
-    // mut meshes: ResMut<Assets<Mesh>>,
 ) {
     let item_string = match current_item.clone() {
         CurrentItem::Grass => BlockData::new("vinox".to_string(), "grass".to_string()),
@@ -389,6 +382,86 @@ pub fn interact(
                 if *block_visibility == Visibility::Visible {
                     *block_visibility = Visibility::Hidden;
                 }
+            }
+        }
+    }
+}
+
+// TODO: Move this to collision
+pub fn collision_movement_system(
+    mut camera: Query<(Entity, &mut FPSCamera)>,
+    player: Query<Entity, With<ControlledPlayer>>,
+    mut transforms: Query<&mut Transform>,
+    time: Res<Time>,
+    mut chunks: Query<&mut ChunkComp>,
+    current_chunks: Res<CurrentChunks>,
+    block_table: Res<BlockTable>,
+) {
+    if let Ok((entity_camera, mut fps_camera)) = camera.get_single_mut() {
+        let entity_player = player.single();
+
+        let looking_at = Vec3::new(
+            10.0 * fps_camera.phi.cos() * fps_camera.theta.sin(),
+            10.0 * fps_camera.theta.cos(),
+            10.0 * fps_camera.phi.sin() * fps_camera.theta.sin(),
+        );
+
+        let mut camera_t = transforms.get_mut(entity_camera).unwrap();
+        camera_t.look_at(looking_at, Vec3::new(0.0, 1.0, 0.0));
+
+        let mut movement_left = fps_camera.velocity * time.delta().as_secs_f32();
+        let leg_height = 0.26;
+
+        loop {
+            if movement_left.length() <= 0.0 {
+                break;
+            }
+            let mut player_transform = transforms.get_mut(entity_player).unwrap();
+            let position = player_transform.translation - Vec3::new(0.0, 0.495, 0.0);
+
+            match raycast_world(
+                position,
+                movement_left,
+                1.0,
+                &chunks,
+                &current_chunks,
+                &block_table,
+            ) {
+                None => {
+                    player_transform.translation =
+                        position + movement_left + Vec3::new(0.0, 0.495, 0.0);
+                    break;
+                }
+                Some((chunk_pos, voxel_pos, normal)) => {
+                    // if toi.status != Converged {
+                    //     let unstuck_vector =
+                    //         transforms.get(collision_entity).unwrap().translation - position;
+                    //     transforms.get_mut(entity_player).unwrap().translation -=
+                    //         unstuck_vector.normalize() * 0.01;
+                    //     fps_camera.velocity = Vec3::new(0.0, 0.0, 0.0);
+                    //     break;
+                    // }
+                    movement_left -= movement_left.dot(normal) * normal;
+                    fps_camera.velocity = movement_left / time.delta().as_secs_f32();
+                }
+            }
+        }
+
+        if fps_camera.velocity.y <= 0.0 {
+            let position =
+                transforms.get(entity_player).unwrap().translation - Vec3::new(0.0, 1.19, 0.0);
+
+            if let Some((chunk_pos, voxel_pos, normal)) = raycast_world(
+                position,
+                Vec3::new(0.0, -1.0, 0.0),
+                leg_height,
+                &chunks,
+                &current_chunks,
+                &block_table,
+            ) {
+                transforms.get_mut(entity_player).unwrap().translation -=
+                    Vec3::new(0.0, normal.y - leg_height, 0.0);
+                fps_camera.velocity.y = 0.0;
             }
         }
     }
