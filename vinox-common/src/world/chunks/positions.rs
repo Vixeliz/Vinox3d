@@ -3,17 +3,21 @@ use bevy::prelude::*;
 use super::{ecs::ViewRadius, storage::CHUNK_SIZE};
 
 pub fn circle_points(view_radius: &ViewRadius) -> Vec<IVec2> {
-    let mut chunks = Vec::new();
+    let center = IVec2::new(0, 0);
+    let radius_squared = view_radius.horizontal * view_radius.horizontal;
+    let mut points = Vec::new();
+
     for x in -view_radius.horizontal..=view_radius.horizontal {
         for z in -view_radius.horizontal..=view_radius.horizontal {
-            if x.pow(2) + z.pow(2) >= view_radius.horizontal.pow(2) {
-                continue;
+            let point = IVec2::new(x, z);
+            let distance_squared = point.as_vec2().distance_squared(center.as_vec2()) as i32;
+            if distance_squared <= radius_squared {
+                points.push(point);
             }
-
-            chunks.push(IVec2::new(x, z));
         }
     }
-    chunks
+
+    points
 }
 
 pub fn world_to_chunk(pos: Vec3) -> IVec3 {

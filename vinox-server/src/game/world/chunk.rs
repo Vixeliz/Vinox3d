@@ -63,6 +63,8 @@ impl<'w, 's> ChunkManager<'w, 's> {
             }
         }
         chunks
+            .sort_unstable_by_key(|key| (key.x - chunk_pos.x).abs() + (key.z - chunk_pos.z).abs());
+        chunks
     }
     pub fn get_chunks_around_chunk(
         &mut self,

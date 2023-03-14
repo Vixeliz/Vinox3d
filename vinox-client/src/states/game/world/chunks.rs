@@ -1,6 +1,6 @@
 use std::{collections::HashSet, time::Duration};
 
-use bevy::{ecs::system::SystemParam, math::Vec3Swizzles, prelude::*, utils::FloatOrd};
+use bevy::{ecs::system::SystemParam, math::Vec3Swizzles, prelude::*};
 use bevy_tweening::{lens::TransformPositionLens, *};
 use vinox_common::world::chunks::{
     ecs::{ChunkComp, ChunkPos, CurrentChunks, RemoveChunk, SimulationRadius, ViewRadius},
@@ -94,9 +94,8 @@ impl<'w, 's> ChunkManager<'w, 's> {
             }
         }
 
-        chunks.sort_unstable_by_key(|key| {
-            FloatOrd(key.xz().as_vec2().distance(chunk_pos.xz().as_vec2()))
-        });
+        chunks
+            .sort_unstable_by_key(|key| (key.x - chunk_pos.x).abs() + (key.z - chunk_pos.z).abs());
         chunks
     }
     pub fn get_chunks_around_chunk(&mut self, pos: IVec3) -> Vec<&ChunkComp> {

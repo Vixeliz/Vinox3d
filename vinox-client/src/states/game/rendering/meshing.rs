@@ -1,9 +1,8 @@
 use bevy::{
-    math::{Vec3A, Vec3Swizzles},
+    math::Vec3A,
     prelude::*,
     render::{mesh::Indices, primitives::Aabb, render_resource::PrimitiveTopology},
     tasks::{AsyncComputeTaskPool, ComputeTaskPool},
-    utils::FloatOrd,
 };
 use bevy_tweening::{lens::TransformPositionLens, *};
 use itertools::Itertools;
@@ -690,13 +689,8 @@ pub fn build_mesh(
 ) {
     let mut count = 0;
     for chunk in chunks.iter().sorted_unstable_by_key(|key| {
-        FloatOrd(
-            key.pos
-                .0
-                .xz()
-                .as_vec2()
-                .distance(player_chunk.chunk_pos.xz().as_vec2()),
-        )
+        (key.pos.0.x - player_chunk.chunk_pos.x).abs()
+            + (key.pos.0.z - player_chunk.chunk_pos.z).abs()
     }) {
         if count > 32 {
             break;
