@@ -18,7 +18,6 @@ impl Plugin for RenderingPlugin {
                 (
                     process_queue,
                     process_priority_queue,
-                    // process_task,
                     sort_faces,
                     sort_chunks,
                 )

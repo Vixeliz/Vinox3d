@@ -108,9 +108,9 @@ pub fn raycast_world(
 
 fn intbound(s: f32, ds: f32) -> f32 {
     if ds < 0.0 {
-        return intbound(-s, -ds);
+        intbound(-s, -ds)
     } else {
         let s = s.rem_euclid(1.0);
-        return (1.0 - s) / ds;
+        (1.0 - s) / ds
     }
 }

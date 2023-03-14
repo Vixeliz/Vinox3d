@@ -12,7 +12,7 @@ use vinox_common::{
     networking::protocol::ClientMessage,
     world::chunks::{
         ecs::{ChunkComp, CurrentChunks},
-        positions::{voxel_to_world, world_to_chunk, world_to_global_voxel, world_to_voxel},
+        positions::{voxel_to_world, world_to_chunk},
         storage::{BlockData, BlockTable, CHUNK_SIZE, CHUNK_SIZE_ARR, HORIZONTAL_DISTANCE},
     },
 };
@@ -296,7 +296,7 @@ pub fn interact(
                                         UVec3::new(CHUNK_SIZE_ARR, CHUNK_SIZE_ARR, CHUNK_SIZE_ARR),
                                     );
                                     chunk.chunk_data.add_block_state(&item_string);
-                                    chunk.chunk_data.set_block(voxel_pos, &item_string);
+                                    chunk.chunk_data.set_block(final_pos, &item_string);
                                     client.connection_mut().try_send_message(
                                         ClientMessage::SentBlock {
                                             chunk_pos,
