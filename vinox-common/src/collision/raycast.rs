@@ -107,14 +107,10 @@ pub fn raycast_world(
 }
 
 fn intbound(s: f32, ds: f32) -> f32 {
-    let is_int = s == s.round();
-    if ds < 0.0 && is_int {
-        return 0.0;
-    }
-
-    if ds > 0.0 {
-        s.ceil() - s
+    if ds < 0.0 {
+        return intbound(-s, -ds);
     } else {
-        s - (s.floor() / ds.abs())
+        let s = s.rem_euclid(1.0);
+        return (1.0 - s) / ds;
     }
 }
