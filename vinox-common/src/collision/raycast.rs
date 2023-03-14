@@ -13,7 +13,7 @@ pub fn raycast_world(
     chunks: &Query<&mut ChunkComp>,
     current_chunks: &CurrentChunks,
     block_table: &BlockTable,
-) -> Option<(IVec3, UVec3, Vec3)> {
+) -> Option<(IVec3, UVec3, Vec3, f32)> {
     // TMax needs the fractional part of origin to work.
     let mut tmax = Vec3::new(
         intbound(origin.x, direction.x),
@@ -58,7 +58,8 @@ pub fn raycast_world(
                     .unwrap()
                     != VoxelVisibility::Empty
                 {
-                    return Some((chunk_pos, voxel_pos, face));
+                    // TODO: Get time of impact
+                    return Some((chunk_pos, voxel_pos, face, 0.0));
                 }
             }
         }

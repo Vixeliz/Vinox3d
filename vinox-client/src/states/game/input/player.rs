@@ -256,7 +256,7 @@ pub fn interact(
                 &current_chunks,
                 &block_table,
             );
-            if let Some((chunk_pos, voxel_pos, normal)) = hit {
+            if let Some((chunk_pos, voxel_pos, normal, _)) = hit {
                 let point = voxel_to_world(voxel_pos, chunk_pos);
 
                 if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos) {
@@ -432,7 +432,7 @@ pub fn collision_movement_system(
                         position + movement_left + Vec3::new(0.0, 0.495, 0.0);
                     break;
                 }
-                Some((chunk_pos, voxel_pos, normal)) => {
+                Some((chunk_pos, voxel_pos, normal, _)) => {
                     // if toi.status != Converged {
                     //     let unstuck_vector =
                     //         transforms.get(collision_entity).unwrap().translation - position;
@@ -451,7 +451,7 @@ pub fn collision_movement_system(
             let position =
                 transforms.get(entity_player).unwrap().translation - Vec3::new(0.0, 1.19, 0.0);
 
-            if let Some((chunk_pos, voxel_pos, normal)) = raycast_world(
+            if let Some((chunk_pos, voxel_pos, normal, toi)) = raycast_world(
                 position,
                 Vec3::new(0.0, -1.0, 0.0),
                 leg_height,
@@ -460,7 +460,7 @@ pub fn collision_movement_system(
                 &block_table,
             ) {
                 transforms.get_mut(entity_player).unwrap().translation -=
-                    Vec3::new(0.0, normal.y - leg_height, 0.0);
+                    Vec3::new(0.0, toi - leg_height, 0.0);
                 fps_camera.velocity.y = 0.0;
             }
         }
