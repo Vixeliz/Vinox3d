@@ -3,9 +3,8 @@ use bevy::prelude::*;
 use crate::states::components::GameState;
 
 use super::player::{
-    collision_movement_system, cursor_grab_system, interact, movement_input,
-    spawn_camera, MouseSensitivity, update_aabb
-
+    collision_movement_system, cursor_grab_system, interact, movement_input, spawn_camera,
+    update_aabb, MouseSensitivity,
 };
 
 pub struct InputPlugin;

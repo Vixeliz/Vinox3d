@@ -6,7 +6,9 @@ use bevy_quinnet::client::QuinnetClientPlugin;
 use bevy_tweening::TweeningPlugin;
 use directories::*;
 use states::{
-    components::GameState, game::plugin::GamePlugin, loading::plugin::LoadingPlugin,
+    components::GameState,
+    game::{plugin::GamePlugin, rendering::meshing::BasicMaterial},
+    loading::plugin::LoadingPlugin,
     menu::plugin::MenuPlugin,
 };
 
@@ -35,6 +37,7 @@ fn main() {
                 })
                 .set(ImagePlugin::default_nearest()),
         )
+        .add_plugin(MaterialPlugin::<BasicMaterial>::default())
         .insert_resource(Msaa::Off)
         .add_plugin(QuinnetClientPlugin::default())
         .add_plugin(TweeningPlugin)

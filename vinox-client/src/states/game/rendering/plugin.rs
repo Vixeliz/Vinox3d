@@ -23,10 +23,6 @@ impl Plugin for RenderingPlugin {
                 )
                     .in_set(OnUpdate(GameState::Game)),
             )
-            .insert_resource(AmbientLight {
-                color: Color::WHITE,
-                brightness: 1.0,
-            })
             .add_startup_system(|mut commands: Commands, assets: Res<AssetServer>| {
                 commands
                     .spawn(NodeBundle {

@@ -1,7 +1,13 @@
 use bevy::{
     math::Vec3A,
+    pbr::{NotShadowCaster, NotShadowReceiver},
     prelude::*,
-    render::{mesh::Indices, primitives::Aabb, render_resource::PrimitiveTopology},
+    reflect::TypeUuid,
+    render::{
+        mesh::Indices,
+        primitives::Aabb,
+        render_resource::{AsBindGroup, PrimitiveTopology, ShaderRef},
+    },
     tasks::{AsyncComputeTaskPool, ComputeTaskPool},
 };
 use bevy_tweening::{lens::TransformPositionLens, *};
@@ -348,10 +354,31 @@ impl<'a> Face<'a> {
     }
 }
 
+#[derive(AsBindGroup, TypeUuid, Debug, Clone)]
+#[uuid = "f690fdae-d598-45ab-8225-97e2a3f056e0"]
+pub struct BasicMaterial {
+    #[uniform(0)]
+    pub color: Color,
+    #[texture(1)]
+    #[sampler(2)]
+    pub color_texture: Option<Handle<Image>>,
+    pub alpha_mode: AlphaMode,
+}
+
+impl Material for BasicMaterial {
+    fn fragment_shader() -> ShaderRef {
+        "shaders/basic_material.wgsl".into()
+    }
+
+    fn alpha_mode(&self) -> AlphaMode {
+        self.alpha_mode
+    }
+}
+
 #[derive(Bundle)]
 pub struct RenderedChunk {
     #[bundle]
-    pub mesh: PbrBundle,
+    pub mesh: MaterialMeshBundle<BasicMaterial>,
     pub aabb: Aabb,
 }
 
@@ -606,7 +633,33 @@ pub fn process_priority_queue(
             );
 
             let trans_entity = commands
-                .spawn((RenderedChunk {
+                .spawn((
+                    RenderedChunk {
+                        aabb: Aabb {
+                            center: Vec3A::new(
+                                (CHUNK_SIZE / 2) as f32,
+                                (CHUNK_SIZE / 2) as f32,
+                                (CHUNK_SIZE / 2) as f32,
+                            ),
+                            half_extents: Vec3A::new(
+                                (CHUNK_SIZE / 2) as f32,
+                                (CHUNK_SIZE / 2) as f32,
+                                (CHUNK_SIZE / 2) as f32,
+                            ),
+                        },
+                        mesh: MaterialMeshBundle {
+                            mesh: meshes.add(chunk.transparent_mesh.clone()),
+                            material: chunk_material.transparent.clone(),
+                            ..Default::default()
+                        },
+                    },
+                    NotShadowCaster,
+                    NotShadowReceiver,
+                ))
+                .id();
+
+            commands.entity(chunk_entity).insert((
+                RenderedChunk {
                     aabb: Aabb {
                         center: Vec3A::new(
                             (CHUNK_SIZE / 2) as f32,
@@ -619,34 +672,16 @@ pub fn process_priority_queue(
                             (CHUNK_SIZE / 2) as f32,
                         ),
                     },
-                    mesh: PbrBundle {
-                        mesh: meshes.add(chunk.transparent_mesh.clone()),
-                        material: chunk_material.transparent.clone(),
+                    mesh: MaterialMeshBundle {
+                        mesh: meshes.add(chunk.chunk_mesh.clone()),
+                        material: chunk_material.opaque.clone(),
+                        transform: Transform::from_translation(chunk_pos),
                         ..Default::default()
                     },
-                },))
-                .id();
-
-            commands.entity(chunk_entity).insert((RenderedChunk {
-                aabb: Aabb {
-                    center: Vec3A::new(
-                        (CHUNK_SIZE / 2) as f32,
-                        (CHUNK_SIZE / 2) as f32,
-                        (CHUNK_SIZE / 2) as f32,
-                    ),
-                    half_extents: Vec3A::new(
-                        (CHUNK_SIZE / 2) as f32,
-                        (CHUNK_SIZE / 2) as f32,
-                        (CHUNK_SIZE / 2) as f32,
-                    ),
                 },
-                mesh: PbrBundle {
-                    mesh: meshes.add(chunk.chunk_mesh.clone()),
-                    material: chunk_material.opaque.clone(),
-                    transform: Transform::from_translation(chunk_pos),
-                    ..Default::default()
-                },
-            },));
+                NotShadowCaster,
+                NotShadowReceiver,
+            ));
 
             commands.entity(chunk_entity).push_children(&[trans_entity]);
         } else {
@@ -730,41 +765,37 @@ pub struct MeshedChunk {
 
 #[derive(Resource, Default)]
 pub struct ChunkMaterial {
-    opaque: Handle<StandardMaterial>,
-    transparent: Handle<StandardMaterial>,
+    opaque: Handle<BasicMaterial>,
+    transparent: Handle<BasicMaterial>,
 }
 
 pub fn create_chunk_material(
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut materials: ResMut<Assets<BasicMaterial>>,
     mut chunk_material: ResMut<ChunkMaterial>,
     texture_atlas: Res<Assets<TextureAtlas>>,
     loadable_assets: ResMut<LoadableAssets>,
 ) {
-    chunk_material.transparent = materials.add(StandardMaterial {
-        base_color: Color::WHITE,
-        base_color_texture: Some(
+    chunk_material.transparent = materials.add(BasicMaterial {
+        color: Color::WHITE,
+        color_texture: Some(
             texture_atlas
                 .get(&loadable_assets.block_atlas)
                 .unwrap()
                 .texture
                 .clone(),
         ),
-        perceptual_roughness: 1.0,
         alpha_mode: AlphaMode::Blend,
-        ..default()
     });
-    chunk_material.opaque = materials.add(StandardMaterial {
-        base_color: Color::WHITE,
-        base_color_texture: Some(
+    chunk_material.opaque = materials.add(BasicMaterial {
+        color: Color::WHITE,
+        color_texture: Some(
             texture_atlas
                 .get(&loadable_assets.block_atlas)
                 .unwrap()
                 .texture
                 .clone(),
         ),
-        perceptual_roughness: 1.0,
         alpha_mode: AlphaMode::Opaque,
-        ..default()
     });
 }
 #[allow(clippy::too_many_arguments)]
@@ -845,7 +876,33 @@ pub fn process_queue(
             };
 
             let trans_entity = commands
-                .spawn((RenderedChunk {
+                .spawn((
+                    RenderedChunk {
+                        aabb: Aabb {
+                            center: Vec3A::new(
+                                (CHUNK_SIZE / 2) as f32,
+                                (CHUNK_SIZE / 2) as f32,
+                                (CHUNK_SIZE / 2) as f32,
+                            ),
+                            half_extents: Vec3A::new(
+                                (CHUNK_SIZE / 2) as f32,
+                                (CHUNK_SIZE / 2) as f32,
+                                (CHUNK_SIZE / 2) as f32,
+                            ),
+                        },
+                        mesh: MaterialMeshBundle {
+                            mesh: meshes.add(chunk.transparent_mesh.clone()),
+                            material: chunk_material.transparent.clone(),
+                            ..Default::default()
+                        },
+                    },
+                    NotShadowCaster,
+                    NotShadowReceiver,
+                ))
+                .id();
+
+            commands.entity(chunk_entity).insert((
+                RenderedChunk {
                     aabb: Aabb {
                         center: Vec3A::new(
                             (CHUNK_SIZE / 2) as f32,
@@ -858,34 +915,16 @@ pub fn process_queue(
                             (CHUNK_SIZE / 2) as f32,
                         ),
                     },
-                    mesh: PbrBundle {
-                        mesh: meshes.add(chunk.transparent_mesh.clone()),
-                        material: chunk_material.transparent.clone(),
+                    mesh: MaterialMeshBundle {
+                        mesh: meshes.add(chunk.chunk_mesh.clone()),
+                        material: chunk_material.opaque.clone(),
+                        transform: Transform::from_translation(chunk_pos),
                         ..Default::default()
                     },
-                },))
-                .id();
-
-            commands.entity(chunk_entity).insert((RenderedChunk {
-                aabb: Aabb {
-                    center: Vec3A::new(
-                        (CHUNK_SIZE / 2) as f32,
-                        (CHUNK_SIZE / 2) as f32,
-                        (CHUNK_SIZE / 2) as f32,
-                    ),
-                    half_extents: Vec3A::new(
-                        (CHUNK_SIZE / 2) as f32,
-                        (CHUNK_SIZE / 2) as f32,
-                        (CHUNK_SIZE / 2) as f32,
-                    ),
                 },
-                mesh: PbrBundle {
-                    mesh: meshes.add(chunk.chunk_mesh.clone()),
-                    material: chunk_material.opaque.clone(),
-                    transform: Transform::from_translation(chunk_pos),
-                    ..Default::default()
-                },
-            },));
+                NotShadowCaster,
+                NotShadowReceiver,
+            ));
 
             commands.entity(chunk_entity).push_children(&[trans_entity]);
         } else {

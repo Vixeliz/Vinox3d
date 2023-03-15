@@ -1,5 +1,8 @@
 use super::components::{ClientData, ClientLobby, NetworkMapping, PlayerInfo};
-use crate::states::game::world::chunks::{ControlledPlayer, CreateChunkEvent, SetBlockEvent};
+use crate::states::game::{
+    rendering::meshing::BasicMaterial,
+    world::chunks::{ControlledPlayer, CreateChunkEvent, SetBlockEvent},
+};
 use bevy::prelude::*;
 use bevy_quinnet::client::*;
 use bevy_tweening::{
@@ -57,7 +60,7 @@ pub fn get_messages(
     mut chunk_event: EventWriter<CreateChunkEvent>,
     mut block_event: EventWriter<SetBlockEvent>,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut materials: ResMut<Assets<BasicMaterial>>,
     asset_server: Res<AssetServer>,
 ) {
     if client_data.0 != 0 {
@@ -75,14 +78,12 @@ pub fn get_messages(
                     let mut client_entity = cmd1.spawn_empty();
                     if client_data.0 == id {
                         println!("You connected.");
-                        cmd2.spawn(PbrBundle {
+                        cmd2.spawn(MaterialMeshBundle {
                             mesh: meshes.add(Mesh::from(shape::Cube { size: 1.001 })),
-                            material: materials.add(StandardMaterial {
-                                base_color: Color::rgba(1.1, 1.1, 1.1, 1.0),
-                                base_color_texture: Some(asset_server.load("outline.png")),
+                            material: materials.add(BasicMaterial {
+                                color: Color::rgba(1.1, 1.1, 1.1, 1.0),
+                                color_texture: Some(asset_server.load("outline.png")),
                                 alpha_mode: AlphaMode::Blend,
-                                unlit: true,
-                                ..Default::default()
                             }),
                             transform: Transform::from_translation(
                                 translation + Vec3::new(0.0, 0.0, -5.0),

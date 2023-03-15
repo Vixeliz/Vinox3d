@@ -16,7 +16,7 @@ use vinox_common::{
     world::chunks::{
         ecs::{ChunkComp, CurrentChunks},
         positions::{relative_voxel_to_world, voxel_to_world, world_to_chunk, world_to_voxel},
-        storage::{BlockData, BlockTable, CHUNK_SIZE, CHUNK_SIZE_ARR, HORIZONTAL_DISTANCE},
+        storage::{BlockData, BlockTable, CHUNK_SIZE_ARR},
     },
 };
 
@@ -85,19 +85,7 @@ pub fn spawn_camera(
                 GlobalTransform::default(),
                 Transform::from_xyz(0.0, 1.0, 0.0),
             ));
-            c.spawn((
-                FPSCamera::default(),
-                camera,
-                FogSettings {
-                    color: Color::rgba(0.5, 0.8, 0.9, 1.0),
-                    directional_light_color: Color::WHITE,
-                    directional_light_exponent: 30.0,
-                    falloff: FogFalloff::Linear {
-                        start: ((HORIZONTAL_DISTANCE - 2) * CHUNK_SIZE as i32) as f32,
-                        end: ((HORIZONTAL_DISTANCE + 2) * CHUNK_SIZE as i32) as f32,
-                    },
-                },
-            ));
+            c.spawn((FPSCamera::default(), camera));
         });
     }
 }
