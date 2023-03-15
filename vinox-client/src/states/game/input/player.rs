@@ -229,11 +229,8 @@ pub fn interact(
     current_chunks: Res<CurrentChunks>,
     block_table: Res<BlockTable>,
 ) {
-    if let Ok(window) = windows.get_single() {
-        if window.cursor.grab_mode != CursorGrabMode::Locked {
-            return;
-        }
-    } else {
+    let window = windows.single();
+    if window.cursor.grab_mode != CursorGrabMode::Locked {
         return;
     }
     let item_string = match current_item.clone() {
@@ -488,9 +485,7 @@ pub fn cursor_grab_system(
     btn: Res<Input<MouseButton>>,
     key: Res<Input<KeyCode>>,
 ) {
-    let Ok(mut window) = windows.get_single_mut() else {
-        return;
-    };
+    let mut window = windows.single_mut();
 
     if btn.just_pressed(MouseButton::Left) {
         window.cursor.grab_mode = CursorGrabMode::Locked;
