@@ -699,9 +699,9 @@ pub fn build_mesh(
             .current_chunks
             .all_neighbors_exist(chunk.pos.clone())
         {
-            count += 1;
             if let Some(neighbors) = chunk_manager.get_neighbors(chunk.pos.clone()) {
                 if let Ok(neighbors) = neighbors.try_into() {
+                    count += 1;
                     chunk_queue.mesh.push((
                         chunk.pos.0,
                         ChunkBoundary::new(chunk.chunk_data.clone(), Box::new(Array(neighbors))),
