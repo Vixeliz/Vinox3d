@@ -108,6 +108,8 @@ pub fn generate_chunks_world(
                         .id();
                     chunk_manager.current_chunks.insert_entity(pos, chunk_id);
                 } else {
+                    let chunk_id = commands.spawn_empty().id();
+                    chunk_manager.current_chunks.insert_entity(pos, chunk_id);
                     chunk_queue.create.push(pos);
                 }
             }
@@ -118,15 +120,15 @@ pub fn generate_chunks_world(
 pub fn destroy_chunks(
     mut commands: Commands,
     mut current_chunks: ResMut<CurrentChunks>,
-    remove_chunks: Query<&ChunkPos, With<RemoveChunk>>,
+    remove_chunks: Query<&ChunkComp, With<RemoveChunk>>,
     mut load_points: Query<&mut SentChunks>,
 ) {
     for chunk in remove_chunks.iter() {
         for mut sent_chunks in load_points.iter_mut() {
-            sent_chunks.chunks.remove(&chunk.0);
+            sent_chunks.chunks.remove(&chunk.pos.0);
         }
         commands
-            .entity(current_chunks.remove_entity(chunk.0).unwrap())
+            .entity(current_chunks.remove_entity(chunk.pos.0).unwrap())
             .despawn_recursive();
     }
 }
@@ -193,12 +195,14 @@ pub fn process_queue(
             })
             .detach();
     }
+    chunk_queue.create.clear();
     while let Ok(chunk) = chunk_channel.0 .1.try_recv() {
         let chunk_pos = chunk.pos.0;
         let data = database.connection.lock().unwrap();
         insert_chunk(chunk.pos.0, &chunk.chunk_data, &data);
-        let chunk_id = commands.spawn(chunk).id();
-        current_chunks.insert_entity(chunk_pos, chunk_id);
+        commands
+            .entity(current_chunks.get_entity(chunk_pos).unwrap())
+            .insert(chunk);
     }
 }
 
