@@ -23,7 +23,7 @@ pub fn update_ui_scale_factor(
     windows: Query<&Window, With<PrimaryWindow>>,
 ) {
     if keyboard_input.just_pressed(KeyCode::Slash) || toggle_scale_factor.is_none() {
-        *toggle_scale_factor = Some(!toggle_scale_factor.unwrap_or(true));
+        *toggle_scale_factor = Some(!toggle_scale_factor.unwrap_or(false));
 
         if let Ok(window) = windows.get_single() {
             let scale_factor = if toggle_scale_factor.unwrap() {
