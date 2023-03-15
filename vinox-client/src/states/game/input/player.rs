@@ -3,7 +3,10 @@ use std::f32::consts::{FRAC_PI_2, PI};
 use bevy::{
     input::mouse::MouseMotion,
     prelude::*,
-    render::{camera::CameraProjection, primitives::Frustum},
+    render::{
+        camera::CameraProjection,
+        primitives::{Aabb, Frustum},
+    },
     window::{CursorGrabMode, PrimaryWindow},
 };
 use bevy_quinnet::client::Client;
@@ -389,7 +392,7 @@ pub fn interact(
 // TODO: Move this to collision
 pub fn collision_movement_system(
     mut camera: Query<(Entity, &mut FPSCamera)>,
-    player: Query<Entity, With<ControlledPlayer>>,
+    player: Query<(Entity, &Aabb), With<ControlledPlayer>>,
     mut transforms: Query<&mut Transform>,
     time: Res<Time>,
     chunks: Query<&mut ChunkComp>,
@@ -397,77 +400,83 @@ pub fn collision_movement_system(
     block_table: Res<BlockTable>,
 ) {
     if let Ok((entity_camera, mut fps_camera)) = camera.get_single_mut() {
-        let entity_player = player.single();
+        if let Ok((entity_player, _player_aabb)) = player.get_single() {
+            let looking_at = Vec3::new(
+                10.0 * fps_camera.phi.cos() * fps_camera.theta.sin(),
+                10.0 * fps_camera.theta.cos(),
+                10.0 * fps_camera.phi.sin() * fps_camera.theta.sin(),
+            );
 
-        let looking_at = Vec3::new(
-            10.0 * fps_camera.phi.cos() * fps_camera.theta.sin(),
-            10.0 * fps_camera.theta.cos(),
-            10.0 * fps_camera.phi.sin() * fps_camera.theta.sin(),
-        );
+            let mut camera_t = transforms.get_mut(entity_camera).unwrap();
+            camera_t.look_at(looking_at, Vec3::new(0.0, 1.0, 0.0));
 
-        let mut camera_t = transforms.get_mut(entity_camera).unwrap();
-        camera_t.look_at(looking_at, Vec3::new(0.0, 1.0, 0.0));
-
-        let mut movement_left = fps_camera.velocity * time.delta().as_secs_f32();
-        let leg_height = 0.26;
-        let mut max_iter = 0;
-        loop {
-            max_iter += 1;
-            // TODO: Don't do this hacky solution and actually get the player unstuck instead of continulously running the loop
-            if movement_left.length() <= 0.0 || max_iter > 1000 {
-                break;
-            }
-            let mut player_transform = transforms.get_mut(entity_player).unwrap();
-            let position = player_transform.translation - Vec3::new(0.0, 0.495, 0.0);
-
-            match raycast_world(
-                position,
-                movement_left,
-                1.0,
-                &chunks,
-                &current_chunks,
-                &block_table,
-            ) {
-                None => {
-                    player_transform.translation =
-                        position + movement_left + Vec3::new(0.0, 0.495, 0.0);
+            let mut movement_left = fps_camera.velocity * time.delta().as_secs_f32();
+            let leg_height = 0.26;
+            let mut max_iter = 0;
+            loop {
+                max_iter += 1;
+                // TODO: Don't do this hacky solution and actually get the player unstuck instead of continulously running the loop
+                if movement_left.length() <= 0.0 || max_iter > 1000 {
                     break;
                 }
-                Some((_chunk_pos, _voxel_pos, normal, _toi)) => {
-                    // TODO: We will use aabb to get unstuck instead of this
-                    // if toi < 0.0 {
-                    //     let unstuck_vector = transforms
-                    //         .get(current_chunks.get_entity(chunk_pos).unwrap())
-                    //         .unwrap()
-                    //         .translation
-                    //         - position;
-                    //     transforms.get_mut(entity_player).unwrap().translation -=
-                    //         unstuck_vector.normalize() * 0.01;
-                    //     fps_camera.velocity = Vec3::new(0.0, 0.0, 0.0);
-                    //     break;
-                    // }
-                    movement_left -= movement_left.dot(normal) * normal;
-                    fps_camera.velocity = movement_left / time.delta().as_secs_f32();
+                let mut player_transform = transforms.get_mut(entity_player).unwrap();
+                let position = player_transform.translation - Vec3::new(0.0, 0.495, 0.0);
+
+                match raycast_world(
+                    position,
+                    movement_left,
+                    1.0,
+                    &chunks,
+                    &current_chunks,
+                    &block_table,
+                ) {
+                    None => {
+                        player_transform.translation =
+                            position + movement_left + Vec3::new(0.0, 0.495, 0.0);
+                        break;
+                    }
+                    Some((_chunk_pos, _voxel_pos, normal, _toi)) => {
+                        // TODO: We will use aabb to get unstuck instead of this
+                        // if toi < 0.0 {
+                        //     let unstuck_vector = transforms
+                        //         .get(current_chunks.get_entity(chunk_pos).unwrap())
+                        //         .unwrap()
+                        //         .translation
+                        //         - position;
+                        //     transforms.get_mut(entity_player).unwrap().translation -=
+                        //         unstuck_vector.normalize() * 0.01;
+                        //     fps_camera.velocity = Vec3::new(0.0, 0.0, 0.0);
+                        //     break;
+                        // }
+                        movement_left -= movement_left.dot(normal) * normal;
+                        fps_camera.velocity = movement_left / time.delta().as_secs_f32();
+                    }
+                }
+            }
+
+            if fps_camera.velocity.y <= 0.0 {
+                let position =
+                    transforms.get(entity_player).unwrap().translation - Vec3::new(0.0, 1.19, 0.0);
+
+                if let Some((_chunk_pos, _voxel_pos, _normal, toi)) = raycast_world(
+                    position,
+                    Vec3::new(0.0, -1.0, 0.0),
+                    leg_height,
+                    &chunks,
+                    &current_chunks,
+                    &block_table,
+                ) {
+                    transforms.get_mut(entity_player).unwrap().translation -=
+                        Vec3::new(0.0, toi - leg_height, 0.0);
+                    fps_camera.velocity.y = 0.0;
                 }
             }
         }
+    }
+}
 
-        if fps_camera.velocity.y <= 0.0 {
-            let position =
-                transforms.get(entity_player).unwrap().translation - Vec3::new(0.0, 1.19, 0.0);
-
-            if let Some((_chunk_pos, _voxel_pos, _normal, toi)) = raycast_world(
-                position,
-                Vec3::new(0.0, -1.0, 0.0),
-                leg_height,
-                &chunks,
-                &current_chunks,
-                &block_table,
-            ) {
-                transforms.get_mut(entity_player).unwrap().translation -=
-                    Vec3::new(0.0, toi - leg_height, 0.0);
-                fps_camera.velocity.y = 0.0;
-            }
-        }
+pub fn update_aabb(mut player: Query<(&mut Aabb, &Transform), With<FPSCamera>>) {
+    if let Ok((mut aabb, transform)) = player.get_single_mut() {
+        aabb.center = transform.translation.into();
     }
 }
