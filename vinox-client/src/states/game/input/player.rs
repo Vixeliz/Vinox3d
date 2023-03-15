@@ -216,6 +216,7 @@ pub fn interact(
     mut commands: Commands,
     mouse_button_input: Res<Input<MouseButton>>,
     keys: Res<Input<KeyCode>>,
+    windows: Query<&mut Window, With<PrimaryWindow>>,
     camera_query: Query<&GlobalTransform, With<Camera>>,
     mut client: ResMut<Client>,
     player_position: Query<&Transform, With<ControlledPlayer>>,
@@ -228,6 +229,13 @@ pub fn interact(
     current_chunks: Res<CurrentChunks>,
     block_table: Res<BlockTable>,
 ) {
+    if let Ok(window) = windows.get_single() {
+        if window.cursor.grab_mode != CursorGrabMode::Locked {
+            return;
+        }
+    } else {
+        return;
+    }
     let item_string = match current_item.clone() {
         CurrentItem::Grass => BlockData::new("vinox".to_string(), "grass".to_string()),
         CurrentItem::Dirt => BlockData::new("vinox".to_string(), "dirt".to_string()),
@@ -471,6 +479,37 @@ pub fn collision_movement_system(
                     fps_camera.velocity.y = 0.0;
                 }
             }
+        }
+    }
+}
+
+pub fn cursor_grab_system(
+    mut windows: Query<&mut Window, With<PrimaryWindow>>,
+    btn: Res<Input<MouseButton>>,
+    key: Res<Input<KeyCode>>,
+) {
+    let Ok(mut window) = windows.get_single_mut() else {
+        return;
+    };
+
+    if btn.just_pressed(MouseButton::Left) {
+        window.cursor.grab_mode = CursorGrabMode::Locked;
+        window.cursor.visible = false;
+        let window_center: Option<Vec2> =
+            Some(Vec2::new(window.width() / 2.0, window.height() / 2.0));
+        window.set_cursor_position(window_center);
+    }
+
+    if key.just_pressed(KeyCode::Escape) {
+        let window_center: Option<Vec2> =
+            Some(Vec2::new(window.width() / 2.0, window.height() / 2.0));
+        window.set_cursor_position(window_center);
+        if window.cursor.grab_mode == CursorGrabMode::None {
+            window.cursor.grab_mode = CursorGrabMode::Locked;
+            window.cursor.visible = false;
+        } else {
+            window.cursor.grab_mode = CursorGrabMode::None;
+            window.cursor.visible = true;
         }
     }
 }
