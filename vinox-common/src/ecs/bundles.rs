@@ -1,4 +1,4 @@
-use bevy::{prelude::*, render::primitives::Aabb};
+use bevy::{math::Vec3A, prelude::*, render::primitives::Aabb};
 
 use crate::networking::protocol::Player;
 
@@ -13,6 +13,7 @@ pub struct PlayerBundle {
     pub player_tag: Player,
     #[bundle]
     pub scene_bundle: SceneBundle,
+    pub aabb: Aabb,
 }
 
 impl PlayerBundleBuilder {
@@ -28,6 +29,10 @@ impl PlayerBundleBuilder {
                 scene: handle,
                 transform: Transform::from_translation(translation),
                 ..default()
+            },
+            aabb: Aabb {
+                center: translation.into(),
+                half_extents: Vec3A::new(0.4, 0.9, 0.4),
             },
         }
     }
