@@ -1,6 +1,14 @@
+use ron::ser::{to_string_pretty, PrettyConfig};
+use std::io::Write;
+use std::{fs::File, path::PathBuf};
+
 use leafwing_input_manager::prelude::*;
 
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
+
+#[derive(Resource)]
+pub struct ProjectPath(pub PathBuf);
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Default, States)]
 pub enum GameState {
@@ -17,7 +25,9 @@ pub struct Game;
 #[derive(Default, Component, Clone)]
 pub struct Loading;
 
-#[derive(Actionlike, Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[derive(
+    Actionlike, Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize, PartialOrd, Ord,
+)]
 pub enum GameActions {
     Forward,
     Backward,
@@ -30,7 +40,7 @@ pub enum GameActions {
     Run,
 }
 
-#[derive(Resource, Clone, Debug)]
+#[derive(Resource, Clone, Debug, Serialize, Deserialize)]
 pub struct GameOptions {
     pub input: InputMap<GameActions>,
     pub fov: f32,
@@ -63,5 +73,17 @@ impl Default for GameOptions {
 pub fn despawn_with<T: Component>(mut commands: Commands, q: Query<Entity, With<T>>) {
     for e in q.iter() {
         commands.entity(e).despawn_recursive();
+    }
+}
+
+pub fn save_game_options(options: GameOptions, path: PathBuf) {
+    let final_path = path.join("config.ron");
+    if let Some(mut output) = File::create(final_path).ok() {
+        let pretty = PrettyConfig::new()
+            .depth_limit(2)
+            .separate_tuple_members(true)
+            .enumerate_arrays(true);
+        let s = to_string_pretty(&options, pretty).ok().unwrap();
+        write!(output, "{}", s).ok();
     }
 }

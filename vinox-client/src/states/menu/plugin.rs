@@ -10,7 +10,8 @@ use crate::states::{
 };
 
 use super::ui::{
-    configure_visuals, create_ui, options, start, ui_events, update_ui_scale_factor, InOptions,
+    configure_visuals, create_ui, options, save_options, start, ui_events, update_ui_scale_factor,
+    InOptions,
 };
 
 pub struct MenuPlugin;
@@ -34,6 +35,7 @@ impl Plugin for MenuPlugin {
             .insert_resource(UserName("User".to_string()))
             .add_systems(
                 (
+                    save_options,
                     create_ui,
                     options,
                     ui_events,

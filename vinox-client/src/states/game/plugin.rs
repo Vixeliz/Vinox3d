@@ -1,4 +1,4 @@
-use crate::states::components::{despawn_with, Game, GameActions, GameOptions, GameState};
+use crate::states::components::{despawn_with, Game, GameActions, GameState};
 use bevy::prelude::*;
 use leafwing_input_manager::prelude::*;
 
@@ -11,8 +11,7 @@ pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(GameOptions::default())
-            .add_plugin(InputManagerPlugin::<GameActions>::default())
+        app.add_plugin(InputManagerPlugin::<GameActions>::default())
             .add_plugin(RenderingPlugin)
             .add_plugin(ChunkPlugin)
             .add_plugin(NetworkingPlugin)

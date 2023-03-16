@@ -12,7 +12,7 @@ use bevy_egui::{
 use vinox_common::networking::protocol::NetworkIP;
 
 use crate::states::{
-    components::{GameActions, GameOptions, GameState, Menu},
+    components::{save_game_options, GameActions, GameOptions, GameState, Menu, ProjectPath},
     game::networking::components::UserName,
 };
 
@@ -43,6 +43,12 @@ pub fn update_ui_scale_factor(
             };
             egui_settings.scale_factor = scale_factor;
         }
+    }
+}
+
+pub fn save_options(options: Res<GameOptions>, project_path: Res<ProjectPath>) {
+    if options.is_changed() {
+        save_game_options(options.clone(), project_path.0.clone());
     }
 }
 
