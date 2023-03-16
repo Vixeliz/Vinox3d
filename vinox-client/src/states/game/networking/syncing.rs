@@ -77,7 +77,7 @@ pub fn get_messages(
                     entity,
                     user_name,
                     yaw,
-                    head_pitch,
+                    head_pitch: _,
                 } => {
                     let mut client_entity = cmd1.spawn_empty();
                     if client_data.0 == id {

@@ -173,7 +173,7 @@ pub fn process_queue(
     mut commands: Commands,
     mut chunk_queue: ResMut<ChunkQueue>,
     mut chunk_channel: ResMut<ChunkChannel>,
-    mut current_chunks: ResMut<CurrentChunks>,
+    current_chunks: Res<CurrentChunks>,
     seed: Res<WorldSeed>,
     database: Res<WorldDatabase>,
 ) {

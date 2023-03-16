@@ -108,7 +108,7 @@ pub fn get_messages(
                 ClientMessage::Position {
                     player_pos,
                     yaw,
-                    head_pitch,
+                    head_pitch: _,
                 } => {
                     if let Some(player_entity) = lobby.players.get(&client_id) {
                         commands.entity(*player_entity).insert(
