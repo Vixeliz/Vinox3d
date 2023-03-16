@@ -23,3 +23,4 @@ rand.workspace=true
 zstd.workspace=true
 tokio.workspace=true
 catppuccin-egui = "2.0"
+brigadier_rs.workspace=true 

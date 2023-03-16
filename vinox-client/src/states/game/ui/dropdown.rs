@@ -1,4 +1,5 @@
-use std::collections::BTreeMap;
+use brigadier_rs::*;
+use std::{collections::BTreeMap, convert::Infallible};
 
 use bevy::prelude::*;
 use bevy_egui::{
@@ -16,6 +17,15 @@ pub fn create_ui(
     mut current_message: Local<String>,
 ) {
     if is_open.0 {
+        let parser = literal("/add")
+            .then(integer_i32("integer").build_exec(|ctx: (), bar| {
+                println!("Integer is {}", bar);
+                Ok::<(), Infallible>(())
+            }))
+            .build_exec(|ctx: ()| {
+                println!("Called foo with no arguments");
+                Ok::<(), Infallible>(())
+            });
         catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
         egui::Window::new("Console")
             .anchor(Align2::CENTER_TOP, [0.0, 0.0])
@@ -48,7 +58,16 @@ pub fn create_ui(
                         .show_inside(ui, |ui| {
                             ui.horizontal(|ui| {
                                 ui.label("Type: ");
-                                ui.text_edit_singleline(&mut *current_message);
+                                let response = ui.text_edit_singleline(&mut *current_message);
+
+                                // Pressing enter makes we lose focus
+                                let input_send = response.lost_focus()
+                                    && ui.input(|input| input.key_pressed(egui::Key::Enter));
+                                if input_send {
+                                    if let Ok(result) = parser.parse((), &*current_message) {
+                                        println!("{result:?}");
+                                    }
+                                }
                             });
                         });
 
