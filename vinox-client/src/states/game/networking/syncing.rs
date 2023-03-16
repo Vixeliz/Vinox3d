@@ -87,6 +87,7 @@ pub fn get_messages(
                     user_name,
                     yaw,
                     head_pitch: _,
+                    init,
                 } => {
                     let mut client_entity = cmd1.spawn_empty();
                     if client_data.0 .0 == id {
@@ -118,7 +119,12 @@ pub fn get_messages(
                                 input_map: options.input.clone(),
                             });
                     } else {
-                        println!("Player {user_name} connected.");
+                        if init {
+                            toast
+                                .0
+                                .basic(format!("Player {user_name} connected."))
+                                .set_duration(Some(Duration::from_secs(3)));
+                        }
                         client_entity.insert(player_builder.build(
                             translation,
                             id,

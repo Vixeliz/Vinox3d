@@ -76,6 +76,7 @@ pub enum ServerMessage {
         yaw: f32,
         head_pitch: f32,
         user_name: String,
+        init: bool,
     },
     PlayerRemove {
         id: ClientId,

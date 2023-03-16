@@ -68,6 +68,7 @@ pub fn get_messages(
                                 yaw: transform.rotation.to_euler(EulerRot::XYZ).1,
                                 head_pitch: transform.rotation.to_euler(EulerRot::XYZ).0,
                                 user_name: client_name.0.clone(),
+                                init: false,
                             },
                         );
                     }
@@ -95,6 +96,7 @@ pub fn get_messages(
                         yaw: transform.rotation.to_euler(EulerRot::XYZ).1,
                         head_pitch: transform.rotation.to_euler(EulerRot::XYZ).0,
                         user_name,
+                        init: true,
                     });
                 }
                 ClientMessage::Leave { id } => {
