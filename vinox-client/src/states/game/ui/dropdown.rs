@@ -1,5 +1,6 @@
 use bevy_quinnet::client::Client;
 use brigadier_rs::*;
+use egui_notify::Toasts;
 use std::{collections::BTreeMap, convert::Infallible};
 use vinox_common::networking::protocol::ClientMessage;
 
@@ -14,14 +15,20 @@ use crate::states::game::networking::components::ChatMessages;
 #[derive(Resource, Default)]
 pub struct ConsoleOpen(pub bool);
 
+#[derive(Resource, Default)]
+pub struct Toast(pub Toasts);
+
 pub fn create_ui(
     // mut commands: Commands,
     mut client: ResMut<Client>,
-    mut contexts: EguiContexts,
     is_open: Res<ConsoleOpen>, // mut username_res: ResMut<UserName>,
     mut current_message: Local<String>,
-    mut messages: ResMut<ChatMessages>,
+    messages: Res<ChatMessages>,
+    mut contexts: EguiContexts,
+    mut toast: ResMut<Toast>,
 ) {
+    catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
+    toast.0.show(contexts.ctx_mut());
     if is_open.0 {
         let parser = literal("/add")
             .then(integer_i32("integer").build_exec(|_ctx: (), bar| {

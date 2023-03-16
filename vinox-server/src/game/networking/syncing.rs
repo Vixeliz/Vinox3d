@@ -152,6 +152,7 @@ pub fn get_messages(
                                 ServerMessage::ChatMessage {
                                     user_name: username.0.clone(),
                                     message,
+                                    id: client_id,
                                 },
                             );
                         }

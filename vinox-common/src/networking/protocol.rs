@@ -64,6 +64,7 @@ pub enum ServerMessage {
     ChatMessage {
         user_name: String,
         message: String,
+        id: u64,
     },
     ClientId {
         id: ClientId,

@@ -24,3 +24,4 @@ zstd.workspace=true
 tokio.workspace=true
 catppuccin-egui = "2.0"
 brigadier_rs.workspace=true 
+egui-notify = "0.6.0"

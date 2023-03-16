@@ -3,9 +3,11 @@ use super::components::{
 };
 use crate::states::game::{
     rendering::meshing::BasicMaterial,
+    ui::dropdown::Toast,
     world::chunks::{ControlledPlayer, CreateChunkEvent, SetBlockEvent},
 };
 use bevy::prelude::*;
+use bevy_egui::EguiContexts;
 use bevy_quinnet::client::*;
 use bevy_tweening::{
     lens::{TransformPositionLens, TransformRotationLens},
@@ -67,6 +69,7 @@ pub fn get_messages(
     asset_server: Res<AssetServer>,
     username: Res<UserName>,
     mut messages: ResMut<ChatMessages>,
+    mut toast: ResMut<Toast>,
 ) {
     if client_data.0 != 0 {
         while let Some(message) = client
@@ -161,8 +164,18 @@ pub fn get_messages(
                         pos,
                     });
                 }
-                ServerMessage::ChatMessage { user_name, message } => {
-                    messages.0.push((user_name, message));
+                ServerMessage::ChatMessage {
+                    user_name,
+                    message,
+                    id,
+                } => {
+                    messages.0.push((user_name.clone(), message.clone()));
+                    if id != client_data.0 {
+                        toast
+                            .0
+                            .basic(format!("{user_name}: {message}"))
+                            .set_duration(Some(Duration::from_secs(3)));
+                    }
                 }
                 _ => {}
             }
