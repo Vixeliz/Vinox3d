@@ -7,7 +7,6 @@ use crate::states::game::{
     world::chunks::{ControlledPlayer, CreateChunkEvent, SetBlockEvent},
 };
 use bevy::prelude::*;
-use bevy_egui::EguiContexts;
 use bevy_quinnet::client::*;
 use bevy_tweening::{
     lens::{TransformPositionLens, TransformRotationLens},
