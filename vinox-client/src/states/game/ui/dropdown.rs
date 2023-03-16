@@ -18,11 +18,11 @@ pub fn create_ui(
 ) {
     if is_open.0 {
         let parser = literal("/add")
-            .then(integer_i32("integer").build_exec(|ctx: (), bar| {
-                println!("Integer is {}", bar);
+            .then(integer_i32("integer").build_exec(|_ctx: (), bar| {
+                println!("Integer is {bar}");
                 Ok::<(), Infallible>(())
             }))
-            .build_exec(|ctx: ()| {
+            .build_exec(|_ctx: ()| {
                 println!("Called foo with no arguments");
                 Ok::<(), Infallible>(())
             });
@@ -64,7 +64,7 @@ pub fn create_ui(
                                 let input_send = response.lost_focus()
                                     && ui.input(|input| input.key_pressed(egui::Key::Enter));
                                 if input_send {
-                                    if let Ok(result) = parser.parse((), &*current_message) {
+                                    if let Ok(result) = parser.parse((), &current_message) {
                                         println!("{result:?}");
                                     }
                                 }
