@@ -23,7 +23,7 @@ pub fn create_ui(
     mut client: ResMut<Client>,
     is_open: Res<ConsoleOpen>, // mut username_res: ResMut<UserName>,
     mut current_message: Local<String>,
-    messages: Res<ChatMessages>,
+    mut messages: ResMut<ChatMessages>,
     mut contexts: EguiContexts,
     mut toast: ResMut<Toast>,
 ) {
@@ -78,7 +78,9 @@ pub fn create_ui(
                                     && ui.input(|input| input.key_pressed(egui::Key::Enter));
                                 if input_send {
                                     if let Ok(result) = parser.parse((), &current_message) {
-                                        println!("{result:?}");
+                                        messages
+                                            .0
+                                            .push(("Console".to_string(), result.0.to_string()));
                                     } else {
                                         client.connection_mut().try_send_message(
                                             ClientMessage::ChatMessage {
