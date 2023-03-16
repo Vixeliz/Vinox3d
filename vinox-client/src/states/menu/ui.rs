@@ -45,6 +45,7 @@ pub fn create_ui(
     mut ip_res: ResMut<NetworkIP>,
     mut username_res: ResMut<UserName>,
 ) {
+    catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
     egui::SidePanel::left("menu_side_panel")
         .default_width(250.0)
         .show(contexts.ctx_mut(), |ui| {
@@ -91,6 +92,7 @@ pub fn create_ui(
             });
         });
 
+    catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
     egui::CentralPanel::default().show(contexts.ctx_mut(), |ui| {
         egui::warn_if_debug_build(ui);
 

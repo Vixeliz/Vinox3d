@@ -22,3 +22,4 @@ copy_dir = "0.1.2"
 rand.workspace=true
 zstd.workspace=true
 tokio.workspace=true
+catppuccin-egui = "2.0"
