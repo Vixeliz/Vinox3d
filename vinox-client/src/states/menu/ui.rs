@@ -7,7 +7,10 @@ use bevy_egui::{
 };
 use vinox_common::networking::protocol::NetworkIP;
 
-use crate::states::components::{GameState, Menu};
+use crate::states::{
+    components::{GameState, Menu},
+    game::networking::components::UserName,
+};
 
 pub fn configure_visuals(mut contexts: EguiContexts) {
     contexts.ctx_mut().set_visuals(egui::Visuals {
@@ -40,6 +43,7 @@ pub fn create_ui(
     mut commands: Commands,
     mut contexts: EguiContexts,
     mut ip_res: ResMut<NetworkIP>,
+    mut username_res: ResMut<UserName>,
 ) {
     egui::SidePanel::left("menu_side_panel")
         .default_width(250.0)
@@ -64,6 +68,11 @@ pub fn create_ui(
                 ui.horizontal(|ui| {
                     ui.label("IP: ");
                     ui.text_edit_singleline(&mut ip_res.0);
+                });
+
+                ui.horizontal(|ui| {
+                    ui.label("Username: ");
+                    ui.text_edit_singleline(&mut username_res.0);
                 });
 
                 ui.allocate_space(egui::Vec2::new(1.0, 26.0));

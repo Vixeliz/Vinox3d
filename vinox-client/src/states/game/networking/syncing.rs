@@ -1,4 +1,4 @@
-use super::components::{ClientData, ClientLobby, NetworkMapping, PlayerInfo};
+use super::components::{ClientData, ClientLobby, NetworkMapping, PlayerInfo, UserName};
 use crate::states::game::{
     rendering::meshing::BasicMaterial,
     world::chunks::{ControlledPlayer, CreateChunkEvent, SetBlockEvent},
@@ -24,6 +24,7 @@ pub fn get_id(
     mut client: ResMut<Client>,
     mut client_data: ResMut<ClientData>,
     mut has_connected: Local<bool>,
+    username: Res<UserName>,
 ) {
     if *has_connected {
     } else {
@@ -36,7 +37,7 @@ pub fn get_id(
                 client
                     .connection_mut()
                     .try_send_message(ClientMessage::Join {
-                        user_name: "test".to_string(), //Global resource will be used instead
+                        user_name: username.0.clone(),
                         id,
                     });
                 *has_connected = true;
@@ -62,6 +63,7 @@ pub fn get_messages(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<BasicMaterial>>,
     asset_server: Res<AssetServer>,
+    username: Res<UserName>,
 ) {
     if client_data.0 != 0 {
         while let Some(message) = client
@@ -73,7 +75,9 @@ pub fn get_messages(
                     id,
                     translation,
                     entity,
-                    rotation,
+                    user_name,
+                    yaw,
+                    head_pitch,
                 } => {
                     let mut client_entity = cmd1.spawn_empty();
                     if client_data.0 == id {
@@ -93,14 +97,19 @@ pub fn get_messages(
                         .insert(HighLightCube);
 
                         client_entity
-                            .insert(player_builder.build(translation, id, true))
+                            .insert(player_builder.build(translation, id, true, username.0.clone()))
                             .insert(ControlledPlayer);
                     } else {
-                        println!("Player {id} connected.");
-                        client_entity.insert(player_builder.build(translation, id, false));
+                        println!("Player {user_name} connected.");
+                        client_entity.insert(player_builder.build(
+                            translation,
+                            id,
+                            false,
+                            user_name,
+                        ));
                         client_entity.insert(
                             Transform::from_translation(translation)
-                                .with_rotation(Quat::from_vec4(rotation)),
+                                .with_rotation(Quat::from_euler(EulerRot::XYZ, 0.0, yaw, 0.0)),
                         );
                     }
 
@@ -169,7 +178,8 @@ pub fn lerp_new_location(
             .get(&entity_buffer.entities[0].entities[i])
         {
             let translation = entity_buffer.entities[0].translations[i];
-            let rotation = Quat::from_vec4(entity_buffer.entities[0].rotations[i]);
+            let rotation =
+                Quat::from_euler(EulerRot::XYZ, 0.0, entity_buffer.entities[0].yaws[i], 0.0);
             let transform = Transform {
                 translation,
                 ..Default::default()
@@ -204,8 +214,6 @@ pub fn lerp_new_location(
                     }
                 } else {
                 }
-            } else {
-                //Different entity rather then player.
             }
         }
     }
@@ -224,7 +232,8 @@ pub fn client_send_naive_position(
                     bevy_quinnet::shared::channel::ChannelId::Unreliable,
                     ClientMessage::Position {
                         player_pos: transform.translation,
-                        player_rot: Vec4::from(camera_transform.rotation),
+                        yaw: camera_transform.rotation.to_euler(EulerRot::XYZ).1,
+                        head_pitch: camera_transform.rotation.to_euler(EulerRot::XYZ).0,
                     },
                 )
                 .unwrap();

@@ -4,7 +4,10 @@ use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 use vinox_common::networking::protocol::NetworkIP;
 
-use crate::states::components::{despawn_with, GameState, Menu};
+use crate::states::{
+    components::{despawn_with, GameState, Menu},
+    game::networking::components::UserName,
+};
 
 use super::ui::{configure_visuals, create_ui, start, ui_events, update_ui_scale_factor};
 
@@ -25,6 +28,7 @@ impl Plugin for MenuPlugin {
 
         app.add_plugin(EguiPlugin)
             .insert_resource(NetworkIP(ip))
+            .insert_resource(UserName("User".to_string()))
             .add_systems(
                 (
                     create_ui,

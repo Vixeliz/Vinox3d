@@ -21,7 +21,8 @@ pub struct Player {
 pub struct NetworkedEntities {
     pub entities: Vec<Entity>,
     pub translations: Vec<Vec3>,
-    pub rotations: Vec<Vec4>,
+    pub yaws: Vec<f32>,
+    pub head_pitchs: Vec<f32>,
 }
 
 #[derive(Default, Resource)]
@@ -33,7 +34,8 @@ pub struct EntityBuffer {
 pub enum ClientMessage {
     Position {
         player_pos: Vec3,
-        player_rot: Vec4,
+        yaw: f32,
+        head_pitch: f32,
     },
     Interact {
         entity: Entity,
@@ -63,7 +65,9 @@ pub enum ServerMessage {
         entity: Entity,
         id: ClientId,
         translation: Vec3,
-        rotation: Vec4,
+        yaw: f32,
+        head_pitch: f32,
+        user_name: String,
     },
     PlayerRemove {
         id: ClientId,

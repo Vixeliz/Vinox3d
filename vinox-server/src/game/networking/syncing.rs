@@ -5,8 +5,8 @@ use rustc_data_structures::stable_set::FxHashSet;
 use bevy::prelude::*;
 use bevy_quinnet::server::*;
 use vinox_common::{
-    ecs::bundles::PlayerBundleBuilder,
-    networking::protocol::{ClientMessage, Player, ServerMessage},
+    ecs::bundles::{ClientName, PlayerBundleBuilder},
+    networking::protocol::{ClientMessage, NetworkedEntities, Player, ServerMessage},
     world::chunks::{
         ecs::{ChunkComp, CurrentChunks},
         positions::world_to_chunk,
@@ -44,7 +44,7 @@ pub fn get_messages(
     mut server: ResMut<Server>,
     mut commands: Commands,
     mut lobby: ResMut<ServerLobby>,
-    mut players: Query<(Entity, &Player, &Transform, &mut SentChunks)>,
+    mut players: Query<(Entity, &Player, &Transform, &ClientName)>,
     player_builder: Res<PlayerBundleBuilder>,
     mut chunks: Query<&mut ChunkComp>,
     current_chunks: Res<CurrentChunks>,
@@ -54,18 +54,20 @@ pub fn get_messages(
     for client_id in endpoint.clients() {
         while let Some(message) = endpoint.try_receive_message_from::<ClientMessage>(client_id) {
             match message {
-                ClientMessage::Join { id, user_name: _ } => {
-                    println!("Player {id} connected.");
+                ClientMessage::Join { id, user_name } => {
+                    println!("Player {user_name} connected.");
 
                     // Initialize other players for this new client
-                    for (entity, player, transform, _sent_chunks) in players.iter_mut() {
+                    for (entity, player, transform, client_name) in players.iter_mut() {
                         endpoint.try_send_message(
                             id,
                             ServerMessage::PlayerCreate {
                                 id: player.id,
                                 entity,
                                 translation: transform.translation,
-                                rotation: Vec4::from(transform.rotation),
+                                yaw: transform.rotation.to_euler(EulerRot::XYZ).1,
+                                head_pitch: transform.rotation.to_euler(EulerRot::XYZ).0,
+                                user_name: client_name.0.clone(),
                             },
                         );
                     }
@@ -73,7 +75,12 @@ pub fn get_messages(
                     // Spawn new player
                     let transform = Transform::from_xyz(0.0, 115.0, 0.0);
                     let player_entity = commands
-                        .spawn(player_builder.build(transform.translation, id, false))
+                        .spawn(player_builder.build(
+                            transform.translation,
+                            id,
+                            false,
+                            user_name.clone(),
+                        ))
                         .insert(SentChunks {
                             chunks: FxHashSet::default(),
                         })
@@ -85,7 +92,9 @@ pub fn get_messages(
                         id,
                         entity: player_entity,
                         translation: transform.translation,
-                        rotation: Vec4::from(transform.rotation),
+                        yaw: transform.rotation.to_euler(EulerRot::XYZ).1,
+                        head_pitch: transform.rotation.to_euler(EulerRot::XYZ).0,
+                        user_name,
                     });
                 }
                 ClientMessage::Leave { id } => {
@@ -98,12 +107,13 @@ pub fn get_messages(
                 }
                 ClientMessage::Position {
                     player_pos,
-                    player_rot,
+                    yaw,
+                    head_pitch,
                 } => {
                     if let Some(player_entity) = lobby.players.get(&client_id) {
                         commands.entity(*player_entity).insert(
                             Transform::from_translation(player_pos)
-                                .with_rotation(Quat::from_vec4(player_rot)),
+                                .with_rotation(Quat::from_euler(EulerRot::XYZ, 0.0, yaw, 0.0)),
                         );
                     }
                 }
@@ -140,7 +150,22 @@ pub fn get_messages(
     }
 }
 
-pub fn send_entities() {}
+#[allow(clippy::type_complexity)]
+//This would eventually take in any networkedentity for now just player
+pub fn send_entities(mut server: ResMut<Server>, query: Query<(Entity, &Transform)>) {
+    let mut networked_entities = NetworkedEntities::default();
+    for (entity, transform) in query.iter() {
+        networked_entities.entities.push(entity);
+        networked_entities.translations.push(transform.translation);
+        networked_entities
+            .yaws
+            .push(transform.rotation.to_euler(EulerRot::XYZ).1);
+    }
+    server.endpoint_mut().try_broadcast_message_on(
+        bevy_quinnet::shared::channel::ChannelId::Unreliable,
+        ServerMessage::NetworkedEntities { networked_entities },
+    );
+}
 
 pub fn send_chunks(
     mut commands: Commands,
