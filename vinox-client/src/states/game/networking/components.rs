@@ -8,9 +8,6 @@ pub struct ChatMessages(pub Vec<(String, String)>);
 #[derive(Resource, Default)]
 pub struct ClientData(pub u64);
 
-#[derive(Resource, Default)]
-pub struct UserName(pub String);
-
 #[derive(Debug)]
 pub struct PlayerInfo {
     pub client_entity: Entity,

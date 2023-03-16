@@ -11,9 +11,8 @@ use bevy_egui::{
 };
 use vinox_common::networking::protocol::NetworkIP;
 
-use crate::states::{
-    components::{save_game_options, GameActions, GameOptions, GameState, Menu, ProjectPath},
-    game::networking::components::UserName,
+use crate::states::components::{
+    save_game_options, GameActions, GameOptions, GameState, Menu, ProjectPath,
 };
 
 #[derive(Resource, Default)]
@@ -147,9 +146,8 @@ pub fn create_ui(
     mut commands: Commands,
     mut contexts: EguiContexts,
     mut ip_res: ResMut<NetworkIP>,
-    mut username_res: ResMut<UserName>,
     mut in_options: ResMut<InOptions>,
-    options: Res<GameOptions>,
+    mut options: ResMut<GameOptions>,
 ) {
     if !options.dark_theme {
         catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
@@ -181,7 +179,7 @@ pub fn create_ui(
 
                 ui.horizontal(|ui| {
                     ui.label("Username: ");
-                    ui.text_edit_singleline(&mut username_res.0);
+                    ui.text_edit_singleline(&mut options.user_name);
                 });
 
                 ui.allocate_space(egui::Vec2::new(1.0, 26.0));

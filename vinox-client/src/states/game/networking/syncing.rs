@@ -1,6 +1,4 @@
-use super::components::{
-    ChatMessages, ClientData, ClientLobby, NetworkMapping, PlayerInfo, UserName,
-};
+use super::components::{ChatMessages, ClientData, ClientLobby, NetworkMapping, PlayerInfo};
 use crate::states::{
     components::{GameActions, GameOptions},
     game::{
@@ -31,7 +29,7 @@ pub fn get_id(
     mut client: ResMut<Client>,
     mut client_data: ResMut<ClientData>,
     mut has_connected: Local<bool>,
-    username: Res<UserName>,
+    options: Res<GameOptions>,
 ) {
     if *has_connected {
     } else {
@@ -44,7 +42,7 @@ pub fn get_id(
                 client
                     .connection_mut()
                     .try_send_message(ClientMessage::Join {
-                        user_name: username.0.clone(),
+                        user_name: options.user_name.clone(),
                         id,
                     });
                 *has_connected = true;
@@ -60,7 +58,7 @@ pub fn get_messages(
     mut cmd1: Commands,
     mut cmd2: Commands,
     mut client: ResMut<Client>,
-    client_data: (Res<ClientData>, Res<UserName>),
+    (client_data, options): (Res<ClientData>, Res<GameOptions>),
     mut lobby: ResMut<ClientLobby>,
     mut network_mapping: ResMut<NetworkMapping>,
     mut entity_buffer: ResMut<EntityBuffer>,
@@ -72,9 +70,8 @@ pub fn get_messages(
     asset_server: Res<AssetServer>,
     mut messages: ResMut<ChatMessages>,
     mut toast: ResMut<Toast>,
-    options: Res<GameOptions>,
 ) {
-    if client_data.0 .0 != 0 {
+    if client_data.0 != 0 {
         while let Some(message) = client
             .connection_mut()
             .try_receive_message::<ServerMessage>()
@@ -90,7 +87,7 @@ pub fn get_messages(
                     init,
                 } => {
                     let mut client_entity = cmd1.spawn_empty();
-                    if client_data.0 .0 == id {
+                    if client_data.0 == id {
                         println!("You connected.");
                         cmd2.spawn(MaterialMeshBundle {
                             mesh: meshes.add(Mesh::from(shape::Cube { size: 1.001 })),
@@ -111,7 +108,7 @@ pub fn get_messages(
                                 translation,
                                 id,
                                 true,
-                                client_data.1 .0.clone(),
+                                options.user_name.clone(),
                             ))
                             .insert(ControlledPlayer)
                             .insert(InputManagerBundle::<GameActions> {
@@ -188,7 +185,7 @@ pub fn get_messages(
                     id,
                 } => {
                     messages.0.push((user_name.clone(), message.clone()));
-                    if id != client_data.0 .0 {
+                    if id != client_data.0 {
                         toast
                             .0
                             .basic(format!("{user_name}: {message}"))

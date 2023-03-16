@@ -63,11 +63,11 @@ fn main() {
 
 fn load_game_options(path: PathBuf) -> Option<GameOptions> {
     let final_path = path.join("config.ron");
-    if let Ok(f) = File::open(&final_path) {
+    if let Ok(f) = File::open(final_path) {
         let config: Option<GameOptions> = match from_reader(f) {
             Ok(x) => Some(x),
             Err(e) => {
-                println!("Failed to load config: {}", e);
+                println!("Failed to load config: {e}");
                 None
             }
         };

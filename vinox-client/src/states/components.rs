@@ -45,6 +45,7 @@ pub struct GameOptions {
     pub input: InputMap<GameActions>,
     pub fov: f32,
     pub dark_theme: bool,
+    pub user_name: String,
 }
 
 impl Default for GameOptions {
@@ -66,6 +67,7 @@ impl Default for GameOptions {
             input,
             fov: 90.0,
             dark_theme: true,
+            user_name: "User".to_string(),
         }
     }
 }
@@ -78,12 +80,12 @@ pub fn despawn_with<T: Component>(mut commands: Commands, q: Query<Entity, With<
 
 pub fn save_game_options(options: GameOptions, path: PathBuf) {
     let final_path = path.join("config.ron");
-    if let Some(mut output) = File::create(final_path).ok() {
+    if let Ok(mut output) = File::create(final_path) {
         let pretty = PrettyConfig::new()
             .depth_limit(2)
             .separate_tuple_members(true)
             .enumerate_arrays(true);
         let s = to_string_pretty(&options, pretty).ok().unwrap();
-        write!(output, "{}", s).ok();
+        write!(output, "{s}").ok();
     }
 }
