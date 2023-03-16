@@ -9,7 +9,9 @@ use crate::states::{
     game::networking::components::UserName,
 };
 
-use super::ui::{configure_visuals, create_ui, start, ui_events, update_ui_scale_factor};
+use super::ui::{
+    configure_visuals, create_ui, options, start, ui_events, update_ui_scale_factor, InOptions,
+};
 
 pub struct MenuPlugin;
 
@@ -27,11 +29,13 @@ impl Plugin for MenuPlugin {
         }
 
         app.add_plugin(EguiPlugin)
+            .insert_resource(InOptions(false))
             .insert_resource(NetworkIP(ip))
             .insert_resource(UserName("User".to_string()))
             .add_systems(
                 (
                     create_ui,
+                    options,
                     ui_events,
                     configure_visuals,
                     update_ui_scale_factor,

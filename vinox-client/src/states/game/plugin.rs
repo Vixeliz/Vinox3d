@@ -1,4 +1,4 @@
-use crate::states::components::{despawn_with, Game, GameState};
+use crate::states::components::{despawn_with, Game, GameOptions, GameState};
 use bevy::prelude::*;
 
 use super::{
@@ -10,7 +10,8 @@ pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugin(RenderingPlugin)
+        app.insert_resource(GameOptions::default())
+            .add_plugin(RenderingPlugin)
             .add_plugin(ChunkPlugin)
             .add_plugin(NetworkingPlugin)
             .add_plugin(InputPlugin)
