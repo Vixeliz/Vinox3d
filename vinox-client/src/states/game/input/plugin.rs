@@ -4,7 +4,7 @@ use crate::states::components::GameState;
 
 use super::player::{
     collision_movement_system, cursor_grab_system, interact, movement_input, spawn_camera,
-    update_aabb, MouseSensitivity,
+    ui_input, update_aabb, MouseSensitivity,
 };
 
 pub struct InputPlugin;
@@ -19,6 +19,7 @@ impl Plugin for InputPlugin {
                 collision_movement_system,
                 cursor_grab_system.after(interact),
                 update_aabb,
+                ui_input,
             )
                 .in_set(OnUpdate(GameState::Game)),
         );

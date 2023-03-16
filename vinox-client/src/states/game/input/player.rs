@@ -21,7 +21,9 @@ use vinox_common::{
 };
 
 use crate::states::game::{
-    networking::syncing::HighLightCube, rendering::meshing::PriorityMesh,
+    networking::syncing::HighLightCube,
+    rendering::meshing::PriorityMesh,
+    ui::{dropdown::ConsoleOpen, plugin::InUi},
     world::chunks::ControlledPlayer,
 };
 
@@ -470,12 +472,14 @@ pub fn collision_movement_system(
 
 pub fn cursor_grab_system(
     mut windows: Query<&mut Window, With<PrimaryWindow>>,
+    mut in_ui: ResMut<InUi>,
+    mut is_open: ResMut<ConsoleOpen>,
     btn: Res<Input<MouseButton>>,
     key: Res<Input<KeyCode>>,
 ) {
     let mut window = windows.single_mut();
 
-    if btn.just_pressed(MouseButton::Left) {
+    if btn.just_pressed(MouseButton::Left) && !in_ui.0 {
         window.cursor.grab_mode = CursorGrabMode::Locked;
         window.cursor.visible = false;
         let window_center: Option<Vec2> =
@@ -494,11 +498,39 @@ pub fn cursor_grab_system(
             window.cursor.grab_mode = CursorGrabMode::None;
             window.cursor.visible = true;
         }
+        if in_ui.0 {
+            is_open.0 = false;
+        }
+        in_ui.0 = !in_ui.0;
     }
 }
 
 pub fn update_aabb(mut player: Query<(&mut Aabb, &Transform), With<FPSCamera>>) {
     if let Ok((mut aabb, transform)) = player.get_single_mut() {
         aabb.center = transform.translation.into();
+    }
+}
+
+pub fn ui_input(
+    keys: Res<Input<KeyCode>>,
+    mut is_open: ResMut<ConsoleOpen>,
+    mut in_ui: ResMut<InUi>,
+    mut windows: Query<&mut Window, With<PrimaryWindow>>,
+) {
+    let mut window = windows.single_mut();
+    if keys.just_pressed(KeyCode::T) && !in_ui.0 {
+        let window_center: Option<Vec2> =
+            Some(Vec2::new(window.width() / 2.0, window.height() / 2.0));
+        window.set_cursor_position(window_center);
+        if window.cursor.grab_mode == CursorGrabMode::None {
+            window.cursor.grab_mode = CursorGrabMode::Locked;
+            window.cursor.visible = false;
+        } else {
+            window.cursor.grab_mode = CursorGrabMode::None;
+            window.cursor.visible = true;
+        }
+
+        is_open.0 = !is_open.0;
+        in_ui.0 = !in_ui.0;
     }
 }
