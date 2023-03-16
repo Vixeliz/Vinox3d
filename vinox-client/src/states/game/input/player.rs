@@ -22,7 +22,7 @@ use vinox_common::{
 };
 
 use crate::states::{
-    components::GameActions,
+    components::{GameActions, GameOptions},
     game::{
         networking::syncing::HighLightCube,
         rendering::meshing::PriorityMesh,
@@ -53,6 +53,7 @@ pub fn spawn_camera(
     player_entity: Query<Entity, With<ControlledPlayer>>,
     mut local: Local<bool>,
     mut windows: Query<&mut Window, With<PrimaryWindow>>,
+    options: Res<GameOptions>,
 ) {
     if *local {
         return;
@@ -67,7 +68,7 @@ pub fn spawn_camera(
         *local = true;
         let camera = {
             let perspective_projection = PerspectiveProjection {
-                fov: std::f32::consts::PI / 1.8,
+                fov: options.fov.to_radians(),
                 near: 0.001,
                 far: 1000.0,
                 aspect_ratio: 1.0,

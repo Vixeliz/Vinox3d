@@ -120,12 +120,17 @@ pub fn options(
                                 });
                                 ui.separator();
                             }
-                            if ui
-                                .small_button(format!("Dark Mode: {}", options.dark_theme))
-                                .clicked()
-                            {
-                                options.dark_theme = !options.dark_theme;
-                            }
+                            ui.horizontal(|ui| {
+                                ui.label("Dark mode: ");
+                                if ui.small_button(format!("{}", options.dark_theme)).clicked() {
+                                    options.dark_theme = !options.dark_theme;
+                                }
+                            });
+                            ui.separator();
+                            ui.horizontal(|ui| {
+                                ui.label("FOV: ");
+                                ui.add(egui::Slider::new(&mut options.fov, 30.0..=120.0));
+                            });
                         });
                 });
             });
