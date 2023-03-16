@@ -54,8 +54,8 @@ impl Default for GameOptions {
 
         GameOptions {
             input,
-            fov: 4.0,
-            dark_theme: false,
+            fov: 90.0,
+            dark_theme: true,
         }
     }
 }

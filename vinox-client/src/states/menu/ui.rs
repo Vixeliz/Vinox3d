@@ -48,7 +48,7 @@ pub fn update_ui_scale_factor(
 
 pub fn options(
     mut contexts: EguiContexts,
-    in_options: Res<InOptions>,
+    mut in_options: ResMut<InOptions>,
     mut options: ResMut<GameOptions>,
     mut current_change: Local<Option<GameActions>>,
     mut keys: EventReader<KeyboardInput>,
@@ -73,47 +73,62 @@ pub fn options(
                 }
             }
         }
-        catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
-        egui::Window::new("Options").show(contexts.ctx_mut(), |ui| {
-            ui.with_layout(egui::Layout::top_down(egui::Align::LEFT), |ui| {
-                ui.ctx().set_style(egui::Style {
-                    text_styles: {
-                        let mut texts = BTreeMap::new();
-                        texts.insert(egui::style::TextStyle::Small, FontId::proportional(16.0));
-                        texts.insert(egui::style::TextStyle::Body, FontId::proportional(16.0));
-                        texts.insert(egui::style::TextStyle::Heading, FontId::proportional(20.0));
-                        texts.insert(egui::style::TextStyle::Monospace, FontId::monospace(16.0));
-                        texts.insert(egui::style::TextStyle::Button, FontId::proportional(16.0));
-                        texts
-                    },
-                    ..Default::default()
-                });
-                egui::ScrollArea::vertical()
-                    .auto_shrink([false; 2])
-                    .max_width(2000.0)
-                    .show(ui, |ui| {
-                        for (input, action) in options.input.iter() {
-                            ui.horizontal(|ui| {
-                                ui.label(format!("{action:?}"));
-                                if let Some(key) =
-                                    input.get_at(0).unwrap().raw_inputs().keycodes.get(0)
-                                {
-                                    if ui.small_button(format!("{key:?}")).clicked() {
-                                        *current_change = Some(action);
-                                    }
-                                } else if let Some(mouse) =
-                                    input.get_at(0).unwrap().raw_inputs().mouse_buttons.get(0)
-                                {
-                                    if ui.small_button(format!("{mouse:?}")).clicked() {
-                                        *current_change = Some(action);
-                                    }
-                                };
-                            });
-                            ui.separator();
-                        }
+        if !options.dark_theme {
+            catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
+        }
+        egui::Window::new("Options")
+            .open(&mut in_options.0)
+            .show(contexts.ctx_mut(), |ui| {
+                ui.with_layout(egui::Layout::top_down(egui::Align::LEFT), |ui| {
+                    ui.ctx().set_style(egui::Style {
+                        text_styles: {
+                            let mut texts = BTreeMap::new();
+                            texts.insert(egui::style::TextStyle::Small, FontId::proportional(16.0));
+                            texts.insert(egui::style::TextStyle::Body, FontId::proportional(16.0));
+                            texts.insert(
+                                egui::style::TextStyle::Heading,
+                                FontId::proportional(36.0),
+                            );
+                            texts
+                                .insert(egui::style::TextStyle::Monospace, FontId::monospace(16.0));
+                            texts
+                                .insert(egui::style::TextStyle::Button, FontId::proportional(26.0));
+                            texts
+                        },
+                        ..Default::default()
                     });
+                    egui::ScrollArea::vertical()
+                        .auto_shrink([false; 2])
+                        .max_width(2000.0)
+                        .show(ui, |ui| {
+                            for (input, action) in options.input.iter() {
+                                ui.horizontal(|ui| {
+                                    ui.label(format!("{action:?}"));
+                                    if let Some(key) =
+                                        input.get_at(0).unwrap().raw_inputs().keycodes.get(0)
+                                    {
+                                        if ui.small_button(format!("{key:?}")).clicked() {
+                                            *current_change = Some(action);
+                                        }
+                                    } else if let Some(mouse) =
+                                        input.get_at(0).unwrap().raw_inputs().mouse_buttons.get(0)
+                                    {
+                                        if ui.small_button(format!("{mouse:?}")).clicked() {
+                                            *current_change = Some(action);
+                                        }
+                                    };
+                                });
+                                ui.separator();
+                            }
+                            if ui
+                                .small_button(format!("Dark Mode: {}", options.dark_theme))
+                                .clicked()
+                            {
+                                options.dark_theme = !options.dark_theme;
+                            }
+                        });
+                });
             });
-        });
     }
 }
 
@@ -123,8 +138,11 @@ pub fn create_ui(
     mut ip_res: ResMut<NetworkIP>,
     mut username_res: ResMut<UserName>,
     mut in_options: ResMut<InOptions>,
+    options: Res<GameOptions>,
 ) {
-    catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
+    if !options.dark_theme {
+        catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
+    }
     egui::SidePanel::left("menu_side_panel")
         .default_width(250.0)
         .show(contexts.ctx_mut(), |ui| {
@@ -177,7 +195,9 @@ pub fn create_ui(
             });
         });
 
-    catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
+    if !options.dark_theme {
+        catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
+    }
     egui::CentralPanel::default().show(contexts.ctx_mut(), |ui| {
         egui::warn_if_debug_build(ui);
 

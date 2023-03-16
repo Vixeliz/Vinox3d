@@ -10,7 +10,7 @@ use bevy_egui::{
     *,
 };
 
-use crate::states::game::networking::components::ChatMessages;
+use crate::states::{components::GameOptions, game::networking::components::ChatMessages};
 
 #[derive(Resource, Default)]
 pub struct ConsoleOpen(pub bool);
@@ -26,8 +26,11 @@ pub fn create_ui(
     mut messages: ResMut<ChatMessages>,
     mut contexts: EguiContexts,
     mut toast: ResMut<Toast>,
+    options: Res<GameOptions>,
 ) {
-    catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
+    if !options.dark_theme {
+        catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
+    }
     toast.0.show(contexts.ctx_mut());
     if is_open.0 {
         let parser = literal("/add")
@@ -39,7 +42,9 @@ pub fn create_ui(
                 println!("Called foo with no arguments");
                 Ok::<(), Infallible>(())
             });
-        catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
+        if !options.dark_theme {
+            catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
+        }
         egui::Window::new("Console")
             .anchor(Align2::CENTER_TOP, [0.0, 0.0])
             .default_width(1000.0)
