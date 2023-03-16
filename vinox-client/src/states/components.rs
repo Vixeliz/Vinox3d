@@ -1,5 +1,4 @@
 use leafwing_input_manager::prelude::*;
-use std::collections::HashMap;
 
 use bevy::prelude::*;
 
@@ -28,9 +27,10 @@ pub enum GameActions {
     Jump,
     PrimaryInteract,
     SecondaryInteract,
+    Run,
 }
 
-#[derive(Resource)]
+#[derive(Resource, Clone, Debug)]
 pub struct GameOptions {
     pub input: InputMap<GameActions>,
     pub fov: f32,
@@ -46,6 +46,7 @@ impl Default for GameOptions {
             (KeyCode::A, GameActions::Left),
             (KeyCode::T, GameActions::Chat),
             (KeyCode::Space, GameActions::Jump),
+            (KeyCode::LShift, GameActions::Run),
         ]);
 
         input.insert(MouseButton::Left, GameActions::PrimaryInteract);

@@ -1,3 +1,4 @@
+use leafwing_input_manager::prelude::*;
 use std::f32::consts::{FRAC_PI_2, PI};
 
 use bevy::{
@@ -20,11 +21,14 @@ use vinox_common::{
     },
 };
 
-use crate::states::game::{
-    networking::syncing::HighLightCube,
-    rendering::meshing::PriorityMesh,
-    ui::{dropdown::ConsoleOpen, plugin::InUi},
-    world::chunks::ControlledPlayer,
+use crate::states::{
+    components::GameActions,
+    game::{
+        networking::syncing::HighLightCube,
+        rendering::meshing::PriorityMesh,
+        ui::{dropdown::ConsoleOpen, plugin::InUi},
+        world::chunks::ControlledPlayer,
+    },
 };
 
 #[derive(Component)]
@@ -98,7 +102,7 @@ pub struct MouseSensitivity(pub f32);
 #[allow(clippy::too_many_arguments)]
 pub fn movement_input(
     mut player: Query<&mut FPSCamera>,
-    mut player_position: Query<&mut Transform, With<ControlledPlayer>>,
+    mut player_position: Query<(&mut Transform, &ActionState<GameActions>), With<ControlledPlayer>>,
     mut camera_transform: Query<&mut Transform, (With<Camera>, Without<ControlledPlayer>)>,
     mut mouse_events: EventReader<MouseMotion>,
     mouse_sensitivity: Res<MouseSensitivity>,
@@ -108,7 +112,7 @@ pub fn movement_input(
     mut stationary_frames: Local<i32>,
     current_chunks: Res<CurrentChunks>,
 ) {
-    if let Ok(translation) = player_position.get_single_mut() {
+    if let Ok((translation, action_state)) = player_position.get_single_mut() {
         if current_chunks
             .get_entity(world_to_chunk(translation.translation))
             .is_none()
@@ -130,26 +134,26 @@ pub fn movement_input(
                         .clamp(0.00005, PI - 0.00005);
                 }
 
-                if key_events.pressed(KeyCode::W) {
+                if action_state.pressed(GameActions::Forward) {
                     let mut fwd = transform.forward();
                     fwd.y = 0.0;
                     let fwd = fwd.normalize();
                     movement += fwd;
                 }
-                if key_events.pressed(KeyCode::A) {
+                if action_state.pressed(GameActions::Left) {
                     movement += transform.left()
                 }
-                if key_events.pressed(KeyCode::D) {
+                if action_state.pressed(GameActions::Right) {
                     movement += transform.right()
                 }
-                if key_events.pressed(KeyCode::S) {
+                if action_state.pressed(GameActions::Backward) {
                     let mut back = transform.back();
                     back.y = 0.0;
                     let back = back.normalize();
                     movement += back;
                 }
 
-                if key_events.pressed(KeyCode::Space) && *stationary_frames > 2 {
+                if action_state.pressed(GameActions::Jump) && *stationary_frames > 2 {
                     *stationary_frames = 0;
                     fps_camera.velocity.y = 12.0;
                 }
@@ -166,7 +170,7 @@ pub fn movement_input(
             let y = fps_camera.velocity.y;
             fps_camera.velocity.y = 0.0;
             fps_camera.velocity = movement;
-            if key_events.pressed(KeyCode::LShift) {
+            if action_state.pressed(GameActions::Run) {
                 fps_camera.velocity *= 10.0;
             } else {
                 fps_camera.velocity *= 5.0;
@@ -209,7 +213,7 @@ pub fn interact(
     windows: Query<&mut Window, With<PrimaryWindow>>,
     camera_query: Query<&GlobalTransform, With<Camera>>,
     mut client: ResMut<Client>,
-    player_position: Query<&Transform, With<ControlledPlayer>>,
+    player_position: Query<(&Transform, &ActionState<GameActions>), With<ControlledPlayer>>,
     mut cube_position: Query<
         (&mut Transform, &mut Visibility),
         (With<HighLightCube>, Without<ControlledPlayer>),
@@ -223,26 +227,28 @@ pub fn interact(
     if window.cursor.grab_mode != CursorGrabMode::Locked {
         return;
     }
-    let item_string = match current_item.clone() {
-        CurrentItem::Grass => BlockData::new("vinox".to_string(), "grass".to_string()),
-        CurrentItem::Dirt => BlockData::new("vinox".to_string(), "dirt".to_string()),
-        CurrentItem::Cobblestone => BlockData::new("vinox".to_string(), "cobblestone".to_string()),
-        CurrentItem::Glass => BlockData::new("vinox".to_string(), "glass".to_string()),
-    };
+    if let Ok((player_transform, action_state)) = player_position.get_single() {
+        let item_string = match current_item.clone() {
+            CurrentItem::Grass => BlockData::new("vinox".to_string(), "grass".to_string()),
+            CurrentItem::Dirt => BlockData::new("vinox".to_string(), "dirt".to_string()),
+            CurrentItem::Cobblestone => {
+                BlockData::new("vinox".to_string(), "cobblestone".to_string())
+            }
+            CurrentItem::Glass => BlockData::new("vinox".to_string(), "glass".to_string()),
+        };
 
-    for key in keys.get_just_pressed() {
-        match key {
-            KeyCode::Key1 => *current_item = CurrentItem::Dirt,
-            KeyCode::Key2 => *current_item = CurrentItem::Grass,
-            KeyCode::Key3 => *current_item = CurrentItem::Glass,
-            KeyCode::Key4 => *current_item = CurrentItem::Cobblestone,
-            _ => {}
+        for key in keys.get_just_pressed() {
+            match key {
+                KeyCode::Key1 => *current_item = CurrentItem::Dirt,
+                KeyCode::Key2 => *current_item = CurrentItem::Grass,
+                KeyCode::Key3 => *current_item = CurrentItem::Glass,
+                KeyCode::Key4 => *current_item = CurrentItem::Cobblestone,
+                _ => {}
+            }
         }
-    }
 
-    let mouse_left = mouse_button_input.just_pressed(MouseButton::Left);
-    let mouse_right = mouse_button_input.just_pressed(MouseButton::Right);
-    if let Ok(player_transform) = player_position.get_single() {
+        let mouse_left = action_state.just_pressed(GameActions::PrimaryInteract);
+        let mouse_right = action_state.just_pressed(GameActions::SecondaryInteract);
         if let Ok(camera_transform) = camera_query.get_single() {
             // Then cast the ray.
             let hit = raycast_world(
@@ -516,21 +522,24 @@ pub fn ui_input(
     mut is_open: ResMut<ConsoleOpen>,
     mut in_ui: ResMut<InUi>,
     mut windows: Query<&mut Window, With<PrimaryWindow>>,
+    mut player_actions: Query<&ActionState<GameActions>, With<ControlledPlayer>>,
 ) {
     let mut window = windows.single_mut();
-    if keys.just_pressed(KeyCode::T) && !in_ui.0 {
-        let window_center: Option<Vec2> =
-            Some(Vec2::new(window.width() / 2.0, window.height() / 2.0));
-        window.set_cursor_position(window_center);
-        if window.cursor.grab_mode == CursorGrabMode::None {
-            window.cursor.grab_mode = CursorGrabMode::Locked;
-            window.cursor.visible = false;
-        } else {
-            window.cursor.grab_mode = CursorGrabMode::None;
-            window.cursor.visible = true;
-        }
+    if let Ok(action_state) = player_actions.get_single() {
+        if action_state.just_pressed(GameActions::Chat) && !in_ui.0 {
+            let window_center: Option<Vec2> =
+                Some(Vec2::new(window.width() / 2.0, window.height() / 2.0));
+            window.set_cursor_position(window_center);
+            if window.cursor.grab_mode == CursorGrabMode::None {
+                window.cursor.grab_mode = CursorGrabMode::Locked;
+                window.cursor.visible = false;
+            } else {
+                window.cursor.grab_mode = CursorGrabMode::None;
+                window.cursor.visible = true;
+            }
 
-        is_open.0 = !is_open.0;
-        in_ui.0 = !in_ui.0;
+            is_open.0 = !is_open.0;
+            in_ui.0 = !in_ui.0;
+        }
     }
 }

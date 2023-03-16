@@ -1,10 +1,13 @@
 use super::components::{
     ChatMessages, ClientData, ClientLobby, NetworkMapping, PlayerInfo, UserName,
 };
-use crate::states::game::{
-    rendering::meshing::BasicMaterial,
-    ui::dropdown::Toast,
-    world::chunks::{ControlledPlayer, CreateChunkEvent, SetBlockEvent},
+use crate::states::{
+    components::{GameActions, GameOptions},
+    game::{
+        rendering::meshing::BasicMaterial,
+        ui::dropdown::Toast,
+        world::chunks::{ControlledPlayer, CreateChunkEvent, SetBlockEvent},
+    },
 };
 use bevy::prelude::*;
 use bevy_quinnet::client::*;
@@ -12,6 +15,7 @@ use bevy_tweening::{
     lens::{TransformPositionLens, TransformRotationLens},
     *,
 };
+use leafwing_input_manager::prelude::*;
 use std::{io::Cursor, time::Duration};
 use vinox_common::{
     ecs::bundles::PlayerBundleBuilder,
@@ -56,7 +60,7 @@ pub fn get_messages(
     mut cmd1: Commands,
     mut cmd2: Commands,
     mut client: ResMut<Client>,
-    client_data: Res<ClientData>,
+    client_data: (Res<ClientData>, Res<UserName>),
     mut lobby: ResMut<ClientLobby>,
     mut network_mapping: ResMut<NetworkMapping>,
     mut entity_buffer: ResMut<EntityBuffer>,
@@ -66,11 +70,11 @@ pub fn get_messages(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<BasicMaterial>>,
     asset_server: Res<AssetServer>,
-    username: Res<UserName>,
     mut messages: ResMut<ChatMessages>,
     mut toast: ResMut<Toast>,
+    options: Res<GameOptions>,
 ) {
-    if client_data.0 != 0 {
+    if client_data.0 .0 != 0 {
         while let Some(message) = client
             .connection_mut()
             .try_receive_message::<ServerMessage>()
@@ -85,7 +89,7 @@ pub fn get_messages(
                     head_pitch: _,
                 } => {
                     let mut client_entity = cmd1.spawn_empty();
-                    if client_data.0 == id {
+                    if client_data.0 .0 == id {
                         println!("You connected.");
                         cmd2.spawn(MaterialMeshBundle {
                             mesh: meshes.add(Mesh::from(shape::Cube { size: 1.001 })),
@@ -102,8 +106,17 @@ pub fn get_messages(
                         .insert(HighLightCube);
 
                         client_entity
-                            .insert(player_builder.build(translation, id, true, username.0.clone()))
-                            .insert(ControlledPlayer);
+                            .insert(player_builder.build(
+                                translation,
+                                id,
+                                true,
+                                client_data.1 .0.clone(),
+                            ))
+                            .insert(ControlledPlayer)
+                            .insert(InputManagerBundle::<GameActions> {
+                                action_state: ActionState::default(),
+                                input_map: options.input.clone(),
+                            });
                     } else {
                         println!("Player {user_name} connected.");
                         client_entity.insert(player_builder.build(
@@ -169,7 +182,7 @@ pub fn get_messages(
                     id,
                 } => {
                     messages.0.push((user_name.clone(), message.clone()));
-                    if id != client_data.0 {
+                    if id != client_data.0 .0 {
                         toast
                             .0
                             .basic(format!("{user_name}: {message}"))
