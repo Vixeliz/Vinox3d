@@ -4,7 +4,7 @@ use vinox_common::networking::protocol::EntityBuffer;
 use crate::states::components::GameState;
 
 use super::{
-    components::{ClientLobby, NetworkMapping},
+    components::{ChatMessages, ClientLobby, NetworkMapping},
     syncing::{client_send_naive_position, get_id, get_messages, lerp_new_location},
 };
 
@@ -15,6 +15,7 @@ impl Plugin for NetworkingPlugin {
         app.insert_resource(ClientLobby::default())
             .insert_resource(NetworkMapping::default())
             .insert_resource(EntityBuffer::default())
+            .insert_resource(ChatMessages::default())
             .add_system(
                 client_send_naive_position
                     .in_schedule(CoreSchedule::FixedUpdate)

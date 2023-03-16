@@ -54,10 +54,17 @@ pub enum ClientMessage {
     Leave {
         id: ClientId,
     },
+    ChatMessage {
+        message: String,
+    },
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum ServerMessage {
+    ChatMessage {
+        user_name: String,
+        message: String,
+    },
     ClientId {
         id: ClientId,
     },

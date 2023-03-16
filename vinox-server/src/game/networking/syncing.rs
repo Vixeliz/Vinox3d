@@ -144,6 +144,19 @@ pub fn get_messages(
                         }
                     }
                 }
+                ClientMessage::ChatMessage { message } => {
+                    if let Some(player_entity) = lobby.players.get(&client_id) {
+                        if let Ok((_, _, _, username)) = players.get(*player_entity) {
+                            endpoint.try_broadcast_message_on(
+                                bevy_quinnet::shared::channel::ChannelId::OrderedReliable(1),
+                                ServerMessage::ChatMessage {
+                                    user_name: username.0.clone(),
+                                    message,
+                                },
+                            );
+                        }
+                    }
+                }
                 _ => {}
             }
         }

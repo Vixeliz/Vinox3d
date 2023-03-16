@@ -1,4 +1,6 @@
-use super::components::{ClientData, ClientLobby, NetworkMapping, PlayerInfo, UserName};
+use super::components::{
+    ChatMessages, ClientData, ClientLobby, NetworkMapping, PlayerInfo, UserName,
+};
 use crate::states::game::{
     rendering::meshing::BasicMaterial,
     world::chunks::{ControlledPlayer, CreateChunkEvent, SetBlockEvent},
@@ -64,6 +66,7 @@ pub fn get_messages(
     mut materials: ResMut<Assets<BasicMaterial>>,
     asset_server: Res<AssetServer>,
     username: Res<UserName>,
+    mut messages: ResMut<ChatMessages>,
 ) {
     if client_data.0 != 0 {
         while let Some(message) = client
@@ -157,6 +160,9 @@ pub fn get_messages(
                         raw_chunk: level_data,
                         pos,
                     });
+                }
+                ServerMessage::ChatMessage { user_name, message } => {
+                    messages.0.push((user_name, message));
                 }
                 _ => {}
             }

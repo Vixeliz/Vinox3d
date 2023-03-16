@@ -1,5 +1,7 @@
+use bevy_quinnet::client::Client;
 use brigadier_rs::*;
 use std::{collections::BTreeMap, convert::Infallible};
+use vinox_common::networking::protocol::ClientMessage;
 
 use bevy::prelude::*;
 use bevy_egui::{
@@ -7,14 +9,18 @@ use bevy_egui::{
     *,
 };
 
+use crate::states::game::networking::components::ChatMessages;
+
 #[derive(Resource, Default)]
 pub struct ConsoleOpen(pub bool);
 
 pub fn create_ui(
     // mut commands: Commands,
+    mut client: ResMut<Client>,
     mut contexts: EguiContexts,
     is_open: Res<ConsoleOpen>, // mut username_res: ResMut<UserName>,
     mut current_message: Local<String>,
+    mut messages: ResMut<ChatMessages>,
 ) {
     if is_open.0 {
         let parser = literal("/add")
@@ -66,6 +72,13 @@ pub fn create_ui(
                                 if input_send {
                                     if let Ok(result) = parser.parse((), &current_message) {
                                         println!("{result:?}");
+                                    } else {
+                                        client.connection_mut().try_send_message(
+                                            ClientMessage::ChatMessage {
+                                                message: current_message.to_string(),
+                                            },
+                                        );
+                                        current_message.clear();
                                     }
                                 }
                             });
@@ -76,8 +89,8 @@ pub fn create_ui(
                         .max_width(2000.0)
                         .show(ui, |ui| {
                             //TODO: replace with real chat messages
-                            for i in 0..50 {
-                                ui.label(format!("Username: Test{i}"));
+                            for (username, message) in messages.0.iter() {
+                                ui.label(format!("{username}: {message}"));
                             }
                         });
                 });

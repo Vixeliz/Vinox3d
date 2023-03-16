@@ -3,6 +3,9 @@ use std::collections::HashMap;
 use bevy::prelude::*;
 
 #[derive(Resource, Default)]
+pub struct ChatMessages(pub Vec<(String, String)>);
+
+#[derive(Resource, Default)]
 pub struct ClientData(pub u64);
 
 #[derive(Resource, Default)]
