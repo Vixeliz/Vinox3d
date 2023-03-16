@@ -106,7 +106,6 @@ pub fn movement_input(
     mut camera_transform: Query<&mut Transform, (With<Camera>, Without<ControlledPlayer>)>,
     mut mouse_events: EventReader<MouseMotion>,
     mouse_sensitivity: Res<MouseSensitivity>,
-    key_events: Res<Input<KeyCode>>,
     windows: Query<&Window, With<PrimaryWindow>>,
     time: Res<Time>,
     mut stationary_frames: Local<i32>,
@@ -208,7 +207,6 @@ pub enum CurrentItem {
 #[allow(clippy::type_complexity)]
 pub fn interact(
     mut commands: Commands,
-    mouse_button_input: Res<Input<MouseButton>>,
     keys: Res<Input<KeyCode>>,
     windows: Query<&mut Window, With<PrimaryWindow>>,
     camera_query: Query<&GlobalTransform, With<Camera>>,
@@ -518,11 +516,10 @@ pub fn update_aabb(mut player: Query<(&mut Aabb, &Transform), With<FPSCamera>>) 
 }
 
 pub fn ui_input(
-    keys: Res<Input<KeyCode>>,
     mut is_open: ResMut<ConsoleOpen>,
     mut in_ui: ResMut<InUi>,
     mut windows: Query<&mut Window, With<PrimaryWindow>>,
-    mut player_actions: Query<&ActionState<GameActions>, With<ControlledPlayer>>,
+    player_actions: Query<&ActionState<GameActions>, With<ControlledPlayer>>,
 ) {
     let mut window = windows.single_mut();
     if let Ok(action_state) = player_actions.get_single() {

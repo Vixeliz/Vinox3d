@@ -47,9 +47,8 @@ pub fn update_ui_scale_factor(
 }
 
 pub fn options(
-    mut commands: Commands,
     mut contexts: EguiContexts,
-    mut in_options: ResMut<InOptions>,
+    in_options: Res<InOptions>,
     mut options: ResMut<GameOptions>,
     mut current_change: Local<Option<GameActions>>,
     mut keys: EventReader<KeyboardInput>,
@@ -99,13 +98,13 @@ pub fn options(
                                 if let Some(key) =
                                     input.get_at(0).unwrap().raw_inputs().keycodes.get(0)
                                 {
-                                    if ui.small_button(format!("{:?}", key)).clicked() {
+                                    if ui.small_button(format!("{key:?}")).clicked() {
                                         *current_change = Some(action);
                                     }
                                 } else if let Some(mouse) =
                                     input.get_at(0).unwrap().raw_inputs().mouse_buttons.get(0)
                                 {
-                                    if ui.small_button(format!("{:?}", mouse)).clicked() {
+                                    if ui.small_button(format!("{mouse:?}")).clicked() {
                                         *current_change = Some(action);
                                     }
                                 };
