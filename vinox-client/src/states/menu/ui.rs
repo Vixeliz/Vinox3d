@@ -1,6 +1,10 @@
 use std::collections::BTreeMap;
 
-use bevy::{prelude::*, window::PrimaryWindow};
+use bevy::{
+    input::{keyboard::KeyboardInput, mouse::MouseButtonInput, ButtonState},
+    prelude::*,
+    window::PrimaryWindow,
+};
 use bevy_egui::{
     egui::{self, FontId},
     EguiContexts, EguiSettings,
@@ -8,7 +12,7 @@ use bevy_egui::{
 use vinox_common::networking::protocol::NetworkIP;
 
 use crate::states::{
-    components::{GameOptions, GameState, Menu},
+    components::{GameActions, GameOptions, GameState, Menu},
     game::networking::components::UserName,
 };
 
@@ -47,8 +51,29 @@ pub fn options(
     mut contexts: EguiContexts,
     mut in_options: ResMut<InOptions>,
     mut options: ResMut<GameOptions>,
+    mut current_change: Local<Option<GameActions>>,
+    mut keys: EventReader<KeyboardInput>,
+    mut mouse_buttons: EventReader<MouseButtonInput>,
 ) {
     if in_options.0 {
+        if let Some(current_action) = *current_change {
+            if let Some(keyboard_input) = keys.iter().next() {
+                if keyboard_input.state == ButtonState::Released {
+                    if let Some(key_code) = keyboard_input.key_code {
+                        options.input.clear_action(current_action);
+                        options.input.insert(key_code, current_action);
+                        *current_change = None;
+                    }
+                }
+            }
+            if let Some(mouse_input) = mouse_buttons.iter().next() {
+                if mouse_input.state == ButtonState::Released {
+                    options.input.clear_action(current_action);
+                    options.input.insert(mouse_input.button, current_action);
+                    *current_change = None;
+                }
+            }
+        }
         catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
         egui::Window::new("Options").show(contexts.ctx_mut(), |ui| {
             ui.with_layout(egui::Layout::top_down(egui::Align::LEFT), |ui| {
@@ -71,8 +96,21 @@ pub fn options(
                         for (input, action) in options.input.iter() {
                             ui.horizontal(|ui| {
                                 ui.label(format!("{action:?}"));
-                                ui.label(format!("Input: {:?}", input.get_at(0)));
+                                if let Some(key) =
+                                    input.get_at(0).unwrap().raw_inputs().keycodes.get(0)
+                                {
+                                    if ui.small_button(format!("{:?}", key)).clicked() {
+                                        *current_change = Some(action);
+                                    }
+                                } else if let Some(mouse) =
+                                    input.get_at(0).unwrap().raw_inputs().mouse_buttons.get(0)
+                                {
+                                    if ui.small_button(format!("{:?}", mouse)).clicked() {
+                                        *current_change = Some(action);
+                                    }
+                                };
                             });
+                            ui.separator();
                         }
                     });
             });
