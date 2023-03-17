@@ -148,9 +148,18 @@ pub fn create_ui(
     mut ip_res: ResMut<NetworkIP>,
     mut in_options: ResMut<InOptions>,
     mut options: ResMut<GameOptions>,
+    asset_server: ResMut<AssetServer>,
+    // mut egui_texture_handle: Local<Option<egui::TextureHandle>>,
+    mut rendered_texture_id: Local<egui::TextureId>,
+    mut is_initialized: Local<bool>,
 ) {
     if !options.dark_theme {
         catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
+    }
+
+    if !*is_initialized {
+        *is_initialized = true;
+        *rendered_texture_id = contexts.add_image(asset_server.load("cover.png").clone_weak());
     }
     egui::SidePanel::left("menu_side_panel")
         .default_width(250.0)
@@ -209,7 +218,12 @@ pub fn create_ui(
     }
     egui::CentralPanel::default().show(contexts.ctx_mut(), |ui| {
         egui::warn_if_debug_build(ui);
-
+        let ratio = 16.0 / 10.0;
+        let (width, height) = (ui.available_height() * ratio, ui.available_height());
+        ui.add(egui::widgets::Image::new(
+            *rendered_texture_id,
+            [width, height],
+        ));
         ui.separator();
     });
 }

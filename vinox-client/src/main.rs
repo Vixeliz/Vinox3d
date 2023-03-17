@@ -24,8 +24,15 @@ fn main() {
         create_dir_all(proj_dirs.data_dir()).ok();
         // TODO: This assumes that you are running the client binary from the root of the repo. Eventually when shipping binaries.
         // We should have the assets next to the binary and always get the folder next to the binary
-        let copy_options = CopyOptions::default();
-        copy("vinox-client/assets", full_path.clone(), &copy_options).ok();
+        let copy_options = CopyOptions {
+            overwrite: true,
+            copy_inside: false,
+            ..Default::default()
+        };
+        if copy("vinox-client/assets", proj_dirs.data_dir(), &copy_options).is_ok() {
+        } else {
+            error!("Failed to copy assets folder");
+        }
         full_path
     } else {
         let mut path = PathBuf::new();
