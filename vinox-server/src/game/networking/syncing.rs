@@ -5,7 +5,7 @@ use rustc_data_structures::stable_set::FxHashSet;
 use bevy::prelude::*;
 use bevy_quinnet::server::*;
 use vinox_common::{
-    ecs::bundles::{ClientName, PlayerBundleBuilder},
+    ecs::bundles::{ClientName, Inventory, PlayerBundleBuilder},
     networking::protocol::{ClientMessage, NetworkedEntities, Player, ServerMessage},
     world::chunks::{
         ecs::{ChunkComp, CurrentChunks},
@@ -69,6 +69,7 @@ pub fn get_messages(
                                 head_pitch: transform.rotation.to_euler(EulerRot::XYZ).0,
                                 user_name: (*client_name).clone(),
                                 init: false,
+                                inventory: Inventory::default(), // TODO: Load from database
                             },
                         );
                     }
@@ -97,6 +98,7 @@ pub fn get_messages(
                         head_pitch: transform.rotation.to_euler(EulerRot::XYZ).0,
                         user_name,
                         init: true,
+                        inventory: Inventory::default(),
                     });
                 }
                 ClientMessage::Leave { id } => {

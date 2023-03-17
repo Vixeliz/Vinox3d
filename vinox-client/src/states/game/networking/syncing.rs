@@ -16,7 +16,7 @@ use bevy_tweening::{
 use leafwing_input_manager::prelude::*;
 use std::{io::Cursor, time::Duration};
 use vinox_common::{
-    ecs::bundles::PlayerBundleBuilder,
+    ecs::bundles::{Inventory, PlayerBundleBuilder},
     networking::protocol::{ClientMessage, EntityBuffer, ServerMessage},
     world::chunks::storage::RawChunk,
 };
@@ -85,6 +85,7 @@ pub fn get_messages(
                     yaw,
                     head_pitch: _,
                     init,
+                    inventory,
                 } => {
                     let mut client_entity = cmd1.spawn_empty();
                     if **client_data == id {
@@ -114,7 +115,8 @@ pub fn get_messages(
                             .insert(InputManagerBundle::<GameActions> {
                                 action_state: ActionState::default(),
                                 input_map: options.input.clone(),
-                            });
+                            })
+                            .insert(inventory);
                     } else {
                         if init {
                             toast
@@ -127,10 +129,12 @@ pub fn get_messages(
                             false,
                             user_name,
                         ));
-                        client_entity.insert(
-                            Transform::from_translation(translation)
-                                .with_rotation(Quat::from_euler(EulerRot::XYZ, 0.0, yaw, 0.0)),
-                        );
+                        client_entity
+                            .insert(
+                                Transform::from_translation(translation)
+                                    .with_rotation(Quat::from_euler(EulerRot::XYZ, 0.0, yaw, 0.0)),
+                            )
+                            .insert(inventory);
                     }
 
                     let player_info = PlayerInfo {
@@ -205,9 +209,7 @@ pub fn lerp_new_location(
     transform_query: Query<&Transform>,
 ) {
     for i in 0..entity_buffer.entities[0].entities.len() {
-        if let Some(entity) = network_mapping
-            .get(&entity_buffer.entities[0].entities[i])
-        {
+        if let Some(entity) = network_mapping.get(&entity_buffer.entities[0].entities[i]) {
             let translation = entity_buffer.entities[0].translations[i];
             let rotation =
                 Quat::from_euler(EulerRot::XYZ, 0.0, entity_buffer.entities[0].yaws[i], 0.0);

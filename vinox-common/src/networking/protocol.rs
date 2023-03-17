@@ -6,7 +6,7 @@ pub struct NetworkIP(pub String);
 
 use serde::{Deserialize, Serialize};
 
-use crate::world::chunks::storage::BlockData;
+use crate::{ecs::bundles::Inventory, world::chunks::storage::BlockData};
 
 #[derive(Component)]
 pub struct NetworkedEntity;
@@ -77,6 +77,7 @@ pub enum ServerMessage {
         head_pitch: f32,
         user_name: String,
         init: bool,
+        inventory: Inventory,
     },
     PlayerRemove {
         id: ClientId,

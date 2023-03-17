@@ -3,10 +3,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::{networking::protocol::Player, storage::items::descriptor::ItemData};
 
-#[derive(Default, Deref, DerefMut, Serialize, Deserialize)]
+#[derive(Default, Deref, DerefMut, Serialize, Deserialize, Debug, Clone)]
 pub struct HotBar(pub [[ItemData; 3]; 3]);
 
-#[derive(Component, Default, Serialize, Deserialize)]
+#[derive(Component, Default, Serialize, Deserialize, Clone, Debug)]
 pub struct Inventory {
     pub username: String,
     pub hotbar: HotBar,

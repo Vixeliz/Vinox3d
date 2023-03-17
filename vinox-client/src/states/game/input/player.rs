@@ -13,6 +13,7 @@ use bevy::{
 use bevy_quinnet::client::Client;
 use vinox_common::{
     collision::raycast::raycast_world,
+    ecs::bundles::Inventory,
     networking::protocol::ClientMessage,
     world::chunks::{
         ecs::{ChunkComp, CurrentChunks},
@@ -201,7 +202,7 @@ pub fn interact(
     windows: Query<&mut Window, With<PrimaryWindow>>,
     camera_query: Query<&GlobalTransform, With<Camera>>,
     mut client: ResMut<Client>,
-    player_position: Query<(&Transform, &ActionState<GameActions>), With<ControlledPlayer>>,
+    player: Query<(&Transform, &ActionState<GameActions>, &Inventory), With<ControlledPlayer>>,
     mut cube_position: Query<
         (&mut Transform, &mut Visibility),
         (With<HighLightCube>, Without<ControlledPlayer>),
@@ -214,7 +215,7 @@ pub fn interact(
     if window.cursor.grab_mode != CursorGrabMode::Locked {
         return;
     }
-    if let Ok((player_transform, action_state)) = player_position.get_single() {
+    if let Ok((player_transform, action_state, inventory)) = player.get_single() {
         let item = BlockData::new("vinox".to_string(), "cobblestone".to_string());
 
         let mouse_left = action_state.just_pressed(GameActions::PrimaryInteract);
