@@ -1,5 +1,5 @@
 use directories::ProjectDirs;
-use std::fs::{self};
+use std::fs;
 
 use walkdir::WalkDir;
 
