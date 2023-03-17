@@ -3,6 +3,8 @@ use std::fs;
 
 use walkdir::WalkDir;
 
+use crate::storage::blocks::descriptor::BlockDescriptor;
+
 use super::descriptor::ItemDescriptor;
 
 pub fn load_all_items() -> Vec<ItemDescriptor> {
@@ -25,4 +27,29 @@ pub fn load_all_items() -> Vec<ItemDescriptor> {
         }
     }
     result
+}
+
+pub fn item_from_block(block: BlockDescriptor) -> ItemDescriptor {
+    let mut name = block.clone().namespace;
+    name.push(':');
+    name.push_str(&block.name);
+
+    let texture = if let Some(textures) = block.textures {
+        if let Some(texture) = textures.get(&Some("front".to_string())) {
+            texture.clone()
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+    ItemDescriptor {
+        namespace: block.namespace,
+        name: block.name,
+        texture,
+        durability: None,
+        tool_type: None,
+        script: None,
+        associated_block: Some(name),
+    }
 }

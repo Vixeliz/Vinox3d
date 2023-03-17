@@ -6,8 +6,10 @@ use bevy_quinnet::client::{
 };
 use std::time::Duration;
 use vinox_common::{
-    ecs::bundles::PlayerBundleBuilder, networking::protocol::NetworkIP,
-    storage::blocks::load::load_all_blocks, world::chunks::storage::BlockTable,
+    ecs::bundles::PlayerBundleBuilder,
+    networking::protocol::NetworkIP,
+    storage::{blocks::load::load_all_blocks, items::load::item_from_block},
+    world::chunks::storage::{BlockTable, ItemTable},
 };
 
 use crate::states::{assets::load::LoadableAssets, components::GameState};
@@ -96,6 +98,7 @@ pub fn setup_resources(
     asset_server: Res<AssetServer>,
     mut loading: ResMut<AssetsLoading>,
     mut block_table: ResMut<BlockTable>,
+    mut item_table: ResMut<ItemTable>,
 ) {
     let player_handle = asset_server.load("base_player.gltf#Scene0");
     loading.push(player_handle.clone_untyped());
@@ -111,6 +114,11 @@ pub fn setup_resources(
         let mut name = block.clone().namespace;
         name.push(':');
         name.push_str(&block.name);
+        if let Some(has_item) = block.has_item {
+            if has_item {
+                item_table.insert(name.clone(), item_from_block(block.clone()));
+            }
+        }
         block_table.insert(name, block);
     }
 }

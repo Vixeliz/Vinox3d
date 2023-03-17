@@ -5,4 +5,5 @@ BlockDescriptor(
     Some("front"): Some("glass.png"),
     }),
     visibility: Some(Transparent), 
+    has_item: Some(true)
 )

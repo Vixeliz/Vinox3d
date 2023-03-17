@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_big_array::Array;
 use strum::EnumString;
 
-use crate::storage::blocks::descriptor::BlockDescriptor;
+use crate::storage::{blocks::descriptor::BlockDescriptor, items::descriptor::ItemDescriptor};
 
 pub const HORIZONTAL_DISTANCE: i32 = 16;
 pub const VERTICAL_DISTANCE: i32 = 12;
@@ -18,6 +18,9 @@ pub const TOTAL_CHUNK_SIZE: usize =
 
 #[derive(Resource, Clone, Default, Deref, DerefMut)]
 pub struct BlockTable(pub HashMap<String, BlockDescriptor>);
+
+#[derive(Resource, Clone, Default, Deref, DerefMut)]
+pub struct ItemTable(pub HashMap<String, ItemDescriptor>);
 
 #[derive(EnumString, Serialize, Deserialize, Debug, PartialEq, Eq, Default, Clone, Copy)]
 pub enum VoxelVisibility {

@@ -6,4 +6,5 @@ BlockDescriptor(
     }),
     break_tool: "shovel",
     visibility: Some(Opaque), 
+    has_item: Some(true)
 )

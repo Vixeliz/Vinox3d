@@ -6,4 +6,5 @@ BlockDescriptor(
     }),
     break_tool: "pickaxe",
     visibility: Some(Opaque), 
+    has_item: Some(true)
 )

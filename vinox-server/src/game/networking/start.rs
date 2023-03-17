@@ -2,13 +2,21 @@ use std::net::{IpAddr, Ipv4Addr};
 
 use bevy::prelude::*;
 use bevy_quinnet::server::*;
-use vinox_common::{storage::blocks::load::load_all_blocks, world::chunks::storage::BlockTable};
+use vinox_common::{
+    storage::{blocks::load::load_all_blocks, items::load::item_from_block},
+    world::chunks::storage::{BlockTable, ItemTable},
+};
 
-pub fn setup_loadables(mut block_table: ResMut<BlockTable>) {
+pub fn setup_loadables(mut block_table: ResMut<BlockTable>, mut item_table: ResMut<ItemTable>) {
     for block in load_all_blocks() {
         let mut name = block.clone().namespace;
         name.push(':');
         name.push_str(&block.name);
+        if let Some(has_item) = block.has_item {
+            if has_item {
+                item_table.insert(name.clone(), item_from_block(block.clone()));
+            }
+        }
         block_table.insert(name, block);
     }
 }
