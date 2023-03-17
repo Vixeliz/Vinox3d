@@ -5,15 +5,45 @@ use noise::{
 use vinox_common::world::chunks::storage::{BlockData, RawChunk, CHUNK_SIZE};
 
 // Just some interesting stuff to look at while testing
-pub fn add_grass(raw_chunk: &mut RawChunk) {
+pub fn add_grass(
+    raw_chunk: &mut RawChunk,
+    noisefn: &noise::Blend<
+        f64,
+        noise::Blend<
+            f64,
+            RotatePoint<RidgedMulti<OpenSimplex>>,
+            RotatePoint<RidgedMulti<OpenSimplex>>,
+            BasicMulti<OpenSimplex>,
+            3,
+        >,
+        Terrace<f64, BasicMulti<OpenSimplex>, 3>,
+        BasicMulti<OpenSimplex>,
+        3,
+    >,
+    pos: IVec3,
+) {
     for x in 0..=CHUNK_SIZE - 1 {
         for z in 0..=CHUNK_SIZE - 1 {
-            for y in 0..=CHUNK_SIZE - 2 {
-                if raw_chunk.get_identifier(UVec3::new(x, y + 1, z)) == "vinox:air"
-                    && raw_chunk.get_identifier(UVec3::new(x, y, z)) == "vinox:cobblestone"
-                {
-                    let grass = BlockData::new("vinox".to_string(), "grass".to_string());
-                    raw_chunk.set_block(UVec3::new(x, y, z), &grass);
+            for y in 0..=CHUNK_SIZE - 1 {
+                if y == CHUNK_SIZE - 1 {
+                    let full_x = x as i32 + ((CHUNK_SIZE as i32) * pos.x);
+                    let full_z = z as i32 + ((CHUNK_SIZE as i32) * pos.z);
+                    let full_y = y as i32 + ((CHUNK_SIZE as i32) * pos.y) + 1;
+                    let noise_val =
+                        noisefn.get([full_x as f64, full_y as f64, full_z as f64]) * 45.152;
+                    if full_y as f64 > noise_val
+                        && raw_chunk.get_identifier(UVec3::new(x, y, z)) != "vinox:air"
+                    {
+                        let grass = BlockData::new("vinox".to_string(), "grass".to_string());
+                        raw_chunk.set_block(UVec3::new(x, y, z), &grass);
+                    }
+                } else {
+                    if raw_chunk.get_identifier(UVec3::new(x, y + 1, z)) == "vinox:air"
+                        && raw_chunk.get_identifier(UVec3::new(x, y, z)) != "vinox:air"
+                    {
+                        let grass = BlockData::new("vinox".to_string(), "grass".to_string());
+                        raw_chunk.set_block(UVec3::new(x, y, z), &grass);
+                    }
                 }
             }
         }
@@ -74,7 +104,7 @@ pub fn generate_chunk(pos: IVec3, seed: u32) -> RawChunk {
                 if full_y as f64 <= noise_val {
                     raw_chunk.set_block(
                         UVec3::new(x, y, z),
-                        &BlockData::new("vinox".to_string(), "cobblestone".to_string()),
+                        &BlockData::new("vinox".to_string(), "dirt".to_string()),
                     );
                 } else {
                     raw_chunk.set_block(
@@ -85,6 +115,6 @@ pub fn generate_chunk(pos: IVec3, seed: u32) -> RawChunk {
             }
         }
     }
-    add_grass(&mut raw_chunk);
+    add_grass(&mut raw_chunk, &final_noise, pos);
     raw_chunk
 }
