@@ -44,8 +44,9 @@ impl Plugin for RenderingPlugin {
                         ..default()
                     });
                 });
-            commands.insert_resource(PriorityMeshChannel(tokio::sync::mpsc::channel(256)));
-            commands.insert_resource(MeshChannel(tokio::sync::mpsc::channel(512)));
+
+            commands.insert_resource(PriorityMeshChannel::default());
+            commands.insert_resource(MeshChannel::default());
         })
         .add_event::<SortFaces>();
     }

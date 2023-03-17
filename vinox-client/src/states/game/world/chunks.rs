@@ -139,15 +139,15 @@ pub fn unload_chunks(
             Duration::from_secs(1),
             TransformPositionLens {
                 end: Vec3::new(
-                    (chunk.pos.0.x * (CHUNK_SIZE) as i32) as f32,
-                    ((chunk.pos.0.y * (CHUNK_SIZE) as i32) as f32) - CHUNK_SIZE as f32,
-                    (chunk.pos.0.z * (CHUNK_SIZE) as i32) as f32,
+                    (chunk.pos.x * (CHUNK_SIZE) as i32) as f32,
+                    ((chunk.pos.y * (CHUNK_SIZE) as i32) as f32) - CHUNK_SIZE as f32,
+                    (chunk.pos.z * (CHUNK_SIZE) as i32) as f32,
                 ),
 
                 start: Vec3::new(
-                    (chunk.pos.0.x * (CHUNK_SIZE) as i32) as f32,
-                    (chunk.pos.0.y * (CHUNK_SIZE) as i32) as f32,
-                    (chunk.pos.0.z * (CHUNK_SIZE) as i32) as f32,
+                    (chunk.pos.x * (CHUNK_SIZE) as i32) as f32,
+                    (chunk.pos.y * (CHUNK_SIZE) as i32) as f32,
+                    (chunk.pos.z * (CHUNK_SIZE) as i32) as f32,
                 ),
             },
         )
@@ -156,7 +156,7 @@ pub fn unload_chunks(
         commands.entity(chunk_entity).insert(Animator::new(tween));
         commands.entity(chunk_entity).remove::<RemoveChunk>();
         commands.entity(chunk_entity).remove::<ChunkComp>();
-        current_chunks.remove_entity(chunk.pos.0).unwrap();
+        current_chunks.remove_entity(*chunk.pos).unwrap();
     }
 }
 
@@ -175,7 +175,7 @@ pub fn clear_unloaded_chunks(
     view_radius: Res<ViewRadius>,
 ) {
     for (chunk, entity) in chunks.iter() {
-        if player_chunk.is_in_radius(chunk.pos.0, &view_radius) {
+        if player_chunk.is_in_radius(*chunk.pos, &view_radius) {
             continue;
         } else {
             commands.entity(entity).insert(RemoveChunk);
@@ -213,7 +213,7 @@ pub fn receive_chunks(
                 let mut identifier = block.namespace.clone();
                 identifier.push(':');
                 identifier.push_str(&block.name);
-                if let Some(block) = block_table.0.get(&identifier) {
+                if let Some(block) = block_table.get(&identifier) {
                     if block.visibility.unwrap() != VoxelVisibility::Empty {
                         empty = false;
                     }
@@ -225,7 +225,7 @@ pub fn receive_chunks(
                     let mut identifier = block.namespace.clone();
                     identifier.push(':');
                     identifier.push_str(&block.name);
-                    if let Some(block) = block_table.0.get(&identifier) {
+                    if let Some(block) = block_table.get(&identifier) {
                         if block.visibility.unwrap() != VoxelVisibility::Opaque {
                             full = false;
                         }

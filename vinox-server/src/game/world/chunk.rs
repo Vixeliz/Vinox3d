@@ -20,10 +20,10 @@ use super::{
     storage::{insert_chunk, load_chunk, WorldDatabase},
 };
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Deref, DerefMut)]
 pub struct WorldSeed(pub u32);
 
-#[derive(Component, Default, Clone)]
+#[derive(Component, Default, Clone, Deref, DerefMut)]
 pub struct LoadPoint(pub IVec3);
 
 impl LoadPoint {
@@ -31,11 +31,11 @@ impl LoadPoint {
         !(pos
             .xz()
             .as_vec2()
-            .distance(self.0.xz().as_vec2())
+            .distance(self.xz().as_vec2())
             .abs()
             .floor() as i32
             > view_radius.horizontal
-            || (pos.y - self.0.y).abs() > view_radius.vertical)
+            || (pos.y - self.y).abs() > view_radius.vertical)
     }
 }
 
@@ -94,7 +94,7 @@ pub fn generate_chunks_world(
     database: Res<WorldDatabase>,
 ) {
     for point in load_points.iter() {
-        for pos in chunk_manager.get_chunk_positions(point.0) {
+        for pos in chunk_manager.get_chunk_positions(**point) {
             if chunk_manager.current_chunks.get_entity(pos).is_none() {
                 let data = database.connection.lock().unwrap();
                 if let Some(chunk) = load_chunk(pos, &data) {
@@ -125,10 +125,10 @@ pub fn destroy_chunks(
 ) {
     for chunk in remove_chunks.iter() {
         for mut sent_chunks in load_points.iter_mut() {
-            sent_chunks.chunks.remove(&chunk.pos.0);
+            sent_chunks.chunks.remove(&chunk.pos);
         }
         commands
-            .entity(current_chunks.remove_entity(chunk.pos.0).unwrap())
+            .entity(current_chunks.remove_entity(*chunk.pos).unwrap())
             .despawn_recursive();
     }
 }
@@ -141,7 +141,7 @@ pub fn clear_unloaded_chunks(
 ) {
     for (chunk, entity) in chunks.iter() {
         for load_point in load_points.iter() {
-            if load_point.is_in_radius(chunk.pos.0, &view_radius) {
+            if load_point.is_in_radius(*chunk.pos, &view_radius) {
                 continue;
             } else {
                 commands.entity(entity).insert(RemoveChunk);
@@ -157,8 +157,8 @@ pub fn unsend_chunks(
 ) {
     for (load_point, mut sent_chunks) in load_points.iter_mut() {
         for chunk in chunks.iter() {
-            if !load_point.is_in_radius(chunk.pos.0, &view_radius) {
-                sent_chunks.chunks.remove(&chunk.pos.0);
+            if !load_point.is_in_radius(*chunk.pos, &view_radius) {
+                sent_chunks.chunks.remove(&chunk.pos);
             } else {
                 continue;
             }
@@ -167,7 +167,18 @@ pub fn unsend_chunks(
 }
 
 #[derive(Resource)]
-pub struct ChunkChannel(pub (Sender<ChunkComp>, Receiver<ChunkComp>));
+pub struct ChunkChannel {
+    pub tx: Sender<ChunkComp>,
+    pub rx: Receiver<ChunkComp>
+}
+
+impl Default for ChunkChannel {
+    fn default() -> Self {
+        let (tx, rx) = tokio::sync::mpsc::channel(512);
+
+        Self { tx, rx }
+    }
+}
 
 pub fn process_queue(
     mut commands: Commands,
@@ -177,10 +188,10 @@ pub fn process_queue(
     seed: Res<WorldSeed>,
     database: Res<WorldDatabase>,
 ) {
-    let cloned_seed = seed.0;
+    let cloned_seed = **seed;
     let task_pool = AsyncComputeTaskPool::get();
     for chunk_pos in chunk_queue.create.drain(..) {
-        let cloned_sender = chunk_channel.0 .0.clone();
+        let cloned_sender = chunk_channel.tx.clone();
         task_pool
             .spawn(async move {
                 cloned_sender
@@ -196,10 +207,11 @@ pub fn process_queue(
             .detach();
     }
     chunk_queue.create.clear();
-    while let Ok(chunk) = chunk_channel.0 .1.try_recv() {
-        let chunk_pos = chunk.pos.0;
+    while let Ok(chunk) = chunk_channel.rx.try_recv() {
+        let chunk_pos = *chunk.pos;
+
         let data = database.connection.lock().unwrap();
-        insert_chunk(chunk.pos.0, &chunk.chunk_data, &data);
+        insert_chunk(chunk_pos, &chunk.chunk_data, &data);
         commands
             .entity(current_chunks.get_entity(chunk_pos).unwrap())
             .insert(chunk);
@@ -224,7 +236,7 @@ impl Plugin for ChunkPlugin {
             .add_systems((clear_unloaded_chunks, unsend_chunks, generate_chunks_world))
             .add_system(process_queue.after(clear_unloaded_chunks))
             .add_startup_system(|mut commands: Commands| {
-                commands.insert_resource(ChunkChannel(tokio::sync::mpsc::channel(512)));
+                commands.insert_resource(ChunkChannel::default());
             })
             .add_system(destroy_chunks.after(process_queue));
     }

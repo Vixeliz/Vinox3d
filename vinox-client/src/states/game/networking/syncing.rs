@@ -38,7 +38,7 @@ pub fn get_id(
             .try_receive_message::<ServerMessage>()
         {
             if let ServerMessage::ClientId { id } = message {
-                client_data.0 = id;
+                **client_data = id;
                 client
                     .connection_mut()
                     .try_send_message(ClientMessage::Join {
@@ -71,7 +71,7 @@ pub fn get_messages(
     mut messages: ResMut<ChatMessages>,
     mut toast: ResMut<Toast>,
 ) {
-    if client_data.0 != 0 {
+    if **client_data != 0 {
         while let Some(message) = client
             .connection_mut()
             .try_receive_message::<ServerMessage>()
@@ -87,7 +87,7 @@ pub fn get_messages(
                     init,
                 } => {
                     let mut client_entity = cmd1.spawn_empty();
-                    if client_data.0 == id {
+                    if **client_data == id {
                         println!("You connected.");
                         cmd2.spawn(MaterialMeshBundle {
                             mesh: meshes.add(Mesh::from(shape::Cube { size: 1.001 })),
@@ -118,7 +118,6 @@ pub fn get_messages(
                     } else {
                         if init {
                             toast
-                                .0
                                 .basic(format!("Player {user_name} connected."))
                                 .set_duration(Some(Duration::from_secs(3)));
                         }
@@ -139,7 +138,7 @@ pub fn get_messages(
                         client_entity: client_entity.id(),
                     };
                     lobby.players.insert(id, player_info);
-                    network_mapping.0.insert(entity, client_entity.id());
+                    network_mapping.insert(entity, client_entity.id());
                 }
                 ServerMessage::PlayerRemove { id } => {
                     println!("Player {id} disconnected.");
@@ -149,7 +148,7 @@ pub fn get_messages(
                     }) = lobby.players.remove(&id)
                     {
                         cmd1.entity(client_entity).despawn();
-                        network_mapping.0.remove(&server_entity);
+                        network_mapping.remove(&server_entity);
                     }
                 }
                 ServerMessage::SentBlock {
@@ -184,10 +183,9 @@ pub fn get_messages(
                     message,
                     id,
                 } => {
-                    messages.0.push((user_name.clone(), message.clone()));
-                    if id != client_data.0 {
+                    messages.push((user_name.clone(), message.clone()));
+                    if id != **client_data {
                         toast
-                            .0
                             .basic(format!("{user_name}: {message}"))
                             .set_duration(Some(Duration::from_secs(3)));
                     }
@@ -208,7 +206,6 @@ pub fn lerp_new_location(
 ) {
     for i in 0..entity_buffer.entities[0].entities.len() {
         if let Some(entity) = network_mapping
-            .0
             .get(&entity_buffer.entities[0].entities[i])
         {
             let translation = entity_buffer.entities[0].translations[i];
@@ -219,7 +216,7 @@ pub fn lerp_new_location(
                 ..Default::default()
             }
             .with_rotation(rotation);
-            if let Some(player_entity) = lobby.players.get(&client_data.0) {
+            if let Some(player_entity) = lobby.players.get(&client_data) {
                 if player_entity.client_entity != *entity {
                     if let Ok(old_transform) = transform_query.get(*entity) {
                         let tween = Tween::new(

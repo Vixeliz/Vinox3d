@@ -12,10 +12,10 @@ use bevy_egui::{
 
 use crate::states::{components::GameOptions, game::networking::components::ChatMessages};
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Deref, DerefMut)]
 pub struct ConsoleOpen(pub bool);
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Deref, DerefMut)]
 pub struct Toast(pub Toasts);
 
 pub fn create_ui(
@@ -31,8 +31,8 @@ pub fn create_ui(
     if !options.dark_theme {
         catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
     }
-    toast.0.show(contexts.ctx_mut());
-    if is_open.0 {
+    toast.show(contexts.ctx_mut());
+    if **is_open {
         let parser = literal("/add")
             .then(integer_i32("integer").build_exec(|_ctx: (), bar| {
                 println!("Integer is {bar}");
@@ -82,10 +82,9 @@ pub fn create_ui(
                                 let input_send = response.lost_focus()
                                     && ui.input(|input| input.key_pressed(egui::Key::Enter));
                                 if input_send {
-                                    if let Ok(result) = parser.parse((), &current_message) {
+                                    if let Ok((result, _)) = parser.parse((), &current_message) {
                                         messages
-                                            .0
-                                            .push(("Console".to_string(), result.0.to_string()));
+                                            .push(("Console".to_string(), result.to_string()));
                                     } else {
                                         client.connection_mut().try_send_message(
                                             ClientMessage::ChatMessage {
@@ -103,7 +102,7 @@ pub fn create_ui(
                         .max_width(2000.0)
                         .show(ui, |ui| {
                             //TODO: replace with real chat messages
-                            for (username, message) in messages.0.iter() {
+                            for (username, message) in messages.iter() {
                                 ui.label(format!("{username}: {message}"));
                             }
                         });

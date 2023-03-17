@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_quinnet::shared::ClientId;
 
-#[derive(Resource)]
+#[derive(Resource, Deref, DerefMut)]
 pub struct NetworkIP(pub String);
 
 use serde::{Deserialize, Serialize};

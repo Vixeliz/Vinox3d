@@ -9,7 +9,7 @@ pub fn setup_loadables(mut block_table: ResMut<BlockTable>) {
         let mut name = block.clone().namespace;
         name.push(':');
         name.push_str(&block.name);
-        block_table.0.insert(name, block);
+        block_table.insert(name, block);
     }
 }
 

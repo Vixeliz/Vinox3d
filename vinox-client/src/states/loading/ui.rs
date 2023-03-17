@@ -12,7 +12,7 @@ use vinox_common::{
 
 use crate::states::{assets::load::LoadableAssets, components::GameState};
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Deref, DerefMut)]
 pub struct AssetsLoading(pub Vec<HandleUntyped>);
 
 //TODO: Right now we are building the client only as a multiplayer client. This is fine but eventually we need to have singleplayer.
@@ -21,7 +21,7 @@ pub fn new_client(ip_res: Res<NetworkIP>, mut client: ResMut<Client>) {
     client
         .open_connection(
             ConnectionConfiguration::from_ips(
-                ip_res.0.clone().parse().unwrap(),
+                ip_res.clone().parse().unwrap(),
                 25565,
                 "0.0.0.0".to_string().parse().unwrap(),
                 0,
@@ -42,7 +42,7 @@ pub fn switch(
     mut client: ResMut<Client>,
     mut connected_event: EventReader<ConnectionEvent>,
 ) {
-    match asset_server.get_group_load_state(loading.0.iter().map(|h| h.id())) {
+    match asset_server.get_group_load_state(loading.iter().map(|h| h.id())) {
         LoadState::Failed => {
             commands.insert_resource(NextState(Some(GameState::Menu)));
         }
@@ -98,7 +98,7 @@ pub fn setup_resources(
     mut block_table: ResMut<BlockTable>,
 ) {
     let player_handle = asset_server.load("base_player.gltf#Scene0");
-    loading.0.push(player_handle.clone_untyped());
+    loading.push(player_handle.clone_untyped());
     commands.insert_resource(PlayerBundleBuilder {
         default_model: player_handle,
         model_aabb: Aabb {
@@ -111,7 +111,7 @@ pub fn setup_resources(
         let mut name = block.clone().namespace;
         name.push(':');
         name.push_str(&block.name);
-        block_table.0.insert(name, block);
+        block_table.insert(name, block);
     }
 }
 
@@ -123,7 +123,7 @@ pub fn load_blocks(
     mut has_ran: Local<bool>,
 ) {
     if !(*has_ran) && block_table.is_changed() {
-        for block_pair in &block_table.0 {
+        for block_pair in &**block_table {
             let block = block_pair.1;
             let mut texture_array: Vec<Handle<Image>> = Vec::with_capacity(6);
             texture_array.resize(6, Handle::default());
@@ -138,7 +138,7 @@ pub fn load_blocks(
                     path.push('/');
                     path.push_str(front.as_ref().unwrap());
                     let texture_handle: Handle<Image> = asset_server.load(path.as_str());
-                    loading.0.push(texture_handle.clone_untyped());
+                    loading.push(texture_handle.clone_untyped());
                     texture_array[0] = texture_handle.clone();
                     texture_array[1] = texture_handle.clone();
                     texture_array[2] = texture_handle.clone();
@@ -149,14 +149,15 @@ pub fn load_blocks(
             }
             for texture_path_and_type in block.textures.iter() {
                 for texture_path_and_type in texture_path_and_type.iter() {
-                    if texture_path_and_type.1.is_some() && texture_path_and_type.0.is_some() {
+                    if let (Some(texture_path), Some(texture_type)) = &texture_path_and_type {
                         let mut path = "blocks/".to_string();
                         path.push_str(block.name.as_str());
                         path.push('/');
-                        path.push_str(texture_path_and_type.1.as_ref().unwrap());
+                        path.push_str(texture_type);
                         let texture_handle: Handle<Image> = asset_server.load(path.as_str());
-                        loading.0.push(texture_handle.clone_untyped());
-                        match texture_path_and_type.0.as_ref().unwrap().as_str() {
+                        loading.push(texture_handle.clone_untyped());
+
+                        match &**texture_path {
                             "up" => {
                                 texture_array[0] = texture_handle;
                             }

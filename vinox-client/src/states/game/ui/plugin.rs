@@ -5,7 +5,7 @@ use bevy::prelude::*;
 
 pub struct UiPlugin;
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Deref, DerefMut)]
 pub struct InUi(pub bool);
 
 impl Plugin for UiPlugin {

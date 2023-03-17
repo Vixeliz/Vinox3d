@@ -2,7 +2,7 @@ use bevy::{math::Vec3A, prelude::*, render::primitives::Aabb};
 
 use crate::networking::protocol::Player;
 
-#[derive(Component, Default)]
+#[derive(Component, Default, Deref, DerefMut)]
 pub struct ClientName(pub String);
 
 #[derive(Resource, Default)]
