@@ -1,6 +1,16 @@
+use std::collections::HashMap;
+
 use bevy::prelude::*;
 use noise::{BasicMulti, Blend, MultiFractal, NoiseFn, OpenSimplex, RidgedMulti, RotatePoint};
-use vinox_common::world::chunks::storage::{BlockData, RawChunk, CHUNK_SIZE};
+// use rand::{rngs::StdRng, Rng, SeedableRng};
+use serde::{Deserialize, Serialize};
+use vinox_common::{
+    storage::blocks::descriptor::BlockDescriptor,
+    world::chunks::storage::{BlockData, RawChunk, CHUNK_SIZE},
+};
+
+#[derive(Resource, Default, Serialize, Deserialize)]
+pub struct ToBePlaced(HashMap<IVec3, Vec<(UVec3, BlockDescriptor)>>);
 
 // Just some interesting stuff to look at while testing
 #[allow(clippy::type_complexity)]
@@ -40,6 +50,50 @@ pub fn add_grass(
         }
     }
 }
+
+// TODO: Was going to add trees like this but instead we will do a more flexible structure system with ron
+// pub fn add_trees(
+//     raw_chunk: &mut RawChunk,
+//     noisefn: &noise::Blend<
+//         f64,
+//         noise::RotatePoint<noise::RidgedMulti<noise::OpenSimplex>>,
+//         noise::RotatePoint<noise::RidgedMulti<noise::OpenSimplex>>,
+//         noise::BasicMulti<noise::OpenSimplex>,
+//         3,
+//     >,
+//     pos: IVec3,
+//     seed: u32,
+// ) {
+//     let mut rng: StdRng = SeedableRng::seed_from_u64(seed as u64);
+//     for i in 0..=rng.gen_range(0..=3) {
+//         for y in 0..=CHUNK_SIZE - 1 {
+//             let full_y = y as i32 + ((CHUNK_SIZE as i32) * pos.y) + 1;
+//             let (tree_x, tree_z) = (
+//                 rng.gen_range(0..=CHUNK_SIZE_ARR),
+//                 rng.gen_range(0..=CHUNK_SIZE_ARR),
+//             );
+//             if y == 0 {
+//                 let full_y = y as i32 + ((CHUNK_SIZE as i32) * pos.y) - 1;
+//                 let full_x = tree_x as i32 + ((CHUNK_SIZE as i32) * pos.x);
+//                 let full_z = tree_z as i32 + ((CHUNK_SIZE as i32) * pos.z);
+//                 let noise_val = noisefn.get([full_x as f64, full_y as f64, full_z as f64]) * 45.152;
+//                 if full_y as f64 <= noise_val
+//                     && raw_chunk.get_identifier(UVec3::new(tree_x, y, tree_z)) == "vinox:air"
+//                 {
+//                     let wood = BlockData::new("vinox".to_string(), "cobblestone".to_string());
+//                     raw_chunk.set_block(UVec3::new(tree_x, y, tree_z), &wood);
+//                 }
+//             } else if raw_chunk.get_identifier(UVec3::new(tree_x, y - 1, tree_z)) != "vinox:air"
+//                 && raw_chunk.get_identifier(UVec3::new(tree_x, y, tree_z)) == "vinox:air"
+//             {
+//                 let wood = BlockData::new("vinox".to_string(), "cobblestone".to_string());
+//                 raw_chunk.set_block(UVec3::new(tree_x, y, tree_z), &wood);
+//             }
+//         }
+//     }
+// }
+
+pub fn add_missing_blocks(raw_chunk: &mut RawChunk, to_be_placed: &ToBePlaced) {}
 
 pub fn generate_chunk(pos: IVec3, seed: u32) -> RawChunk {
     //TODO: Switch to using ron files to determine biomes and what blocks they should use. For now hardcoding a simplex noise
