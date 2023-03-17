@@ -194,21 +194,10 @@ pub fn movement_input(
     }
 }
 
-// HEAVILY TEMPORARY BOYFRIEND WANTED ITEMS TO BUILD WITH
-#[derive(Default, Clone)]
-pub enum CurrentItem {
-    #[default]
-    Grass,
-    Dirt,
-    Cobblestone,
-    Glass,
-}
-
 #[allow(clippy::too_many_arguments)]
 #[allow(clippy::type_complexity)]
 pub fn interact(
     mut commands: Commands,
-    keys: Res<Input<KeyCode>>,
     windows: Query<&mut Window, With<PrimaryWindow>>,
     camera_query: Query<&GlobalTransform, With<Camera>>,
     mut client: ResMut<Client>,
@@ -217,7 +206,6 @@ pub fn interact(
         (&mut Transform, &mut Visibility),
         (With<HighLightCube>, Without<ControlledPlayer>),
     >,
-    mut current_item: Local<CurrentItem>,
     mut chunks: Query<&mut ChunkComp>,
     current_chunks: Res<CurrentChunks>,
     block_table: Res<BlockTable>,
@@ -227,24 +215,7 @@ pub fn interact(
         return;
     }
     if let Ok((player_transform, action_state)) = player_position.get_single() {
-        let item_string = match current_item.clone() {
-            CurrentItem::Grass => BlockData::new("vinox".to_string(), "grass".to_string()),
-            CurrentItem::Dirt => BlockData::new("vinox".to_string(), "dirt".to_string()),
-            CurrentItem::Cobblestone => {
-                BlockData::new("vinox".to_string(), "cobblestone".to_string())
-            }
-            CurrentItem::Glass => BlockData::new("vinox".to_string(), "glass".to_string()),
-        };
-
-        for key in keys.get_just_pressed() {
-            match key {
-                KeyCode::Key1 => *current_item = CurrentItem::Dirt,
-                KeyCode::Key2 => *current_item = CurrentItem::Grass,
-                KeyCode::Key3 => *current_item = CurrentItem::Glass,
-                KeyCode::Key4 => *current_item = CurrentItem::Cobblestone,
-                _ => {}
-            }
-        }
+        let item = BlockData::new("vinox".to_string(), "cobblestone".to_string());
 
         let mouse_left = action_state.just_pressed(GameActions::PrimaryInteract);
         let mouse_right = action_state.just_pressed(GameActions::SecondaryInteract);
@@ -289,8 +260,8 @@ pub fn interact(
                                     if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos)
                                     {
                                         if let Ok(mut chunk) = chunks.get_mut(chunk_entity) {
-                                            chunk.chunk_data.add_block_state(&item_string);
-                                            chunk.chunk_data.set_block(voxel_pos, &item_string);
+                                            chunk.chunk_data.add_block_state(&item);
+                                            chunk.chunk_data.set_block(voxel_pos, &item);
                                             client.connection_mut().try_send_message(
                                                 ClientMessage::SentBlock {
                                                     chunk_pos,
@@ -299,7 +270,7 @@ pub fn interact(
                                                         voxel_pos.y as u8,
                                                         voxel_pos.z as u8,
                                                     ],
-                                                    block_type: item_string,
+                                                    block_type: item,
                                                 },
                                             );
                                             match voxel_pos.x {
