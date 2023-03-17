@@ -1,7 +1,5 @@
 use bevy::prelude::*;
-use noise::{
-    BasicMulti, Blend, MultiFractal, NoiseFn, OpenSimplex, RidgedMulti, RotatePoint, Terrace,
-};
+use noise::{BasicMulti, Blend, MultiFractal, NoiseFn, OpenSimplex, RidgedMulti, RotatePoint};
 use vinox_common::world::chunks::storage::{BlockData, RawChunk, CHUNK_SIZE};
 
 // Just some interesting stuff to look at while testing
@@ -10,15 +8,9 @@ pub fn add_grass(
     raw_chunk: &mut RawChunk,
     noisefn: &noise::Blend<
         f64,
-        noise::Blend<
-            f64,
-            RotatePoint<RidgedMulti<OpenSimplex>>,
-            RotatePoint<RidgedMulti<OpenSimplex>>,
-            BasicMulti<OpenSimplex>,
-            3,
-        >,
-        Terrace<f64, BasicMulti<OpenSimplex>, 3>,
-        BasicMulti<OpenSimplex>,
+        noise::RotatePoint<noise::RidgedMulti<noise::OpenSimplex>>,
+        noise::RotatePoint<noise::RidgedMulti<noise::OpenSimplex>>,
+        noise::BasicMulti<noise::OpenSimplex>,
         3,
     >,
     pos: IVec3,
@@ -51,44 +43,28 @@ pub fn add_grass(
 
 pub fn generate_chunk(pos: IVec3, seed: u32) -> RawChunk {
     //TODO: Switch to using ron files to determine biomes and what blocks they should use. For now hardcoding a simplex noise
-    let ridged_noise: RidgedMulti<OpenSimplex> = RidgedMulti::new(seed)
-        .set_octaves(10)
-        .set_frequency(0.00622);
+    let ridged_noise: RidgedMulti<OpenSimplex> =
+        RidgedMulti::new(seed).set_octaves(8).set_frequency(0.00622);
     let d_noise: RidgedMulti<OpenSimplex> =
         RidgedMulti::new(seed).set_octaves(6).set_frequency(0.00781);
     let final_noise = Blend::new(
-        Blend::new(
-            RotatePoint {
-                source: ridged_noise,
-                x_angle: 0.212,
-                y_angle: 0.321,
-                z_angle: -0.1204,
-                u_angle: 0.11,
-            },
-            RotatePoint {
-                source: d_noise,
-                x_angle: -0.124,
-                y_angle: -0.564,
-                z_angle: 0.231,
-                u_angle: -0.1151,
-            },
-            BasicMulti::<OpenSimplex>::new(seed)
-                .set_octaves(2)
-                .set_frequency(0.003415),
-        ),
-        Terrace::new(
-            BasicMulti::<OpenSimplex>::new(seed)
-                .set_octaves(3)
-                .set_frequency(0.00461),
-        )
-        .add_control_point(0.0)
-        .add_control_point(8.0)
-        .add_control_point(16.0)
-        .add_control_point(24.0)
-        .add_control_point(32.0),
+        RotatePoint {
+            source: ridged_noise,
+            x_angle: 0.212,
+            y_angle: 0.321,
+            z_angle: -0.1204,
+            u_angle: 0.11,
+        },
+        RotatePoint {
+            source: d_noise,
+            x_angle: -0.124,
+            y_angle: -0.564,
+            z_angle: 0.231,
+            u_angle: -0.1151,
+        },
         BasicMulti::<OpenSimplex>::new(seed)
             .set_octaves(1)
-            .set_frequency(0.00075),
+            .set_frequency(0.003415),
     );
 
     let mut raw_chunk = RawChunk::new();
