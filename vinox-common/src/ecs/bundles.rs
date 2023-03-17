@@ -1,6 +1,17 @@
 use bevy::{math::Vec3A, prelude::*, render::primitives::Aabb};
+use serde::{Deserialize, Serialize};
 
-use crate::networking::protocol::Player;
+use crate::{networking::protocol::Player, storage::items::descriptor::ItemData};
+
+#[derive(Default, Deref, DerefMut, Serialize, Deserialize)]
+pub struct HotBar(pub [[ItemData; 3]; 3]);
+
+#[derive(Component, Default, Serialize, Deserialize)]
+pub struct Inventory {
+    pub username: String,
+    pub hotbar: HotBar,
+    pub slots: [[ItemData; 9]; 5],
+}
 
 #[derive(Component, Default, Deref, DerefMut)]
 pub struct ClientName(pub String);

@@ -48,7 +48,7 @@ pub enum ClientMessage {
         block_type: BlockData,
     },
     Join {
-        user_name: String, // Username is just for display we use an id for the actual identification of clients
+        user_name: String, //TODO: Make sure client doesn't send same user_name as another. Also add some sort of password system
         id: ClientId,
     },
     Leave {
