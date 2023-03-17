@@ -598,10 +598,10 @@ pub fn cursor_grab_system(
             window.cursor.grab_mode = CursorGrabMode::None;
             window.cursor.visible = true;
         }
-        if in_ui.0 {
-            is_open.0 = false;
+        if **in_ui {
+            **is_open = false;
         }
-        in_ui.0 = !in_ui.0;
+        **in_ui = !**in_ui;
     }
 }
 
@@ -619,7 +619,7 @@ pub fn ui_input(
 ) {
     let mut window = windows.single_mut();
     if let Ok(action_state) = player_actions.get_single() {
-        if action_state.just_pressed(GameActions::Chat) && !in_ui.0 {
+        if action_state.just_pressed(GameActions::Chat) && !**in_ui {
             let window_center: Option<Vec2> =
                 Some(Vec2::new(window.width() / 2.0, window.height() / 2.0));
             window.set_cursor_position(window_center);
@@ -631,8 +631,8 @@ pub fn ui_input(
                 window.cursor.visible = true;
             }
 
-            is_open.0 = !is_open.0;
-            in_ui.0 = !in_ui.0;
+            **is_open = !**is_open;
+            **in_ui = !**in_ui;
         }
     }
 }

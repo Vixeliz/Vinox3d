@@ -7,7 +7,7 @@ use leafwing_input_manager::prelude::*;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Resource)]
+#[derive(Resource, Deref, DerefMut)]
 pub struct ProjectPath(pub PathBuf);
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Default, States)]

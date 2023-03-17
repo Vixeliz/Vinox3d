@@ -6,7 +6,7 @@ use bevy::{
     window::PrimaryWindow,
 };
 use bevy_egui::{
-    egui::{self, FontId},
+    egui::{self, FontId, Rounding},
     EguiContexts, EguiSettings,
 };
 use vinox_common::networking::protocol::NetworkIP;
@@ -15,12 +15,12 @@ use crate::states::components::{
     save_game_options, GameActions, GameOptions, GameState, Menu, ProjectPath,
 };
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Deref, DerefMut)]
 pub struct InOptions(pub bool);
 
 pub fn configure_visuals(mut contexts: EguiContexts) {
     contexts.ctx_mut().set_visuals(egui::Visuals {
-        window_rounding: 0.0.into(),
+        window_rounding: Rounding::from(0.0),
         ..Default::default()
     });
 }
@@ -47,7 +47,7 @@ pub fn update_ui_scale_factor(
 
 pub fn save_options(options: Res<GameOptions>, project_path: Res<ProjectPath>) {
     if options.is_changed() {
-        save_game_options(options.clone(), project_path.0.clone());
+        save_game_options(options.clone(), project_path.clone());
     }
 }
 
@@ -59,7 +59,7 @@ pub fn options(
     mut keys: EventReader<KeyboardInput>,
     mut mouse_buttons: EventReader<MouseButtonInput>,
 ) {
-    if in_options.0 {
+    if **in_options {
         if let Some(current_action) = *current_change {
             if let Some(keyboard_input) = keys.iter().next() {
                 if keyboard_input.state == ButtonState::Released {
@@ -82,7 +82,7 @@ pub fn options(
             catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
         }
         egui::Window::new("Options")
-            .open(&mut in_options.0)
+            .open(&mut in_options)
             .show(contexts.ctx_mut(), |ui| {
                 ui.with_layout(egui::Layout::top_down(egui::Align::LEFT), |ui| {
                     ui.ctx().set_style(egui::Style {
@@ -200,7 +200,7 @@ pub fn create_ui(
                 ui.allocate_space(egui::Vec2::new(1.0, 26.0));
 
                 if ui.button("Options").clicked() {
-                    in_options.0 = !in_options.0;
+                    **in_options = !**in_options;
                 }
 
                 ui.allocate_space(egui::Vec2::new(1.0, 100.0));

@@ -67,7 +67,7 @@ pub fn get_messages(
                                 translation: transform.translation,
                                 yaw: transform.rotation.to_euler(EulerRot::XYZ).1,
                                 head_pitch: transform.rotation.to_euler(EulerRot::XYZ).0,
-                                user_name: client_name.0.clone(),
+                                user_name: (*client_name).clone(),
                                 init: false,
                             },
                         );
@@ -137,7 +137,7 @@ pub fn get_messages(
                                 &block_type,
                             );
                             let data = database.connection.lock().unwrap();
-                            insert_chunk(chunk.pos.0, &chunk.chunk_data, &data);
+                            insert_chunk(*chunk.pos, &chunk.chunk_data, &data);
                             endpoint.try_broadcast_message(ServerMessage::SentBlock {
                                 chunk_pos,
                                 voxel_pos,
@@ -152,7 +152,7 @@ pub fn get_messages(
                             endpoint.try_broadcast_message_on(
                                 bevy_quinnet::shared::channel::ChannelId::OrderedReliable(1),
                                 ServerMessage::ChatMessage {
-                                    user_name: username.0.clone(),
+                                    user_name: (*username).clone(),
                                     message,
                                     id: client_id,
                                 },
@@ -209,12 +209,12 @@ pub fn send_chunks(
                                 client_id,
                                 ServerMessage::LevelData {
                                     chunk_data: output.get_ref().clone(),
-                                    pos: chunk.pos.0,
+                                    pos: *chunk.pos,
                                 },
                             )
                             .is_ok()
                         {
-                            sent_chunks.chunks.insert(chunk.pos.0);
+                            sent_chunks.chunks.insert(*chunk.pos);
                         }
                     }
                 }

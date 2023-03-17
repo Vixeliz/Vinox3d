@@ -396,10 +396,30 @@ pub struct NeedsMesh;
 pub struct PriorityMesh;
 
 #[derive(Resource)]
-pub struct PriorityMeshChannel(pub (Sender<MeshedChunk>, Receiver<MeshedChunk>));
+pub struct PriorityMeshChannel {
+    pub tx: Sender<MeshedChunk>,
+    pub rx: Receiver<MeshedChunk>,
+}
+
+impl Default for PriorityMeshChannel {
+    fn default() -> Self {
+        let (tx, rx) = tokio::sync::mpsc::channel(256);
+        Self { tx, rx }
+    }
+}
 
 #[derive(Resource)]
-pub struct MeshChannel(pub (Sender<MeshedChunk>, Receiver<MeshedChunk>));
+pub struct MeshChannel {
+    pub tx: Sender<MeshedChunk>,
+    pub rx: Receiver<MeshedChunk>,
+}
+
+impl Default for MeshChannel {
+    fn default() -> Self {
+        let (tx, rx) = tokio::sync::mpsc::channel(512);
+        Self { tx, rx }
+    }
+}
 
 pub fn generate_mesh<C, T>(chunk: &C, block_table: &BlockTable, solid_pass: bool) -> QuadGroups
 where
@@ -605,7 +625,7 @@ pub fn process_priority_queue(
         let cloned_table: BlockTable = block_table.clone();
         let cloned_assets: LoadableAssets = loadable_assets.clone();
         let clone_atlas: TextureAtlas = block_atlas.clone();
-        let cloned_sender = priority_channel.0 .0.clone();
+        let cloned_sender = priority_channel.tx.clone();
 
         task_pool
             .spawn(async move {
@@ -623,7 +643,7 @@ pub fn process_priority_queue(
             .detach()
     }
 
-    while let Ok(chunk) = priority_channel.0 .1.try_recv() {
+    while let Ok(chunk) = priority_channel.rx.try_recv() {
         if let Some(chunk_entity) = current_chunks.get_entity(chunk.pos) {
             commands.entity(chunk_entity).despawn_descendants();
 
@@ -700,14 +720,14 @@ pub fn priority_mesh(
         if let Some(neighbors) = chunk_manager.get_neighbors(chunk.pos.clone()) {
             if let Ok(neighbors) = neighbors.try_into() {
                 chunk_queue.priority.push((
-                    chunk.pos.0,
+                    *chunk.pos,
                     ChunkBoundary::new(chunk.chunk_data.clone(), Box::new(Array(neighbors))),
                 ));
                 commands
                     .entity(
                         chunk_manager
                             .current_chunks
-                            .get_entity(chunk.pos.0)
+                            .get_entity(*chunk.pos)
                             .unwrap(),
                     )
                     .remove::<PriorityMesh>();
@@ -727,7 +747,7 @@ pub fn build_mesh(
         if let Some(neighbors) = chunk_manager.get_neighbors(chunk.pos.clone()) {
             if let Ok(neighbors) = neighbors.try_into() {
                 chunk_queue.mesh.push((
-                    chunk.pos.0,
+                    *chunk.pos,
                     ChunkBoundary::new(chunk.chunk_data.clone(), Box::new(Array(neighbors))),
                 ));
 
@@ -735,7 +755,7 @@ pub fn build_mesh(
                     .entity(
                         chunk_manager
                             .current_chunks
-                            .get_entity(chunk.pos.0)
+                            .get_entity(*chunk.pos)
                             .unwrap(),
                     )
                     .remove::<NeedsMesh>();
@@ -808,7 +828,7 @@ pub fn process_queue(
         let cloned_table: BlockTable = block_table.clone();
         let cloned_assets: LoadableAssets = loadable_assets.clone();
         let clone_atlas: TextureAtlas = block_atlas.clone();
-        let cloned_sender = mesh_channel.0 .0.clone();
+        let cloned_sender = mesh_channel.tx.clone();
 
         task_pool
             .spawn(async move {
@@ -826,7 +846,7 @@ pub fn process_queue(
             .detach()
     }
 
-    while let Ok(chunk) = mesh_channel.0 .1.try_recv() {
+    while let Ok(chunk) = mesh_channel.rx.try_recv() {
         if let Some(chunk_entity) = current_chunks.get_entity(chunk.pos) {
             commands.entity(chunk_entity).despawn_descendants();
             let tween = Tween::new(

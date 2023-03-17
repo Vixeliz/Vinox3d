@@ -12,7 +12,7 @@ pub struct CurrentChunks {
     pub chunks: HashMap<IVec3, Entity>,
 }
 
-#[derive(Component, Clone)]
+#[derive(Component, Clone, Deref, DerefMut)]
 pub struct ChunkPos(pub IVec3);
 
 impl ChunkPos {
@@ -22,32 +22,32 @@ impl ChunkPos {
 
     pub fn neighbors(&self) -> Vec<ChunkPos> {
         vec![
-            ChunkPos::new(self.0.x - 1, self.0.y - 1, self.0.z - 1),
-            ChunkPos::new(self.0.x - 1, self.0.y - 1, self.0.z),
-            ChunkPos::new(self.0.x - 1, self.0.y - 1, self.0.z + 1),
-            ChunkPos::new(self.0.x - 1, self.0.y, self.0.z - 1),
-            ChunkPos::new(self.0.x - 1, self.0.y, self.0.z),
-            ChunkPos::new(self.0.x - 1, self.0.y, self.0.z + 1),
-            ChunkPos::new(self.0.x - 1, self.0.y + 1, self.0.z - 1),
-            ChunkPos::new(self.0.x - 1, self.0.y + 1, self.0.z),
-            ChunkPos::new(self.0.x - 1, self.0.y + 1, self.0.z + 1),
-            ChunkPos::new(self.0.x, self.0.y - 1, self.0.z - 1),
-            ChunkPos::new(self.0.x, self.0.y - 1, self.0.z),
-            ChunkPos::new(self.0.x, self.0.y - 1, self.0.z + 1),
-            ChunkPos::new(self.0.x, self.0.y, self.0.z - 1),
-            ChunkPos::new(self.0.x, self.0.y, self.0.z + 1),
-            ChunkPos::new(self.0.x, self.0.y + 1, self.0.z - 1),
-            ChunkPos::new(self.0.x, self.0.y + 1, self.0.z),
-            ChunkPos::new(self.0.x, self.0.y + 1, self.0.z + 1),
-            ChunkPos::new(self.0.x + 1, self.0.y - 1, self.0.z - 1),
-            ChunkPos::new(self.0.x + 1, self.0.y - 1, self.0.z),
-            ChunkPos::new(self.0.x + 1, self.0.y - 1, self.0.z + 1),
-            ChunkPos::new(self.0.x + 1, self.0.y, self.0.z - 1),
-            ChunkPos::new(self.0.x + 1, self.0.y, self.0.z),
-            ChunkPos::new(self.0.x + 1, self.0.y, self.0.z + 1),
-            ChunkPos::new(self.0.x + 1, self.0.y + 1, self.0.z - 1),
-            ChunkPos::new(self.0.x + 1, self.0.y + 1, self.0.z),
-            ChunkPos::new(self.0.x + 1, self.0.y + 1, self.0.z + 1),
+            ChunkPos::new(self.x - 1, self.y - 1, self.z - 1),
+            ChunkPos::new(self.x - 1, self.y - 1, self.z),
+            ChunkPos::new(self.x - 1, self.y - 1, self.z + 1),
+            ChunkPos::new(self.x - 1, self.y, self.z - 1),
+            ChunkPos::new(self.x - 1, self.y, self.z),
+            ChunkPos::new(self.x - 1, self.y, self.z + 1),
+            ChunkPos::new(self.x - 1, self.y + 1, self.z - 1),
+            ChunkPos::new(self.x - 1, self.y + 1, self.z),
+            ChunkPos::new(self.x - 1, self.y + 1, self.z + 1),
+            ChunkPos::new(self.x, self.y - 1, self.z - 1),
+            ChunkPos::new(self.x, self.y - 1, self.z),
+            ChunkPos::new(self.x, self.y - 1, self.z + 1),
+            ChunkPos::new(self.x, self.y, self.z - 1),
+            ChunkPos::new(self.x, self.y, self.z + 1),
+            ChunkPos::new(self.x, self.y + 1, self.z - 1),
+            ChunkPos::new(self.x, self.y + 1, self.z),
+            ChunkPos::new(self.x, self.y + 1, self.z + 1),
+            ChunkPos::new(self.x + 1, self.y - 1, self.z - 1),
+            ChunkPos::new(self.x + 1, self.y - 1, self.z),
+            ChunkPos::new(self.x + 1, self.y - 1, self.z + 1),
+            ChunkPos::new(self.x + 1, self.y, self.z - 1),
+            ChunkPos::new(self.x + 1, self.y, self.z),
+            ChunkPos::new(self.x + 1, self.y, self.z + 1),
+            ChunkPos::new(self.x + 1, self.y + 1, self.z - 1),
+            ChunkPos::new(self.x + 1, self.y + 1, self.z),
+            ChunkPos::new(self.x + 1, self.y + 1, self.z + 1),
         ]
     }
 }
@@ -74,7 +74,7 @@ impl CurrentChunks {
     }
     pub fn all_neighbors_exist(&self, pos: ChunkPos) -> bool {
         for chunk in pos.neighbors().iter() {
-            if !self.chunks.contains_key(&chunk.0) {
+            if !self.chunks.contains_key(chunk) {
                 return false;
             }
         }
@@ -83,7 +83,7 @@ impl CurrentChunks {
     pub fn get_all_neighbors(&self, pos: ChunkPos) -> Vec<Entity> {
         pos.neighbors()
             .iter()
-            .filter_map(|this_pos| self.chunks.get(&this_pos.0).copied())
+            .filter_map(|this_pos| self.chunks.get(this_pos).copied())
             .collect()
     }
 }

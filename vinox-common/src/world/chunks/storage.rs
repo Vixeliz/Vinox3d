@@ -16,7 +16,7 @@ pub const CHUNK_SIZE_ARR: u32 = CHUNK_SIZE - 1;
 pub const TOTAL_CHUNK_SIZE: usize =
     (CHUNK_SIZE as usize) * (CHUNK_SIZE as usize) * (CHUNK_SIZE as usize);
 
-#[derive(Resource, Clone, Default)]
+#[derive(Resource, Clone, Default, Deref, DerefMut)]
 pub struct BlockTable(pub HashMap<String, BlockDescriptor>);
 
 #[derive(EnumString, Serialize, Deserialize, Debug, PartialEq, Eq, Default, Clone, Copy)]
@@ -215,7 +215,7 @@ impl RawChunk {
         let mut block_name = block_state.namespace.clone();
         block_name.push(':');
         block_name.push_str(block_state.name.as_str());
-        if let Some(voxel) = block_table.0.get(&block_name) {
+        if let Some(voxel) = block_table.get(&block_name) {
             let voxel_visibility = voxel.visibility;
             if let Some(voxel_visibility) = voxel_visibility {
                 match voxel_visibility {
@@ -239,7 +239,7 @@ impl RawChunk {
         let mut block_name = block_state.namespace.clone();
         block_name.push(':');
         block_name.push_str(block_state.name.as_str());
-        block_table.0.get(&block_name).unwrap().clone()
+        block_table.get(&block_name).unwrap().clone()
     }
 
     pub fn get_index_for_state(&self, block_data: &BlockData) -> Option<u16> {
