@@ -7,6 +7,8 @@ use game::{
     plugin::GamePlugin,
     world::storage::{create_database, WorldDatabase},
 };
+use r2d2::Pool;
+use r2d2_sqlite::SqliteConnectionManager;
 use rusqlite::*;
 use std::{
     env,
@@ -27,22 +29,21 @@ fn main() {
         }
         _ => {}
     }
-
-    let database = Connection::open("world.db").unwrap();
-    database
-        .execute_batch(
-            "PRAGMA journal_mode=WAL;
-            PRAGMA synchronous=NORMAL;",
-        )
+    let manager = SqliteConnectionManager::file("world.db");
+    let pool = Pool::builder()
+        .max_size(30)
+        .test_on_check_out(false)
+        .build(manager)
         .unwrap();
-    create_database(&database);
+    pool.get().unwrap();
+    create_database(&pool.get().unwrap());
     App::new()
         .insert_resource(ScheduleRunnerSettings::run_loop(Duration::from_secs_f64(
             1.0 / 60.0,
         )))
         .insert_resource(WorldDatabase {
             name: "world".to_string(),
-            connection: Arc::new(Mutex::new(database)),
+            connection: pool,
         })
         .insert_resource(NetworkIP(ip))
         .add_plugins(MinimalPlugins)

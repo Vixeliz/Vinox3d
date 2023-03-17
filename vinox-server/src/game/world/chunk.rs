@@ -96,7 +96,7 @@ pub fn generate_chunks_world(
     for point in load_points.iter() {
         for pos in chunk_manager.get_chunk_positions(**point) {
             if chunk_manager.current_chunks.get_entity(pos).is_none() {
-                let data = database.connection.lock().unwrap();
+                let data = database.connection.get().unwrap();
                 if let Some(chunk) = load_chunk(pos, &data) {
                     let chunk_id = commands
                         .spawn(ChunkComp {
@@ -169,7 +169,7 @@ pub fn unsend_chunks(
 #[derive(Resource)]
 pub struct ChunkChannel {
     pub tx: Sender<ChunkComp>,
-    pub rx: Receiver<ChunkComp>
+    pub rx: Receiver<ChunkComp>,
 }
 
 impl Default for ChunkChannel {
@@ -208,12 +208,12 @@ pub fn process_queue(
     }
     chunk_queue.create.clear();
     while let Ok(chunk) = chunk_channel.rx.try_recv() {
-        let chunk_pos = *chunk.pos;
+        let chunk_pos = chunk.pos.clone();
 
-        let data = database.connection.lock().unwrap();
-        insert_chunk(chunk_pos, &chunk.chunk_data, &data);
+        let data = database.connection.get().unwrap();
+        insert_chunk(*chunk_pos, &chunk.chunk_data, &data);
         commands
-            .entity(current_chunks.get_entity(chunk_pos).unwrap())
+            .entity(current_chunks.get_entity(*chunk_pos).unwrap())
             .insert(chunk);
     }
 }

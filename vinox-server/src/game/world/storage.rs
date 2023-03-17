@@ -1,17 +1,25 @@
-use std::{
-    io::Cursor,
-    sync::{Arc, Mutex},
-};
+use std::io::Cursor;
+
+use r2d2::Pool;
+use r2d2_sqlite::SqliteConnectionManager;
 
 use bevy::prelude::*;
 use rusqlite::*;
+use serde::{Deserialize, Serialize};
 use vinox_common::world::chunks::storage::RawChunk;
 use zstd::stream::{copy_decode, copy_encode};
+
+#[derive(Resource, Serialize, Deserialize)]
+pub struct WorldInfo {
+    pub name: String,
+    pub seed: u64,
+    pub damage: bool,
+}
 
 #[derive(Resource)]
 pub struct WorldDatabase {
     pub name: String,
-    pub connection: Arc<Mutex<Connection>>,
+    pub connection: Pool<SqliteConnectionManager>,
 }
 
 pub fn create_database(database: &Connection) {

@@ -136,7 +136,7 @@ pub fn get_messages(
                                 ),
                                 &block_type,
                             );
-                            let data = database.connection.lock().unwrap();
+                            let data = database.connection.get().unwrap();
                             insert_chunk(*chunk.pos, &chunk.chunk_data, &data);
                             endpoint.try_broadcast_message(ServerMessage::SentBlock {
                                 chunk_pos,
