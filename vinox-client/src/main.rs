@@ -39,7 +39,6 @@ fn main() {
         path.push("assets");
         path
     };
-    //TODO: make directory for assets if it doesn't exist and also copy over the game assets to it
     let final_options = if let Some(game_options) = load_game_options(asset_path.clone()) {
         game_options
     } else {

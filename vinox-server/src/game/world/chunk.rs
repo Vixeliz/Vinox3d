@@ -5,7 +5,6 @@ use bevy::{
     prelude::*,
     tasks::AsyncComputeTaskPool,
 };
-use rand::Rng;
 use tokio::sync::mpsc::{Receiver, Sender};
 use vinox_common::world::chunks::{
     ecs::{ChunkComp, ChunkPos, CurrentChunks, RemoveChunk, SimulationRadius, ViewRadius},
@@ -17,11 +16,8 @@ use crate::game::networking::components::SentChunks;
 
 use super::{
     generation::generate_chunk,
-    storage::{load_chunk, save_chunks, ChunksToSave, WorldDatabase},
+    storage::{load_chunk, save_chunks, ChunksToSave, WorldDatabase, WorldInfo},
 };
-
-#[derive(Resource, Default, Deref, DerefMut)]
-pub struct WorldSeed(pub u32);
 
 #[derive(Component, Default, Clone, Deref, DerefMut)]
 pub struct LoadPoint(pub IVec3);
@@ -190,10 +186,10 @@ pub fn process_queue(
     mut chunk_queue: ResMut<ChunkQueue>,
     mut chunk_channel: ResMut<ChunkChannel>,
     current_chunks: Res<CurrentChunks>,
-    seed: Res<WorldSeed>,
+    world_info: Res<WorldInfo>,
     mut chunks_to_save: ResMut<ChunksToSave>,
 ) {
-    let cloned_seed = **seed;
+    let cloned_seed = world_info.seed;
     let task_pool = AsyncComputeTaskPool::get();
     for chunk_pos in chunk_queue.create.drain(..) {
         let cloned_sender = chunk_channel.tx.clone();
@@ -237,7 +233,6 @@ impl Plugin for ChunkPlugin {
                 vertical: 4,
                 horizontal: 4,
             })
-            .insert_resource(WorldSeed(rand::thread_rng().gen_range(0..u32::MAX)))
             .add_systems((clear_unloaded_chunks, unsend_chunks, generate_chunks_world))
             .add_system(process_queue.after(clear_unloaded_chunks))
             .add_system(process_save.after(process_queue))

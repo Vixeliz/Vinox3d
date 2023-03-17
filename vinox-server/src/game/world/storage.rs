@@ -12,16 +12,15 @@ use zstd::stream::{copy_decode, copy_encode};
 #[derive(Resource, Deref, DerefMut, Default)]
 pub struct ChunksToSave(pub Vec<(IVec3, RawChunk)>);
 
-#[derive(Resource, Serialize, Deserialize)]
+#[derive(Resource, Serialize, Deserialize, Clone)]
 pub struct WorldInfo {
     pub name: String,
-    pub seed: u64,
+    pub seed: u32,
     pub damage: bool,
 }
 
 #[derive(Resource)]
 pub struct WorldDatabase {
-    pub name: String,
     pub connection: Pool<SqliteConnectionManager>,
 }
 
