@@ -5,6 +5,7 @@ use noise::{
 use vinox_common::world::chunks::storage::{BlockData, RawChunk, CHUNK_SIZE};
 
 // Just some interesting stuff to look at while testing
+#[allow(clippy::type_complexity)]
 pub fn add_grass(
     raw_chunk: &mut RawChunk,
     noisefn: &noise::Blend<
@@ -37,13 +38,11 @@ pub fn add_grass(
                         let grass = BlockData::new("vinox".to_string(), "grass".to_string());
                         raw_chunk.set_block(UVec3::new(x, y, z), &grass);
                     }
-                } else {
-                    if raw_chunk.get_identifier(UVec3::new(x, y + 1, z)) == "vinox:air"
-                        && raw_chunk.get_identifier(UVec3::new(x, y, z)) != "vinox:air"
-                    {
-                        let grass = BlockData::new("vinox".to_string(), "grass".to_string());
-                        raw_chunk.set_block(UVec3::new(x, y, z), &grass);
-                    }
+                } else if raw_chunk.get_identifier(UVec3::new(x, y + 1, z)) == "vinox:air"
+                    && raw_chunk.get_identifier(UVec3::new(x, y, z)) != "vinox:air"
+                {
+                    let grass = BlockData::new("vinox".to_string(), "grass".to_string());
+                    raw_chunk.set_block(UVec3::new(x, y, z), &grass);
                 }
             }
         }

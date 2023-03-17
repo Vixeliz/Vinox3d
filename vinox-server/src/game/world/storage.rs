@@ -9,6 +9,9 @@ use serde::{Deserialize, Serialize};
 use vinox_common::world::chunks::storage::RawChunk;
 use zstd::stream::{copy_decode, copy_encode};
 
+#[derive(Resource, Deref, DerefMut, Default)]
+pub struct ChunksToSave(pub Vec<(IVec3, RawChunk)>);
+
 #[derive(Resource, Serialize, Deserialize)]
 pub struct WorldInfo {
     pub name: String,
@@ -37,23 +40,27 @@ pub fn create_database(database: &Connection) {
         .unwrap();
 }
 
-pub fn insert_chunk(chunk_pos: IVec3, raw_chunk: &RawChunk, database: &Connection) {
-    if let Ok(raw_chunk_bin) = bincode::serialize(raw_chunk) {
-        let mut final_chunk = Cursor::new(raw_chunk_bin);
-        let mut output = Cursor::new(Vec::new());
-        copy_encode(&mut final_chunk, &mut output, 0).unwrap();
-        database
-            .execute(
-                "REPLACE INTO blocks (posx, posy, posz, data) values (?1, ?2, ?3, ?4)",
-                params![
-                    &chunk_pos.x,
-                    &chunk_pos.y,
-                    &chunk_pos.z,
-                    &output.get_ref().clone(),
-                ],
-            )
-            .unwrap();
+pub fn save_chunks(chunks: &ChunksToSave, database: &Connection) {
+    database.execute("BEGIN;", []).unwrap();
+    for (chunk_pos, raw_chunk) in chunks.iter() {
+        if let Ok(raw_chunk_bin) = bincode::serialize(raw_chunk) {
+            let mut final_chunk = Cursor::new(raw_chunk_bin);
+            let mut output = Cursor::new(Vec::new());
+            copy_encode(&mut final_chunk, &mut output, 0).unwrap();
+            database
+                .execute(
+                    "REPLACE INTO blocks (posx, posy, posz, data) values (?1, ?2, ?3, ?4)",
+                    params![
+                        &chunk_pos.x,
+                        &chunk_pos.y,
+                        &chunk_pos.z,
+                        &output.get_ref().clone(),
+                    ],
+                )
+                .unwrap();
+        }
     }
+    database.execute("COMMIT;", []).unwrap();
 }
 
 pub fn load_chunk(chunk_pos: IVec3, database: &Connection) -> Option<RawChunk> {

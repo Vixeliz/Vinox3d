@@ -9,12 +9,7 @@ use game::{
 };
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
-use rusqlite::*;
-use std::{
-    env,
-    sync::{Arc, Mutex},
-    time::Duration,
-};
+use std::{env, time::Duration};
 use vinox_common::networking::protocol::NetworkIP;
 
 // Server should always keep spawn chunks loaded and any chunks near players

@@ -142,6 +142,7 @@ pub fn options(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn create_ui(
     mut commands: Commands,
     mut contexts: EguiContexts,
@@ -149,7 +150,6 @@ pub fn create_ui(
     mut in_options: ResMut<InOptions>,
     mut options: ResMut<GameOptions>,
     asset_server: ResMut<AssetServer>,
-    // mut egui_texture_handle: Local<Option<egui::TextureHandle>>,
     mut rendered_texture_id: Local<egui::TextureId>,
     mut is_initialized: Local<bool>,
 ) {

@@ -17,7 +17,7 @@ use crate::game::networking::components::SentChunks;
 
 use super::{
     generation::generate_chunk,
-    storage::{insert_chunk, load_chunk, WorldDatabase},
+    storage::{load_chunk, save_chunks, ChunksToSave, WorldDatabase},
 };
 
 #[derive(Resource, Default, Deref, DerefMut)]
@@ -180,13 +180,18 @@ impl Default for ChunkChannel {
     }
 }
 
+pub fn process_save(mut chunks_to_save: ResMut<ChunksToSave>, database: Res<WorldDatabase>) {
+    save_chunks(&chunks_to_save, &database.connection.get().unwrap());
+    chunks_to_save.clear();
+}
+
 pub fn process_queue(
     mut commands: Commands,
     mut chunk_queue: ResMut<ChunkQueue>,
     mut chunk_channel: ResMut<ChunkChannel>,
     current_chunks: Res<CurrentChunks>,
     seed: Res<WorldSeed>,
-    database: Res<WorldDatabase>,
+    mut chunks_to_save: ResMut<ChunksToSave>,
 ) {
     let cloned_seed = **seed;
     let task_pool = AsyncComputeTaskPool::get();
@@ -210,8 +215,7 @@ pub fn process_queue(
     while let Ok(chunk) = chunk_channel.rx.try_recv() {
         let chunk_pos = chunk.pos.clone();
 
-        let data = database.connection.get().unwrap();
-        insert_chunk(*chunk_pos, &chunk.chunk_data, &data);
+        chunks_to_save.push((*chunk_pos, chunk.chunk_data.clone()));
         commands
             .entity(current_chunks.get_entity(*chunk_pos).unwrap())
             .insert(chunk);
@@ -222,7 +226,8 @@ pub struct ChunkPlugin;
 
 impl Plugin for ChunkPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(CurrentChunks::default())
+        app.insert_resource(ChunksToSave::default())
+            .insert_resource(CurrentChunks::default())
             .insert_resource(ChunkQueue::default())
             .insert_resource(ViewRadius {
                 horizontal: HORIZONTAL_DISTANCE,
@@ -235,6 +240,7 @@ impl Plugin for ChunkPlugin {
             .insert_resource(WorldSeed(rand::thread_rng().gen_range(0..u32::MAX)))
             .add_systems((clear_unloaded_chunks, unsend_chunks, generate_chunks_world))
             .add_system(process_queue.after(clear_unloaded_chunks))
+            .add_system(process_save.after(process_queue))
             .add_startup_system(|mut commands: Commands| {
                 commands.insert_resource(ChunkChannel::default());
             })

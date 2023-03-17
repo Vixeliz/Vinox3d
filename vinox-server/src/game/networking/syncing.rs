@@ -16,7 +16,7 @@ use zstd::stream::copy_encode;
 
 use crate::game::world::{
     chunk::{ChunkManager, LoadPoint},
-    storage::{insert_chunk, WorldDatabase},
+    storage::ChunksToSave,
 };
 
 use super::components::{SentChunks, ServerLobby};
@@ -48,7 +48,7 @@ pub fn get_messages(
     player_builder: Res<PlayerBundleBuilder>,
     mut chunks: Query<&mut ChunkComp>,
     current_chunks: Res<CurrentChunks>,
-    database: Res<WorldDatabase>,
+    mut chunks_to_save: ResMut<ChunksToSave>,
 ) {
     let endpoint = server.endpoint_mut();
     for client_id in endpoint.clients() {
@@ -136,8 +136,7 @@ pub fn get_messages(
                                 ),
                                 &block_type,
                             );
-                            let data = database.connection.get().unwrap();
-                            insert_chunk(*chunk.pos, &chunk.chunk_data, &data);
+                            chunks_to_save.push((*chunk.pos, chunk.chunk_data.clone()));
                             endpoint.try_broadcast_message(ServerMessage::SentBlock {
                                 chunk_pos,
                                 voxel_pos,
