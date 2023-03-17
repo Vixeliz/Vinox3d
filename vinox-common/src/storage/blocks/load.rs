@@ -8,7 +8,7 @@ use super::descriptor::BlockDescriptor;
 pub fn load_all_blocks() -> Vec<BlockDescriptor> {
     let mut result = Vec::new();
     if let Some(proj_dirs) = ProjectDirs::from("com", "vinox", "vinox") {
-        for entry in WalkDir::new(proj_dirs.data_dir().join("assets"))
+        for entry in WalkDir::new(proj_dirs.data_dir().join("assets/blocks"))
             .into_iter()
             .filter_map(|e| e.ok())
         {
@@ -29,7 +29,7 @@ pub fn load_all_blocks() -> Vec<BlockDescriptor> {
 
 #[cfg(test)]
 mod tests {
-    use crate::storage::blocks::descriptor::{BlockDescriptor, ToolType};
+    use crate::storage::{blocks::descriptor::BlockDescriptor, items::descriptor::ToolType};
 
     #[test]
     fn ron_loads() {
