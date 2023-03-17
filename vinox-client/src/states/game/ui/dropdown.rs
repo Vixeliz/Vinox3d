@@ -83,8 +83,7 @@ pub fn create_ui(
                                     && ui.input(|input| input.key_pressed(egui::Key::Enter));
                                 if input_send {
                                     if let Ok((result, _)) = parser.parse((), &current_message) {
-                                        messages
-                                            .push(("Console".to_string(), result.to_string()));
+                                        messages.push(("Console".to_string(), result.to_string()));
                                     } else {
                                         client.connection_mut().try_send_message(
                                             ClientMessage::ChatMessage {

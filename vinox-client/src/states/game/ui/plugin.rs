@@ -1,6 +1,9 @@
 use crate::states::components::GameState;
 
-use super::dropdown::{create_ui, ConsoleOpen, Toast};
+use super::{
+    dropdown::{create_ui, ConsoleOpen, Toast},
+    inventory::status_bar,
+};
 use bevy::prelude::*;
 
 pub struct UiPlugin;
@@ -13,6 +16,10 @@ impl Plugin for UiPlugin {
         app.insert_resource(ConsoleOpen(false))
             .insert_resource(InUi(false))
             .insert_resource(Toast::default())
-            .add_system(create_ui.in_set(OnUpdate(GameState::Game)));
+            .add_systems(
+                (create_ui, status_bar)
+                    .chain()
+                    .in_set(OnUpdate(GameState::Game)),
+            );
     }
 }
