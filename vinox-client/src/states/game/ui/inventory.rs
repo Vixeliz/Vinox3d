@@ -1,7 +1,10 @@
 use std::collections::BTreeMap;
 
 use bevy::prelude::*;
-use bevy_egui::{egui::FontId, *};
+use bevy_egui::{
+    egui::{Color32, FontId},
+    *,
+};
 use vinox_common::ecs::bundles::Inventory;
 
 use crate::states::{components::GameOptions, game::world::chunks::ControlledPlayer};
@@ -10,6 +13,7 @@ pub fn status_bar(
     player_query: Query<&Inventory, With<ControlledPlayer>>,
     mut contexts: EguiContexts,
     options: Res<GameOptions>,
+    mut texture_ids: Local<[Option<egui::TextureId>; 9]>,
 ) {
     if !options.dark_theme {
         catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
@@ -32,11 +36,26 @@ pub fn status_bar(
                     ..Default::default()
                 });
                 if let Ok(inventory) = player_query.get_single() {
-                    for hotbar_section in inventory.hotbar.iter().cloned() {
+                    for (hotbar_num, hotbar_section) in inventory.hotbar.iter().cloned().enumerate()
+                    {
                         ui.separator();
-                        for item in hotbar_section.iter().clone() {
-                            ui.label(format!("{}: {}", item.name, item.stack_size));
-                            ui.separator();
+                        for (item_num, item) in hotbar_section.iter().clone().enumerate() {
+                            let color = if *inventory.current_item == item_num
+                                && *inventory.current_bar == hotbar_num
+                            {
+                                Color32::WHITE
+                            } else {
+                                ui.style().visuals.window_fill
+                            };
+
+                            egui::Frame::none()
+                                .fill(color)
+                                .outer_margin(2.0)
+                                .show(ui, |ui| {
+                                    ui.separator();
+                                    ui.label(format!("{}: {}", item.name, item.stack_size));
+                                    ui.separator();
+                                });
                         }
                     }
                 }

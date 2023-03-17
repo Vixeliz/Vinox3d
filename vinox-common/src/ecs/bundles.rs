@@ -6,11 +6,19 @@ use crate::{networking::protocol::Player, storage::items::descriptor::ItemData};
 #[derive(Default, Deref, DerefMut, Serialize, Deserialize, Debug, Clone)]
 pub struct HotBar(pub [[ItemData; 3]; 3]);
 
+#[derive(Default, Deref, DerefMut, Serialize, Deserialize, Debug, Clone)]
+pub struct CurrentBar(pub usize);
+
+#[derive(Default, Deref, DerefMut, Serialize, Deserialize, Debug, Clone)]
+pub struct CurrentItem(pub usize);
+
 #[derive(Component, Default, Serialize, Deserialize, Clone, Debug)]
 pub struct Inventory {
     pub username: String,
     pub hotbar: HotBar,
     pub slots: [[ItemData; 9]; 5],
+    pub current_bar: CurrentBar,
+    pub current_item: CurrentItem,
 }
 
 #[derive(Component, Default, Deref, DerefMut)]
