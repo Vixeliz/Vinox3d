@@ -65,7 +65,7 @@ impl Default for GameOptions {
 
         GameOptions {
             input,
-            fov: 90.0,
+            fov: 70.0,
             dark_theme: true,
             user_name: "User".to_string(),
         }
