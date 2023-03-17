@@ -5,7 +5,7 @@ use walkdir::WalkDir;
 
 use crate::storage::blocks::descriptor::BlockDescriptor;
 
-use super::descriptor::ItemDescriptor;
+use super::descriptor::{ItemDescriptor, MAX_STACK_SIZE};
 
 pub fn load_all_items() -> Vec<ItemDescriptor> {
     let mut result = Vec::new();
@@ -47,7 +47,8 @@ pub fn item_from_block(block: BlockDescriptor) -> ItemDescriptor {
         namespace: block.namespace,
         name: block.name,
         texture,
-        durability: None,
+        max_durability: None,
+        max_stack_size: Some(MAX_STACK_SIZE),
         tool_type: None,
         script: None,
         associated_block: Some(name),
