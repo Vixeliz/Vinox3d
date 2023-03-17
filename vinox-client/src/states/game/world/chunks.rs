@@ -5,7 +5,10 @@ use bevy_tweening::{lens::TransformPositionLens, *};
 use vinox_common::world::chunks::{
     ecs::{ChunkComp, ChunkPos, CurrentChunks, RemoveChunk, SimulationRadius, ViewRadius},
     positions::{circle_points, world_to_chunk},
-    storage::{BlockData, RawChunk, CHUNK_SIZE, HORIZONTAL_DISTANCE, VERTICAL_DISTANCE},
+    storage::{
+        BlockData, BlockTable, RawChunk, VoxelVisibility, CHUNK_SIZE, CHUNK_SIZE_ARR,
+        HORIZONTAL_DISTANCE, VERTICAL_DISTANCE,
+    },
 };
 
 use crate::states::{
@@ -94,8 +97,8 @@ impl<'w, 's> ChunkManager<'w, 's> {
             }
         }
 
-        chunks
-            .sort_unstable_by_key(|key| (key.x - chunk_pos.x).abs() + (key.z - chunk_pos.z).abs());
+        // chunks
+        //     .sort_unstable_by_key(|key| (key.x - chunk_pos.x).abs() + (key.z - chunk_pos.z).abs());
         chunks
     }
     pub fn get_chunks_around_chunk(&mut self, pos: IVec3) -> Vec<&ChunkComp> {
@@ -117,7 +120,11 @@ impl<'w, 's> ChunkManager<'w, 's> {
                 res.push(chunk.chunk_data.clone())
             }
         }
-        Some(res)
+        if res.len() == 26 {
+            Some(res)
+        } else {
+            None
+        }
     }
 }
 
@@ -183,6 +190,7 @@ pub fn receive_chunks(
     mut event: EventReader<CreateChunkEvent>,
     player_chunk: Res<PlayerChunk>,
     view_radius: Res<ViewRadius>,
+    block_table: Res<BlockTable>,
 ) {
     for evt in event.iter() {
         if player_chunk.is_in_radius(evt.pos, &view_radius)
@@ -199,17 +207,33 @@ pub fn receive_chunks(
 
             current_chunks.insert_entity(evt.pos, chunk_id);
 
+            // Don't mark chunks that won't create any blocks
             let mut empty = true;
             for block in evt.raw_chunk.palette.right_values() {
                 let mut identifier = block.namespace.clone();
                 identifier.push(':');
                 identifier.push_str(&block.name);
-                if identifier != "vinox:air" {
-                    empty = false;
+                if let Some(block) = block_table.0.get(&identifier) {
+                    if block.visibility.unwrap() != VoxelVisibility::Empty {
+                        empty = false;
+                    }
+                }
+            }
+            let mut full = true;
+            if !empty {
+                for block in evt.raw_chunk.palette.right_values() {
+                    let mut identifier = block.namespace.clone();
+                    identifier.push(':');
+                    identifier.push_str(&block.name);
+                    if let Some(block) = block_table.0.get(&identifier) {
+                        if block.visibility.unwrap() != VoxelVisibility::Opaque {
+                            full = false;
+                        }
+                    }
                 }
             }
 
-            if !empty {
+            if !empty && !full {
                 commands.entity(chunk_id).insert(NeedsMesh);
             }
         }
@@ -229,14 +253,14 @@ pub fn set_block(
                 chunk.chunk_data.set_block(evt.voxel_pos, &evt.block_type);
 
                 match evt.voxel_pos.x {
-                    1 => {
+                    0 => {
                         if let Some(neighbor_chunk) =
                             current_chunks.get_entity(evt.chunk_pos + IVec3::new(-1, 0, 0))
                         {
                             commands.entity(neighbor_chunk).insert(PriorityMesh);
                         }
                     }
-                    CHUNK_SIZE => {
+                    CHUNK_SIZE_ARR => {
                         if let Some(neighbor_chunk) =
                             current_chunks.get_entity(evt.chunk_pos + IVec3::new(1, 0, 0))
                         {
@@ -246,14 +270,14 @@ pub fn set_block(
                     _ => {}
                 }
                 match evt.voxel_pos.y {
-                    1 => {
+                    0 => {
                         if let Some(neighbor_chunk) =
                             current_chunks.get_entity(evt.chunk_pos + IVec3::new(0, -1, 0))
                         {
                             commands.entity(neighbor_chunk).insert(PriorityMesh);
                         }
                     }
-                    CHUNK_SIZE => {
+                    CHUNK_SIZE_ARR => {
                         if let Some(neighbor_chunk) =
                             current_chunks.get_entity(evt.chunk_pos + IVec3::new(0, 1, 0))
                         {
@@ -263,14 +287,14 @@ pub fn set_block(
                     _ => {}
                 }
                 match evt.voxel_pos.z {
-                    1 => {
+                    0 => {
                         if let Some(neighbor_chunk) =
                             current_chunks.get_entity(evt.chunk_pos + IVec3::new(0, 0, -1))
                         {
                             commands.entity(neighbor_chunk).insert(PriorityMesh);
                         }
                     }
-                    CHUNK_SIZE => {
+                    CHUNK_SIZE_ARR => {
                         if let Some(neighbor_chunk) =
                             current_chunks.get_entity(evt.chunk_pos + IVec3::new(0, 0, 1))
                         {

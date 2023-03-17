@@ -12,6 +12,7 @@ use bevy::{
 };
 use bevy_tweening::{lens::TransformPositionLens, *};
 use itertools::Itertools;
+use rand::seq::IteratorRandom;
 use serde_big_array::Array;
 use std::{ops::Deref, time::Duration};
 use tokio::sync::mpsc::{Receiver, Sender};
@@ -720,37 +721,24 @@ pub fn build_mesh(
     mut chunk_queue: ResMut<MeshQueue>,
     chunks: Query<&ChunkComp, With<NeedsMesh>>,
     chunk_manager: ChunkManager,
-    player_chunk: Res<PlayerChunk>,
 ) {
-    let mut count = 0;
-    for chunk in chunks.iter().sorted_unstable_by_key(|key| {
-        (key.pos.0.x - player_chunk.chunk_pos.x).abs()
-            + (key.pos.0.z - player_chunk.chunk_pos.z).abs()
-    }) {
-        if count > 32 {
-            break;
-        }
-        if chunk_manager
-            .current_chunks
-            .all_neighbors_exist(chunk.pos.clone())
-        {
-            if let Some(neighbors) = chunk_manager.get_neighbors(chunk.pos.clone()) {
-                if let Ok(neighbors) = neighbors.try_into() {
-                    count += 1;
-                    chunk_queue.mesh.push((
-                        chunk.pos.0,
-                        ChunkBoundary::new(chunk.chunk_data.clone(), Box::new(Array(neighbors))),
-                    ));
+    let mut rng = rand::thread_rng();
+    for chunk in chunks.iter().choose_multiple(&mut rng, 512) {
+        if let Some(neighbors) = chunk_manager.get_neighbors(chunk.pos.clone()) {
+            if let Ok(neighbors) = neighbors.try_into() {
+                chunk_queue.mesh.push((
+                    chunk.pos.0,
+                    ChunkBoundary::new(chunk.chunk_data.clone(), Box::new(Array(neighbors))),
+                ));
 
-                    commands
-                        .entity(
-                            chunk_manager
-                                .current_chunks
-                                .get_entity(chunk.pos.0)
-                                .unwrap(),
-                        )
-                        .remove::<NeedsMesh>();
-                }
+                commands
+                    .entity(
+                        chunk_manager
+                            .current_chunks
+                            .get_entity(chunk.pos.0)
+                            .unwrap(),
+                    )
+                    .remove::<NeedsMesh>();
             }
         }
     }

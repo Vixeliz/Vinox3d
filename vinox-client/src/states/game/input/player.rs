@@ -25,7 +25,7 @@ use crate::states::{
     components::{GameActions, GameOptions},
     game::{
         networking::syncing::HighLightCube,
-        rendering::meshing::PriorityMesh,
+        rendering::meshing::{NeedsMesh, PriorityMesh},
         ui::{dropdown::ConsoleOpen, plugin::InUi},
         world::chunks::ControlledPlayer,
     },
@@ -302,6 +302,94 @@ pub fn interact(
                                                     block_type: item_string,
                                                 },
                                             );
+                                            match voxel_pos.x {
+                                                0 => {
+                                                    if let Some(neighbor_chunk) = current_chunks
+                                                        .get_entity(
+                                                            chunk_pos + IVec3::new(-1, 0, 0),
+                                                        )
+                                                    {
+                                                        commands
+                                                            .entity(neighbor_chunk)
+                                                            .remove::<NeedsMesh>();
+                                                        commands
+                                                            .entity(neighbor_chunk)
+                                                            .insert(PriorityMesh);
+                                                    }
+                                                }
+                                                CHUNK_SIZE_ARR => {
+                                                    if let Some(neighbor_chunk) = current_chunks
+                                                        .get_entity(chunk_pos + IVec3::new(1, 0, 0))
+                                                    {
+                                                        commands
+                                                            .entity(neighbor_chunk)
+                                                            .remove::<NeedsMesh>();
+                                                        commands
+                                                            .entity(neighbor_chunk)
+                                                            .insert(PriorityMesh);
+                                                    }
+                                                }
+                                                _ => {}
+                                            }
+                                            match voxel_pos.y {
+                                                0 => {
+                                                    if let Some(neighbor_chunk) = current_chunks
+                                                        .get_entity(
+                                                            chunk_pos + IVec3::new(0, -1, 0),
+                                                        )
+                                                    {
+                                                        commands
+                                                            .entity(neighbor_chunk)
+                                                            .remove::<NeedsMesh>();
+                                                        commands
+                                                            .entity(neighbor_chunk)
+                                                            .insert(PriorityMesh);
+                                                    }
+                                                }
+                                                CHUNK_SIZE_ARR => {
+                                                    if let Some(neighbor_chunk) = current_chunks
+                                                        .get_entity(chunk_pos + IVec3::new(0, 1, 0))
+                                                    {
+                                                        commands
+                                                            .entity(neighbor_chunk)
+                                                            .remove::<NeedsMesh>();
+                                                        commands
+                                                            .entity(neighbor_chunk)
+                                                            .insert(PriorityMesh);
+                                                    }
+                                                }
+                                                _ => {}
+                                            }
+                                            match voxel_pos.z {
+                                                0 => {
+                                                    if let Some(neighbor_chunk) = current_chunks
+                                                        .get_entity(
+                                                            chunk_pos + IVec3::new(0, 0, -1),
+                                                        )
+                                                    {
+                                                        commands
+                                                            .entity(neighbor_chunk)
+                                                            .remove::<NeedsMesh>();
+                                                        commands
+                                                            .entity(neighbor_chunk)
+                                                            .insert(PriorityMesh);
+                                                    }
+                                                }
+                                                CHUNK_SIZE_ARR => {
+                                                    if let Some(neighbor_chunk) = current_chunks
+                                                        .get_entity(chunk_pos + IVec3::new(0, 0, 1))
+                                                    {
+                                                        commands
+                                                            .entity(neighbor_chunk)
+                                                            .remove::<NeedsMesh>();
+                                                        commands
+                                                            .entity(neighbor_chunk)
+                                                            .insert(PriorityMesh);
+                                                    }
+                                                }
+                                                _ => {}
+                                            }
+                                            commands.entity(chunk_entity).insert(PriorityMesh);
                                         }
                                     }
                                 }
@@ -324,59 +412,66 @@ pub fn interact(
                                         ),
                                     },
                                 );
+
+                                match voxel_pos.x {
+                                    0 => {
+                                        if let Some(neighbor_chunk) = current_chunks
+                                            .get_entity(chunk_pos + IVec3::new(-1, 0, 0))
+                                        {
+                                            commands.entity(neighbor_chunk).remove::<NeedsMesh>();
+                                            commands.entity(neighbor_chunk).insert(PriorityMesh);
+                                        }
+                                    }
+                                    CHUNK_SIZE_ARR => {
+                                        if let Some(neighbor_chunk) = current_chunks
+                                            .get_entity(chunk_pos + IVec3::new(1, 0, 0))
+                                        {
+                                            commands.entity(neighbor_chunk).remove::<NeedsMesh>();
+                                            commands.entity(neighbor_chunk).insert(PriorityMesh);
+                                        }
+                                    }
+                                    _ => {}
+                                }
+                                match voxel_pos.y {
+                                    0 => {
+                                        if let Some(neighbor_chunk) = current_chunks
+                                            .get_entity(chunk_pos + IVec3::new(0, -1, 0))
+                                        {
+                                            commands.entity(neighbor_chunk).remove::<NeedsMesh>();
+                                            commands.entity(neighbor_chunk).insert(PriorityMesh);
+                                        }
+                                    }
+                                    CHUNK_SIZE_ARR => {
+                                        if let Some(neighbor_chunk) = current_chunks
+                                            .get_entity(chunk_pos + IVec3::new(0, 1, 0))
+                                        {
+                                            commands.entity(neighbor_chunk).remove::<NeedsMesh>();
+                                            commands.entity(neighbor_chunk).insert(PriorityMesh);
+                                        }
+                                    }
+                                    _ => {}
+                                }
+                                match voxel_pos.z {
+                                    0 => {
+                                        if let Some(neighbor_chunk) = current_chunks
+                                            .get_entity(chunk_pos + IVec3::new(0, 0, -1))
+                                        {
+                                            commands.entity(neighbor_chunk).remove::<NeedsMesh>();
+                                            commands.entity(neighbor_chunk).insert(PriorityMesh);
+                                        }
+                                    }
+                                    CHUNK_SIZE_ARR => {
+                                        if let Some(neighbor_chunk) = current_chunks
+                                            .get_entity(chunk_pos + IVec3::new(0, 0, 1))
+                                        {
+                                            commands.entity(neighbor_chunk).remove::<NeedsMesh>();
+                                            commands.entity(neighbor_chunk).insert(PriorityMesh);
+                                        }
+                                    }
+                                    _ => {}
+                                }
+                                commands.entity(chunk_entity).insert(PriorityMesh);
                             }
-                            match voxel_pos.x {
-                                0 => {
-                                    if let Some(neighbor_chunk) =
-                                        current_chunks.get_entity(chunk_pos + IVec3::new(-1, 0, 0))
-                                    {
-                                        commands.entity(neighbor_chunk).insert(PriorityMesh);
-                                    }
-                                }
-                                CHUNK_SIZE_ARR => {
-                                    if let Some(neighbor_chunk) =
-                                        current_chunks.get_entity(chunk_pos + IVec3::new(1, 0, 0))
-                                    {
-                                        commands.entity(neighbor_chunk).insert(PriorityMesh);
-                                    }
-                                }
-                                _ => {}
-                            }
-                            match voxel_pos.y {
-                                0 => {
-                                    if let Some(neighbor_chunk) =
-                                        current_chunks.get_entity(chunk_pos + IVec3::new(0, -1, 0))
-                                    {
-                                        commands.entity(neighbor_chunk).insert(PriorityMesh);
-                                    }
-                                }
-                                CHUNK_SIZE_ARR => {
-                                    if let Some(neighbor_chunk) =
-                                        current_chunks.get_entity(chunk_pos + IVec3::new(0, 1, 0))
-                                    {
-                                        commands.entity(neighbor_chunk).insert(PriorityMesh);
-                                    }
-                                }
-                                _ => {}
-                            }
-                            match voxel_pos.z {
-                                0 => {
-                                    if let Some(neighbor_chunk) =
-                                        current_chunks.get_entity(chunk_pos + IVec3::new(0, 0, -1))
-                                    {
-                                        commands.entity(neighbor_chunk).insert(PriorityMesh);
-                                    }
-                                }
-                                CHUNK_SIZE_ARR => {
-                                    if let Some(neighbor_chunk) =
-                                        current_chunks.get_entity(chunk_pos + IVec3::new(0, 0, 1))
-                                    {
-                                        commands.entity(neighbor_chunk).insert(PriorityMesh);
-                                    }
-                                }
-                                _ => {}
-                            }
-                            commands.entity(chunk_entity).insert(PriorityMesh);
                         }
                     }
                 }
