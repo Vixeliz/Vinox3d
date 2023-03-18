@@ -20,7 +20,7 @@ use tokio::sync::mpsc::{Receiver, Sender};
 use vinox_common::world::chunks::{
     ecs::{ChunkComp, CurrentChunks},
     positions::voxel_to_world,
-    storage::{BlockTable, Chunk, Voxel, VoxelVisibility, CHUNK_SIZE},
+    storage::{BlockTable, Chunk, RawChunk, Voxel, VoxelVisibility, CHUNK_SIZE},
 };
 
 use crate::states::{
@@ -386,8 +386,8 @@ pub struct RenderedChunk {
 
 #[derive(Default, Resource)]
 pub struct MeshQueue {
-    pub mesh: Vec<(IVec3, ChunkBoundary)>,
-    pub priority: Vec<(IVec3, ChunkBoundary)>,
+    pub mesh: Vec<(IVec3, RawChunk, Box<Array<RawChunk, 26>>)>,
+    pub priority: Vec<(IVec3, RawChunk, Box<Array<RawChunk, 26>>)>,
 }
 
 #[derive(Component, Default)]
@@ -622,7 +622,7 @@ pub fn process_priority_queue(
         .get(&loadable_assets.block_atlas)
         .unwrap()
         .clone();
-    for (chunk_pos, raw_chunk) in chunk_queue.priority.drain(..) {
+    for (chunk_pos, center_chunk, neighbors) in chunk_queue.priority.drain(..) {
         let cloned_table: BlockTable = block_table.clone();
         let cloned_assets: LoadableAssets = loadable_assets.clone();
         let clone_atlas: TextureAtlas = block_atlas.clone();
@@ -630,6 +630,7 @@ pub fn process_priority_queue(
 
         task_pool
             .spawn(async move {
+                let raw_chunk = ChunkBoundary::new(center_chunk, neighbors);
                 cloned_sender
                     .send(full_mesh(
                         &raw_chunk,
@@ -722,7 +723,8 @@ pub fn priority_mesh(
             if let Ok(neighbors) = neighbors.try_into() {
                 chunk_queue.priority.push((
                     *chunk.pos,
-                    ChunkBoundary::new(chunk.chunk_data.clone(), Box::new(Array(neighbors))),
+                    chunk.chunk_data.clone(),
+                    Box::new(Array(neighbors)),
                 ));
                 commands
                     .entity(chunk_manager.current_chunks.get_entity(*chunk.pos).unwrap())
@@ -759,7 +761,8 @@ pub fn build_mesh(
                 if let Ok(neighbors) = neighbors.try_into() {
                     chunk_queue.mesh.push((
                         *chunk.pos,
-                        ChunkBoundary::new(chunk.chunk_data.clone(), Box::new(Array(neighbors))),
+                        chunk.chunk_data.clone(),
+                        Box::new(Array(neighbors)),
                     ));
 
                     commands
@@ -831,7 +834,7 @@ pub fn process_queue(
         .get(&loadable_assets.block_atlas)
         .unwrap()
         .clone();
-    for (chunk_pos, raw_chunk) in chunk_queue.mesh.drain(..).rev() {
+    for (chunk_pos, center_chunk, neighbors) in chunk_queue.mesh.drain(..).rev() {
         let cloned_table: BlockTable = block_table.clone();
         let cloned_assets: LoadableAssets = loadable_assets.clone();
         let clone_atlas: TextureAtlas = block_atlas.clone();
@@ -839,6 +842,7 @@ pub fn process_queue(
 
         task_pool
             .spawn(async move {
+                let raw_chunk = ChunkBoundary::new(center_chunk, neighbors);
                 cloned_sender
                     .send(full_mesh(
                         &raw_chunk,
