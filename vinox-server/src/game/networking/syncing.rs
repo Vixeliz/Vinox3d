@@ -1,5 +1,6 @@
 use std::io::Cursor;
 
+use rand::seq::SliceRandom;
 use rustc_data_structures::stable_set::FxHashSet;
 
 use bevy::prelude::*;
@@ -191,6 +192,7 @@ pub fn send_chunks(
     mut players: Query<(&Transform, &mut SentChunks), With<Player>>,
     mut chunk_manager: ChunkManager,
 ) {
+    let mut rng = rand::thread_rng();
     let endpoint = server.endpoint_mut();
     for client_id in endpoint.clients() {
         if let Some(player_entity) = lobby.players.get(&client_id) {
@@ -198,7 +200,10 @@ pub fn send_chunks(
                 let chunk_pos = world_to_chunk(player_transform.translation);
                 let load_point = LoadPoint(chunk_pos);
                 commands.entity(*player_entity).insert(load_point.clone());
-                for chunk in chunk_manager.get_chunks_around_chunk(chunk_pos, &sent_chunks) {
+                for chunk in chunk_manager
+                    .get_chunks_around_chunk(chunk_pos, &sent_chunks)
+                    .choose_multiple(&mut rng, 64)
+                {
                     let raw_chunk = chunk.chunk_data.clone();
                     if let Ok(raw_chunk_bin) = bincode::serialize(&raw_chunk) {
                         let mut final_chunk = Cursor::new(raw_chunk_bin);
