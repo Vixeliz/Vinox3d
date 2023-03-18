@@ -78,11 +78,13 @@ pub fn status_bar(
         });
 }
 
+#[derive(Resource, Default, Clone, Debug, Deref, DerefMut)]
+pub struct CurrentItemsHeld(pub Vec<(ItemData, String, usize, usize)>);
+
 pub fn inventory(
     mut player_query: Query<&mut Inventory, With<ControlledPlayer>>,
     mut contexts: EguiContexts,
     options: Res<GameOptions>,
-    mut current_held_items: Local<Vec<(ItemData, String, usize, usize)>>, // Item Data is the amount we are taking from that position. String is slots vs hotbar, first usize is the row index second one is item index
 ) {
     if !options.dark_theme {
         catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
