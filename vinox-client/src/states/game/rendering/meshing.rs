@@ -751,16 +751,21 @@ pub fn build_mesh(
             return;
         }
         // for chunk in chunks.iter().choose_multiple(&mut rng, 256) {
-        if let Some(neighbors) = chunk_manager.get_neighbors(chunk.pos.clone()) {
-            if let Ok(neighbors) = neighbors.try_into() {
-                chunk_queue.mesh.push((
-                    *chunk.pos,
-                    ChunkBoundary::new(chunk.chunk_data.clone(), Box::new(Array(neighbors))),
-                ));
+        if chunk_manager
+            .current_chunks
+            .all_neighbors_exist(chunk.pos.clone())
+        {
+            if let Some(neighbors) = chunk_manager.get_neighbors(chunk.pos.clone()) {
+                if let Ok(neighbors) = neighbors.try_into() {
+                    chunk_queue.mesh.push((
+                        *chunk.pos,
+                        ChunkBoundary::new(chunk.chunk_data.clone(), Box::new(Array(neighbors))),
+                    ));
 
-                commands
-                    .entity(chunk_manager.current_chunks.get_entity(*chunk.pos).unwrap())
-                    .remove::<NeedsMesh>();
+                    commands
+                        .entity(chunk_manager.current_chunks.get_entity(*chunk.pos).unwrap())
+                        .remove::<NeedsMesh>();
+                }
             }
         }
     }
