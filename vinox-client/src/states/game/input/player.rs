@@ -236,22 +236,42 @@ pub fn interact(
         for ev in scroll_evr.iter() {
             match ev.unit {
                 MouseScrollUnit::Line => {
-                    println!(
-                        "Scroll (line units): vertical: {}, horizontal: {}",
-                        ev.y, ev.x
-                    );
-                    let change = ev.y.abs() as usize;
-                    if *norm_item < 9 {
-                        *norm_item += change;
-                    } else {
-                        *norm_item = 0;
+                    if (ev.y * 10.0) < -1.0 {
+                        if *norm_item < 9 {
+                            *norm_item += 1;
+                        } else {
+                            *norm_item = 0;
+                        }
+                    } else if (ev.y * 10.0) > 1.0 {
+                        if *norm_item > 0 {
+                            *norm_item -= 1;
+                        } else {
+                            *norm_item = 8;
+                        }
+                    }
+                    if let Some((cur_bar, cur_item)) = norm_to_bar(*norm_item) {
+                        *inventory.current_bar = cur_bar;
+                        *inventory.current_item = cur_item;
                     }
                 }
                 MouseScrollUnit::Pixel => {
-                    println!(
-                        "Scroll (pixel units): vertical: {}, horizontal: {}",
-                        ev.y, ev.x
-                    );
+                    if (ev.y * 10.0) < -1.0 {
+                        if *norm_item < 9 {
+                            *norm_item += 1;
+                        } else {
+                            *norm_item = 0;
+                        }
+                    } else if (ev.y * 10.0) > 1.0 {
+                        if *norm_item > 0 {
+                            *norm_item -= 1;
+                        } else {
+                            *norm_item = 8;
+                        }
+                    }
+                    if let Some((cur_bar, cur_item)) = norm_to_bar(*norm_item) {
+                        *inventory.current_bar = cur_bar;
+                        *inventory.current_item = cur_item;
+                    }
                 }
             }
         }
