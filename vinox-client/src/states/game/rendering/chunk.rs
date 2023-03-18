@@ -1,12 +1,11 @@
-use bevy::prelude::{info_span, warn, UVec3};
+use bevy::prelude::UVec3;
 use bimap::BiMap;
 use itertools::*;
 use serde_big_array::Array;
 use vinox_common::{
     storage::blocks::descriptor::BlockDescriptor,
     world::chunks::storage::{
-        BlockData, BlockTable, Chunk, Direction, GrowthState, RawChunk, RenderedBlockData,
-        VoxelType, VoxelVisibility, CHUNK_SIZE,
+        BlockTable, Chunk, RawChunk, RenderedBlockData, VoxelType, VoxelVisibility, CHUNK_SIZE,
     },
 };
 
@@ -142,10 +141,7 @@ impl ChunkBoundary {
         let block_state = self
             .get_state_for_index(self.voxels[index] as usize)
             .unwrap();
-        block_table
-            .get(&block_state.identifier.clone())
-            .unwrap()
-            .clone()
+        block_table.get(&block_state.identifier).unwrap().clone()
     }
 
     pub fn get_index_for_state(&self, block_data: &RenderedBlockData) -> Option<u16> {

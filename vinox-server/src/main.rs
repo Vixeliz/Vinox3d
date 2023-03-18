@@ -113,7 +113,7 @@ pub fn save_world_info(world_info: WorldInfo, path: PathBuf) {
         let s = to_string_pretty(&world_info, pretty).ok().unwrap();
         write!(output, "{s}").ok();
     } else {
-        println!("Failed to save world at path {:?}!", path);
+        println!("Failed to save world at path {path:?}!");
     }
 }
 
