@@ -14,6 +14,11 @@ pub struct CurrentBar(pub usize);
 
 #[derive(Default, Deref, DerefMut, Serialize, Deserialize, Debug, Clone)]
 pub struct CurrentItem(pub usize);
+#[derive(Default, Deref, DerefMut, Serialize, Deserialize, Debug, Clone)]
+pub struct CurrentInvBar(pub usize);
+
+#[derive(Default, Deref, DerefMut, Serialize, Deserialize, Debug, Clone)]
+pub struct CurrentInvItem(pub usize);
 
 #[derive(Component, Default, Serialize, Deserialize, Clone, Debug)]
 pub struct Inventory {
@@ -22,6 +27,9 @@ pub struct Inventory {
     pub slots: [[Option<ItemData>; 9]; 5],
     pub current_bar: CurrentBar,
     pub current_item: CurrentItem,
+    pub current_inv_bar: CurrentInvBar,
+    pub current_inv_item: CurrentInvItem,
+    pub open: bool,
 }
 
 impl Inventory {

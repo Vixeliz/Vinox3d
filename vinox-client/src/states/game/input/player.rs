@@ -208,7 +208,7 @@ fn norm_to_bar(item: usize) -> Option<(usize, usize)> {
 #[allow(clippy::type_complexity)]
 pub fn interact(
     mut commands: Commands,
-    windows: Query<&mut Window, With<PrimaryWindow>>,
+    mut windows: Query<&mut Window, With<PrimaryWindow>>,
     camera_query: Query<&GlobalTransform, With<Camera>>,
     mut client: ResMut<Client>,
     mut player: Query<
@@ -228,8 +228,9 @@ pub fn interact(
     mut scroll_evr: EventReader<MouseWheel>,
     keys: Res<Input<KeyCode>>,
     options: Res<GameOptions>,
+    mut in_ui: ResMut<InUi>,
 ) {
-    let window = windows.single();
+    let mut window = windows.single_mut();
     if window.cursor.grab_mode != CursorGrabMode::Locked {
         return;
     }
@@ -781,6 +782,7 @@ pub fn collision_movement_system(
 }
 
 pub fn cursor_grab_system(
+    mut inventory: Query<(&mut Inventory, &ActionState<GameActions>), With<ControlledPlayer>>,
     mut windows: Query<&mut Window, With<PrimaryWindow>>,
     mut in_ui: ResMut<InUi>,
     mut is_open: ResMut<ConsoleOpen>,
@@ -788,30 +790,46 @@ pub fn cursor_grab_system(
     key: Res<Input<KeyCode>>,
 ) {
     let mut window = windows.single_mut();
+    if let Ok((mut inventory, action_state)) = inventory.get_single_mut() {
+        if action_state.just_pressed(GameActions::Inventory) && !**in_ui {
+            let window_center: Option<Vec2> =
+                Some(Vec2::new(window.width() / 2.0, window.height() / 2.0));
+            window.set_cursor_position(window_center);
+            if window.cursor.grab_mode == CursorGrabMode::None {
+                window.cursor.grab_mode = CursorGrabMode::Locked;
+                window.cursor.visible = false;
+            } else {
+                window.cursor.grab_mode = CursorGrabMode::None;
+                window.cursor.visible = true;
+            }
+            inventory.open = !inventory.open;
+            **in_ui = !**in_ui;
+        }
 
-    if btn.just_pressed(MouseButton::Left) && !in_ui.0 {
-        window.cursor.grab_mode = CursorGrabMode::Locked;
-        window.cursor.visible = false;
-        let window_center: Option<Vec2> =
-            Some(Vec2::new(window.width() / 2.0, window.height() / 2.0));
-        window.set_cursor_position(window_center);
-    }
-
-    if key.just_pressed(KeyCode::Escape) {
-        let window_center: Option<Vec2> =
-            Some(Vec2::new(window.width() / 2.0, window.height() / 2.0));
-        window.set_cursor_position(window_center);
-        if window.cursor.grab_mode == CursorGrabMode::None {
+        if btn.just_pressed(MouseButton::Left) && !in_ui.0 {
             window.cursor.grab_mode = CursorGrabMode::Locked;
             window.cursor.visible = false;
-        } else {
-            window.cursor.grab_mode = CursorGrabMode::None;
-            window.cursor.visible = true;
-        }
-        if **in_ui {
             **is_open = false;
+            inventory.open = false;
         }
-        **in_ui = !**in_ui;
+
+        if key.just_pressed(KeyCode::Escape) {
+            if window.cursor.grab_mode == CursorGrabMode::None {
+                window.cursor.grab_mode = CursorGrabMode::Locked;
+                window.cursor.visible = false;
+            } else {
+                let window_center: Option<Vec2> =
+                    Some(Vec2::new(window.width() / 2.0, window.height() / 2.0));
+                window.set_cursor_position(window_center);
+                window.cursor.grab_mode = CursorGrabMode::None;
+                window.cursor.visible = true;
+            }
+            if **in_ui {
+                **is_open = false;
+                inventory.open = false;
+            }
+            **in_ui = !**in_ui;
+        }
     }
 }
 

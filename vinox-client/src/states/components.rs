@@ -38,6 +38,7 @@ pub enum GameActions {
     PrimaryInteract,
     SecondaryInteract,
     Run,
+    Inventory,
 }
 
 #[derive(Resource, Clone, Debug, Serialize, Deserialize)]
@@ -57,6 +58,7 @@ impl Default for GameOptions {
             (KeyCode::D, GameActions::Right),
             (KeyCode::A, GameActions::Left),
             (KeyCode::T, GameActions::Chat),
+            (KeyCode::E, GameActions::Inventory),
             (KeyCode::Space, GameActions::Jump),
             (KeyCode::LShift, GameActions::Run),
         ]);
@@ -69,7 +71,7 @@ impl Default for GameOptions {
             fov: 70.0,
             dark_theme: true,
             user_name: "User".to_string(),
-            standard_bar: false,
+            standard_bar: true,
         }
     }
 }

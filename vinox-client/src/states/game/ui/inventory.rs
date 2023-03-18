@@ -75,4 +75,66 @@ pub fn status_bar(
         });
 }
 
-pub fn inventory() {}
+pub fn inventory(
+    player_query: Query<&Inventory, With<ControlledPlayer>>,
+    mut contexts: EguiContexts,
+    options: Res<GameOptions>,
+    // mut texture_ids: Local<[Option<egui::TextureId>; 9]>,
+) {
+    if !options.dark_theme {
+        catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
+    }
+    if let Ok(inventory) = player_query.get_single() {
+        if inventory.open {
+            egui::Window::new("inventory").show(contexts.ctx_mut(), |ui| {
+                ui.with_layout(egui::Layout::bottom_up(egui::Align::Center), |ui| {
+                    ui.ctx().set_style(egui::Style {
+                        text_styles: {
+                            let mut texts = BTreeMap::new();
+                            texts.insert(egui::style::TextStyle::Small, FontId::proportional(18.0));
+                            texts.insert(egui::style::TextStyle::Body, FontId::proportional(18.0));
+                            texts.insert(
+                                egui::style::TextStyle::Heading,
+                                FontId::proportional(20.0),
+                            );
+                            texts
+                                .insert(egui::style::TextStyle::Monospace, FontId::monospace(18.0));
+                            texts
+                                .insert(egui::style::TextStyle::Button, FontId::proportional(18.0));
+                            texts
+                        },
+                        ..Default::default()
+                    });
+                    for (row_num, row_section) in inventory.slots.iter().cloned().enumerate() {
+                        ui.separator();
+                        ui.horizontal(|ui| {
+                            for (item_num, item) in row_section.iter().clone().enumerate() {
+                                let color = if *inventory.current_inv_item == item_num
+                                    && *inventory.current_inv_bar == row_num
+                                {
+                                    Color32::WHITE
+                                } else {
+                                    ui.style().visuals.window_fill
+                                };
+
+                                egui::Frame::none()
+                                    .fill(color)
+                                    .outer_margin(2.0)
+                                    .show(ui, |ui| {
+                                        ui.separator();
+                                        if let Some(item) = item {
+                                            ui.label(format!("{}: {}", item.name, item.stack_size));
+                                        } else {
+                                            ui.label("None");
+                                        }
+                                        ui.separator();
+                                    });
+                            }
+                        });
+                        ui.separator();
+                    }
+                });
+            });
+        }
+    }
+}
