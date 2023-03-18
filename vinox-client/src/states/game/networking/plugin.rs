@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_renet::renet::RenetClient;
 use vinox_common::networking::protocol::EntityBuffer;
 
 use crate::states::components::GameState;
@@ -18,8 +19,9 @@ impl Plugin for NetworkingPlugin {
             .insert_resource(ChatMessages::default())
             .add_system(
                 client_send_naive_position
+                    .in_set(OnUpdate(GameState::Game))
                     .in_schedule(CoreSchedule::FixedUpdate)
-                    .in_set(OnUpdate(GameState::Game)),
+                    .run_if(resource_exists::<RenetClient>()),
             )
             .add_systems(
                 (get_messages, lerp_new_location, get_id).in_set(OnUpdate(GameState::Game)),

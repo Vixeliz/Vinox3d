@@ -2,7 +2,7 @@ mod game;
 use bevy::{
     app::ScheduleRunnerSettings, diagnostic::DiagnosticsPlugin, log::LogPlugin, prelude::*,
 };
-use bevy_renet::RenetClientPlugin;
+use bevy_renet::{RenetClientPlugin, RenetServerPlugin};
 use directories::*;
 use game::{
     plugin::GamePlugin,
@@ -89,13 +89,13 @@ fn main() {
         .insert_resource(ScheduleRunnerSettings::run_loop(Duration::from_secs_f64(
             1.0 / 60.0,
         )))
+        .add_plugin(RenetServerPlugin::default())
         .insert_resource(final_world_info)
         .insert_resource(WorldDatabase { connection: pool })
         .insert_resource(NetworkIP(ip))
         .add_plugins(MinimalPlugins)
         .add_plugin(DiagnosticsPlugin)
         .add_plugin(LogPlugin::default())
-        .add_plugin(RenetClientPlugin::default())
         .add_plugin(GamePlugin)
         .run();
 }
