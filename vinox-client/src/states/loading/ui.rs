@@ -1,5 +1,5 @@
-use bevy::{asset::LoadState, math::Vec3A, prelude::*, render::primitives::Aabb};
-use bevy_renet::renet::{ClientAuthentication, RenetClient};
+use bevy::{app::AppExit, asset::LoadState, math::Vec3A, prelude::*, render::primitives::Aabb};
+use bevy_renet::renet::{ClientAuthentication, RenetClient, RenetError};
 use std::{net::UdpSocket, time::SystemTime};
 use vinox_common::{
     ecs::bundles::PlayerBundleBuilder,
@@ -17,7 +17,7 @@ pub struct AssetsLoading(pub Vec<HandleUntyped>);
 // To achieve this we will just have the client start up a server. But for now I am just going to use a dedicated one for testing
 pub fn new_client(mut commands: Commands, ip_res: Res<NetworkIP>) {
     let server_addr = (ip_res.clone() + ":25565").parse().unwrap();
-    let socket = UdpSocket::bind("127.0.0.1:0").unwrap();
+    let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
     let connection_config = client_connection_config();
     let current_time = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
@@ -33,6 +33,24 @@ pub fn new_client(mut commands: Commands, ip_res: Res<NetworkIP>) {
     commands.insert_resource(
         RenetClient::new(current_time, socket, connection_config, authentication).unwrap(),
     );
+}
+
+pub fn panic_on_error_system(
+    mut renet_error: EventReader<RenetError>,
+    mut commands: Commands,
+    _client: ResMut<RenetClient>,
+) {
+    for _e in renet_error.iter() {
+        commands.remove_resource::<RenetClient>();
+        commands.insert_resource(NextState(Some(GameState::Menu)));
+    }
+}
+
+// Move to game state
+pub fn disconnect_on_exit(exit: EventReader<AppExit>, mut client: ResMut<RenetClient>) {
+    if !exit.is_empty() && client.is_connected() {
+        client.disconnect();
+    }
 }
 
 #[allow(clippy::too_many_arguments)]
