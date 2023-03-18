@@ -51,7 +51,6 @@ pub fn get_id(
     }
 }
 
-//TODO: Refactor this is a lot in one function
 #[allow(clippy::clone_on_copy)]
 #[allow(clippy::too_many_arguments)]
 pub fn get_messages(

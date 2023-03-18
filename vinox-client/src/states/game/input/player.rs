@@ -352,7 +352,6 @@ pub fn interact(
                                     || (point.y <= player_transform.translation.y - 1.0
                                         || point.y >= player_transform.translation.y + 1.0)
                                 {
-                                    // TODO: Get neighboring chunk when needed instead of just disregarding
                                     let (chunk_pos, voxel_pos) =
                                         world_to_voxel(relative_voxel_to_world(
                                             voxel_pos.as_ivec3() + normal.as_ivec3(),
@@ -371,7 +370,7 @@ pub fn interact(
                                                 ClientMessage::SentBlock {
                                                     chunk_pos,
                                                     voxel_pos: [
-                                                        voxel_pos.x as u8, // TODO: use normal and make sure to get neighbor chunk if needed
+                                                        voxel_pos.x as u8,
                                                         voxel_pos.y as u8,
                                                         voxel_pos.z as u8,
                                                     ],

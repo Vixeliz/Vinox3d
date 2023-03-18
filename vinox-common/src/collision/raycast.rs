@@ -58,7 +58,6 @@ pub fn raycast_world(
                     != VoxelVisibility::Empty
                 {
                     let toi = lastmax * direction.length();
-                    // TODO: Get time of impact
                     return Some((chunk_pos, voxel_pos, face, toi));
                 }
             }

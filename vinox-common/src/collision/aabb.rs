@@ -19,7 +19,6 @@
 //     current_chunks: &CurrentChunks,
 //     block_table: &BlockTable,
 // ) -> Option<Vec<(f32, Vec3)>> {
-//     // TODO: Get neighboring chunks
 //     let mut collisions = Vec::new();
 //     if let Some(chunk_entity) = current_chunks.get_entity(world_to_chunk(position)) {
 //         if let Ok(chunk) = chunks.get(chunk_entity) {

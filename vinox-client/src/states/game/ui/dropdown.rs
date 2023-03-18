@@ -100,7 +100,6 @@ pub fn create_ui(
                         .auto_shrink([false; 2])
                         .max_width(2000.0)
                         .show(ui, |ui| {
-                            //TODO: replace with real chat messages
                             for (username, message) in messages.iter() {
                                 ui.label(format!("{username}: {message}"));
                             }
