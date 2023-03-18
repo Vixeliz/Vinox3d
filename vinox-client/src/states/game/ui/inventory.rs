@@ -5,7 +5,10 @@ use bevy_egui::{
     egui::{Color32, FontId, Sense},
     *,
 };
-use vinox_common::ecs::bundles::{CurrentInvBar, CurrentInvItem, Inventory};
+use vinox_common::{
+    ecs::bundles::{CurrentInvBar, CurrentInvItem, Inventory},
+    storage::items::descriptor::ItemData,
+};
 
 use crate::states::{components::GameOptions, game::world::chunks::ControlledPlayer};
 
@@ -79,7 +82,7 @@ pub fn inventory(
     mut player_query: Query<&mut Inventory, With<ControlledPlayer>>,
     mut contexts: EguiContexts,
     options: Res<GameOptions>,
-    // mut texture_ids: Local<[Option<egui::TextureId>; 9]>,
+    mut current_held_items: Local<Vec<(ItemData, String, usize, usize)>>, // Item Data is the amount we are taking from that position. String is slots vs hotbar, first usize is the row index second one is item index
 ) {
     if !options.dark_theme {
         catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
