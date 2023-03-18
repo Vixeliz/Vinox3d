@@ -13,7 +13,7 @@ use bevy::{
 };
 use bevy_tweening::{lens::TransformPositionLens, *};
 use itertools::Itertools;
-use rand::seq::IteratorRandom;
+// use rand::seq::IteratorRandom;
 use serde_big_array::Array;
 use std::{ops::Deref, time::Duration};
 use tokio::sync::mpsc::{Receiver, Sender};
@@ -740,14 +740,16 @@ pub fn build_mesh(
     player_chunk: Res<PlayerChunk>,
 ) {
     // let mut rng = rand::thread_rng();
-    let mut count = 0;
-    for chunk in chunks.iter().sorted_unstable_by_key(|key| {
-        FloatOrd(key.pos.as_vec3().distance(player_chunk.chunk_pos.as_vec3()))
-    }) {
+    for (count, chunk) in chunks
+        .iter()
+        .sorted_unstable_by_key(|key| {
+            FloatOrd(key.pos.as_vec3().distance(player_chunk.chunk_pos.as_vec3()))
+        })
+        .enumerate()
+    {
         if count > 256 {
             return;
         }
-        count += 1;
         // for chunk in chunks.iter().choose_multiple(&mut rng, 256) {
         if let Some(neighbors) = chunk_manager.get_neighbors(chunk.pos.clone()) {
             if let Ok(neighbors) = neighbors.try_into() {

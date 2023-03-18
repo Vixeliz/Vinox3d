@@ -16,7 +16,7 @@ use bevy_tweening::{
 use leafwing_input_manager::prelude::*;
 use std::{io::Cursor, time::Duration};
 use vinox_common::{
-    ecs::bundles::{Inventory, PlayerBundleBuilder},
+    ecs::bundles::PlayerBundleBuilder,
     networking::protocol::{ClientMessage, EntityBuffer, ServerMessage},
     world::chunks::storage::RawChunk,
 };
@@ -116,7 +116,7 @@ pub fn get_messages(
                                 action_state: ActionState::default(),
                                 input_map: options.input.clone(),
                             })
-                            .insert(inventory);
+                            .insert(*inventory);
                     } else {
                         if init {
                             toast
@@ -134,7 +134,7 @@ pub fn get_messages(
                                 Transform::from_translation(translation)
                                     .with_rotation(Quat::from_euler(EulerRot::XYZ, 0.0, yaw, 0.0)),
                             )
-                            .insert(inventory);
+                            .insert(*inventory);
                     }
 
                     let player_info = PlayerInfo {

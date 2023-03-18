@@ -69,7 +69,7 @@ pub fn get_messages(
                                 head_pitch: transform.rotation.to_euler(EulerRot::XYZ).0,
                                 user_name: (*client_name).clone(),
                                 init: false,
-                                inventory: Inventory::default(), // TODO: Load from database
+                                inventory: Box::<Inventory>::default(), // TODO: Load from database
                             },
                         );
                     }
@@ -98,7 +98,7 @@ pub fn get_messages(
                         head_pitch: transform.rotation.to_euler(EulerRot::XYZ).0,
                         user_name,
                         init: true,
-                        inventory: Inventory::default(),
+                        inventory: Box::<Inventory>::default(),
                     });
                 }
                 ClientMessage::Leave { id } => {

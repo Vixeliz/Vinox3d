@@ -300,8 +300,8 @@ pub fn interact(
                 *temp_bar = Some(2);
             }
         }
-        let cur_item = inventory.clone().current_item.clone();
-        let cur_bar = inventory.clone().current_bar.clone();
+        let cur_item = inventory.clone().current_item;
+        let cur_bar = inventory.clone().current_bar;
         let item_data = inventory.clone().hotbar[*cur_bar][*cur_item].clone();
         let place_item = if let Some(item) = item_data.clone() {
             Some(BlockData::new(item.namespace, item.name))

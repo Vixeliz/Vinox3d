@@ -77,7 +77,7 @@ pub enum ServerMessage {
         head_pitch: f32,
         user_name: String,
         init: bool,
-        inventory: Inventory,
+        inventory: Box<Inventory>,
     },
     PlayerRemove {
         id: ClientId,
