@@ -21,16 +21,16 @@ pub fn setup_loadables(mut block_table: ResMut<BlockTable>, mut item_table: ResM
     }
 }
 
-pub fn new_server(mut server: ResMut<Server>) {
-    server
-        .start_endpoint(
-            ServerConfiguration::from_ip(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 25565),
-            certificate::CertificateRetrievalMode::GenerateSelfSigned {
-                server_hostname: "vinox".to_string(), //TODO: Change to computer hostname
-            },
-        )
+pub fn new_server(mut commands: Commands, mut server: ResMut<Server>) {
+    let server_addr = ("0.0.0.0" + ":25565").parse().unwrap();
+    let socket = UdpSocket::bind(server_addr).unwrap();
+    let connection_config = server_connection_config();
+    let server_config =
+        ServerConfig::new(8, PROTOCOL_ID, server_addr, ServerAuthentication::Unsecure);
+    let current_time = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap();
-    server
-        .endpoint_mut()
-        .set_default_channel(bevy_quinnet::shared::channel::ChannelId::UnorderedReliable);
+    commands.insert_resource(
+        RenetServer::new(current_time, server_config, connection_config, socket).unwrap(),
+    );
 }

@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 bevy.workspace=true
-bevy_quinnet.workspace=true
+bevy_renet.workspace=true
 bimap.workspace=true
 ron.workspace = true
 directories.workspace = true

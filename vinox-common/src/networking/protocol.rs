@@ -1,5 +1,9 @@
+use std::time::Duration;
+
 use bevy::prelude::*;
-use bevy_quinnet::shared::ClientId;
+use bevy_renet::renet::{
+    ChannelConfig, ReliableChannelConfig, RenetConnectionConfig, UnreliableChannelConfig,
+};
 
 #[derive(Resource, Deref, DerefMut)]
 pub struct NetworkIP(pub String);
@@ -13,7 +17,20 @@ pub struct NetworkedEntity;
 
 #[derive(Debug, Component, Default)]
 pub struct Player {
-    pub id: ClientId,
+    pub id: u64,
+}
+
+pub enum ClientChannel {
+    Syncs,
+    Messages,
+    Orders,
+}
+
+pub enum ServerChannel {
+    Messages,
+    Syncs,
+    Orders,
+    Level,
 }
 
 // Networking related
@@ -31,12 +48,27 @@ pub struct EntityBuffer {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub enum ClientMessage {
+pub enum ClientSync {
     Position {
         player_pos: Vec3,
         yaw: f32,
         head_pitch: f32,
     },
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum ClientOrdered {
+    ChatMessage { message: String },
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct LevelData {
+    chunk_data: Vec<u8>,
+    pos: IVec3,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum ClientMessage {
     Interact {
         entity: Entity,
         attack: bool,
@@ -49,29 +81,33 @@ pub enum ClientMessage {
     },
     Join {
         user_name: String, //TODO: Make sure client doesn't send same user_name as another. Also add some sort of password system
-        id: ClientId,
     },
     Leave {
-        id: ClientId,
-    },
-    ChatMessage {
-        message: String,
+        id: u64,
     },
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub enum ServerMessage {
+pub enum ServerOrdered {
     ChatMessage {
         user_name: String,
         message: String,
         id: u64,
     },
-    ClientId {
-        id: ClientId,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum ServerSync {
+    NetworkedEntities {
+        networked_entities: NetworkedEntities,
     },
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum ServerMessage {
     PlayerCreate {
         entity: Entity,
-        id: ClientId,
+        id: u64,
         translation: Vec3,
         yaw: f32,
         head_pitch: f32,
@@ -80,18 +116,105 @@ pub enum ServerMessage {
         inventory: Box<Inventory>,
     },
     PlayerRemove {
-        id: ClientId,
+        id: u64,
     },
     SentBlock {
         chunk_pos: IVec3,
         voxel_pos: [u8; 3],
         block_type: BlockData,
     },
-    NetworkedEntities {
-        networked_entities: NetworkedEntities,
-    },
-    LevelData {
-        chunk_data: Vec<u8>,
-        pos: IVec3,
-    },
+}
+
+impl From<ClientChannel> for u8 {
+    fn from(channel_id: ClientChannel) -> Self {
+        match channel_id {
+            ClientChannel::Messages => 0,
+            ClientChannel::Syncs => 1,
+            ClientChannel::Orders => 2,
+        }
+    }
+}
+
+impl ClientChannel {
+    pub fn channels_config() -> Vec<ChannelConfig> {
+        vec![
+            ReliableChannelConfig {
+                channel_id: Self::Messages.into(),
+                message_resend_time: Duration::ZERO,
+                ..Default::default()
+            }
+            .into(),
+            UnreliableChannelConfig {
+                channel_id: Self::Syncs.into(),
+                ..Default::default()
+            }
+            .into(),
+            ReliableChannelConfig {
+                channel_id: Self::Messages.into(),
+                message_resend_time: Duration::ZERO,
+                ordered: true,
+                ..Default::default()
+            }
+            .into(),
+        ]
+    }
+}
+
+impl From<ServerChannel> for u8 {
+    fn from(channel_id: ServerChannel) -> Self {
+        match channel_id {
+            ServerChannel::Messages => 0,
+            ServerChannel::Syncs => 1,
+            ServerChannel::Orders => 2,
+            ServerChannel::Level => 3,
+        }
+    }
+}
+
+impl ServerChannel {
+    pub fn channels_config() -> Vec<ChannelConfig> {
+        vec![
+            ReliableChannelConfig {
+                channel_id: Self::Messages.into(),
+                message_resend_time: Duration::from_millis(200),
+                ..Default::default()
+            }
+            .into(),
+            UnreliableChannelConfig {
+                channel_id: Self::Syncs.into(),
+                sequenced: true, // We don't care about old positions
+                ..Default::default()
+            }
+            .into(),
+            ReliableChannelConfig {
+                channel_id: Self::Orders.into(),
+                message_resend_time: Duration::from_millis(200),
+                ordered: true,
+                ..Default::default()
+            }
+            .into(),
+            ReliableChannelConfig {
+                channel_id: Self::Level.into(),
+                message_resend_time: Duration::ZERO,
+                ..Default::default()
+            }
+            .into(),
+        ]
+    }
+}
+
+pub fn client_connection_config() -> RenetConnectionConfig {
+    RenetConnectionConfig {
+        send_channels_config: ClientChannel::channels_config(),
+        receive_channels_config: ServerChannel::channels_config(),
+        ..Default::default()
+    }
+}
+
+pub fn server_connection_config() -> RenetConnectionConfig {
+    RenetConnectionConfig {
+        send_channels_config: ServerChannel::channels_config(),
+        receive_channels_config: ClientChannel::channels_config(),
+        ..Default::default()
+    }
 }

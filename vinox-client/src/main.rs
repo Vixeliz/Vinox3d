@@ -4,7 +4,6 @@ use bevy::{
     prelude::*,
     window::PresentMode,
 };
-use bevy_quinnet::client::QuinnetClientPlugin;
 use bevy_tweening::TweeningPlugin;
 use directories::*;
 use fs_extra::dir::{copy, CopyOptions};
@@ -70,6 +69,7 @@ fn main() {
         // .add_plugin(FrameTimeDiagnosticsPlugin::default())
         .insert_resource(ProjectPath(asset_path))
         .insert_resource(final_options)
+        .add_plugin(RenetClientPlugin::default())
         .add_plugin(MaterialPlugin::<BasicMaterial>::default())
         .insert_resource(Msaa::Off)
         .add_plugin(QuinnetClientPlugin::default())

@@ -1,13 +1,11 @@
 use bevy::{asset::LoadState, math::Vec3A, prelude::*, render::primitives::Aabb};
-use bevy_quinnet::client::{
-    certificate::CertificateVerificationMode,
-    connection::{ConnectionConfiguration, ConnectionEvent},
-    Client,
+use std::{
+    net::UdpSocket,
+    time::{Duration, SystemTime},
 };
-use std::time::Duration;
 use vinox_common::{
     ecs::bundles::PlayerBundleBuilder,
-    networking::protocol::NetworkIP,
+    networking::protocol::{client_connection_config, NetworkIP},
     storage::{blocks::load::load_all_blocks, items::load::item_from_block},
     world::chunks::storage::{BlockTable, ItemTable},
 };
@@ -19,18 +17,24 @@ pub struct AssetsLoading(pub Vec<HandleUntyped>);
 
 //TODO: Right now we are building the client only as a multiplayer client. This is fine but eventually we need to have singleplayer.
 // To achieve this we will just have the client start up a server. But for now I am just going to use a dedicated one for testing
-pub fn new_client(ip_res: Res<NetworkIP>, mut client: ResMut<Client>) {
-    client
-        .open_connection(
-            ConnectionConfiguration::from_ips(
-                ip_res.clone().parse().unwrap(),
-                25565,
-                "0.0.0.0".to_string().parse().unwrap(),
-                0,
-            ),
-            CertificateVerificationMode::SkipVerification,
-        )
+pub fn new_client(mut commands: Commands, ip_res: Res<NetworkIP>) {
+    let server_addr = (**ip_res + ":25565").parse().unwrap();
+    let socket = UdpSocket::bind("127.0.0.1:0").unwrap();
+    let connection_config = client_connection_config();
+    let current_time = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap();
+    let client_id = current_time.as_millis() as u64;
+    let authentication = ClientAuthentication::Unsecure {
+        client_id,
+        protocol_id: PROTOCOL_ID,
+        server_addr,
+        user_data: None,
+    };
+
+    commands.insert_resource(
+        RenetClient::new(current_time, socket, connection_config, authentication).unwrap(),
+    );
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -41,8 +45,7 @@ pub fn switch(
     mut loadable_assets: ResMut<LoadableAssets>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
     mut textures: ResMut<Assets<Image>>,
-    mut client: ResMut<Client>,
-    mut connected_event: EventReader<ConnectionEvent>,
+    mut client: ResMut<RenetClient>,
 ) {
     match asset_server.get_group_load_state(loading.iter().map(|h| h.id())) {
         LoadState::Failed => {

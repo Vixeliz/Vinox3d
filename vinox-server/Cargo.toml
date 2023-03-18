@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 bevy.workspace=true
-bevy_quinnet.workspace=true
+bevy_renet.workspace=true
 bincode.workspace=true
 serde.workspace=true
 rusqlite.workspace=true

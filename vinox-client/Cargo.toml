@@ -8,7 +8,7 @@ default-run = "vinox-client"
 
 [dependencies]
 bevy.workspace=true
-bevy_quinnet.workspace=true
+bevy_renet.workspace=true
 bincode.workspace=true
 serde.workspace=true
 bevy_egui = "0.20.0"
