@@ -55,141 +55,139 @@ pub fn get_messages(
                 );
             }
         }
-        for client_id in server.clients_id().into_iter() {
-            while let Some(message) = server.receive_message(client_id, ClientChannel::Messages) {
-                let message: ClientMessage = bincode::deserialize(&message).unwrap();
-                match message {
-                    ClientMessage::Join { user_name } => {
-                        println!("Player {user_name} connected.");
+    }
+    for client_id in server.clients_id().into_iter() {
+        while let Some(message) = server.receive_message(client_id, ClientChannel::Messages) {
+            let message: ClientMessage = bincode::deserialize(&message).unwrap();
+            match message {
+                ClientMessage::Join { user_name } => {
+                    println!("Player {user_name} connected.");
 
-                        // Initialize other players for this new client
-                        for (entity, player, transform, client_name) in players.iter_mut() {
-                            server.send_message(
-                                client_id,
-                                ServerChannel::Messages,
-                                bincode::serialize(&ServerMessage::PlayerCreate {
-                                    id: player.id,
-                                    entity,
-                                    translation: transform.translation,
-                                    yaw: transform.rotation.to_euler(EulerRot::XYZ).1,
-                                    head_pitch: transform.rotation.to_euler(EulerRot::XYZ).0,
-                                    user_name: (*client_name).clone(),
-                                    init: false,
-                                    inventory: Box::<Inventory>::default(), // TODO: Load from database
-                                })
-                                .unwrap(),
-                            );
-                        }
-
-                        // Spawn new player
-                        let transform = Transform::from_xyz(0.0, 115.0, 0.0);
-                        let player_entity = lobby.players.get(&client_id).unwrap();
-                        commands
-                            .entity(*player_entity)
-                            .insert(player_builder.build(
-                                transform.translation,
-                                client_id,
-                                false,
-                                user_name.clone(),
-                            ))
-                            .insert(SentChunks {
-                                chunks: FxHashSet::default(),
-                            })
-                            .insert(LoadPoint(world_to_chunk(transform.translation)))
-                            .id();
-
-                        server.broadcast_message(
+                    // Initialize other players for this new client
+                    for (entity, player, transform, client_name) in players.iter_mut() {
+                        server.send_message(
+                            client_id,
                             ServerChannel::Messages,
                             bincode::serialize(&ServerMessage::PlayerCreate {
-                                id: client_id,
-                                entity: *player_entity,
+                                id: player.id,
+                                entity,
                                 translation: transform.translation,
                                 yaw: transform.rotation.to_euler(EulerRot::XYZ).1,
                                 head_pitch: transform.rotation.to_euler(EulerRot::XYZ).0,
-                                user_name,
-                                init: true,
-                                inventory: Box::<Inventory>::default(),
+                                user_name: (*client_name).clone(),
+                                init: false,
+                                inventory: Box::<Inventory>::default(), // TODO: Load from database
                             })
                             .unwrap(),
                         );
                     }
-                    ClientMessage::Leave { id } => {
-                        println!("Player {id} disconnected.");
-                        if let Some(player_entity) = lobby.players.remove(&id) {
-                            commands.entity(player_entity).despawn();
-                        }
 
-                        server.broadcast_message(
-                            ServerChannel::Messages,
-                            bincode::serialize(&ServerMessage::PlayerRemove { id }).unwrap(),
-                        );
+                    // Spawn new player
+                    let transform = Transform::from_xyz(0.0, 115.0, 0.0);
+                    let player_entity = lobby.players.get(&client_id).unwrap();
+                    commands
+                        .entity(*player_entity)
+                        .insert(player_builder.build(
+                            transform.translation,
+                            client_id,
+                            false,
+                            user_name.clone(),
+                        ))
+                        .insert(SentChunks {
+                            chunks: FxHashSet::default(),
+                        })
+                        .insert(LoadPoint(world_to_chunk(transform.translation)));
+
+                    server.broadcast_message(
+                        ServerChannel::Messages,
+                        bincode::serialize(&ServerMessage::PlayerCreate {
+                            id: client_id,
+                            entity: *player_entity,
+                            translation: transform.translation,
+                            yaw: transform.rotation.to_euler(EulerRot::XYZ).1,
+                            head_pitch: transform.rotation.to_euler(EulerRot::XYZ).0,
+                            user_name,
+                            init: true,
+                            inventory: Box::<Inventory>::default(),
+                        })
+                        .unwrap(),
+                    );
+                }
+                ClientMessage::Leave { id } => {
+                    println!("Player {id} disconnected.");
+                    if let Some(player_entity) = lobby.players.remove(&id) {
+                        commands.entity(player_entity).despawn();
                     }
 
-                    ClientMessage::SentBlock {
-                        chunk_pos,
-                        voxel_pos,
-                        block_type,
+                    server.broadcast_message(
+                        ServerChannel::Messages,
+                        bincode::serialize(&ServerMessage::PlayerRemove { id }).unwrap(),
+                    );
+                }
+
+                ClientMessage::SentBlock {
+                    chunk_pos,
+                    voxel_pos,
+                    block_type,
+                } => {
+                    if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos) {
+                        if let Ok(mut chunk) = chunks.get_mut(chunk_entity) {
+                            chunk.chunk_data.add_block_state(&block_type);
+                            chunk.chunk_data.set_block(
+                                UVec3::new(
+                                    voxel_pos[0] as u32,
+                                    voxel_pos[1] as u32,
+                                    voxel_pos[2] as u32,
+                                ),
+                                &block_type,
+                            );
+                            chunks_to_save.push((*chunk.pos, chunk.chunk_data.clone()));
+                            server.broadcast_message(
+                                ServerChannel::Messages,
+                                bincode::serialize(&ServerMessage::SentBlock {
+                                    chunk_pos,
+                                    voxel_pos,
+                                    block_type,
+                                })
+                                .unwrap(),
+                            );
+                        }
+                    }
+                }
+                _ => {}
+            }
+            while let Some(message) = server.receive_message(client_id, ClientChannel::Syncs) {
+                let message: ClientSync = bincode::deserialize(&message).unwrap();
+                match message {
+                    ClientSync::Position {
+                        player_pos,
+                        yaw,
+                        head_pitch: _,
                     } => {
-                        if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos) {
-                            if let Ok(mut chunk) = chunks.get_mut(chunk_entity) {
-                                chunk.chunk_data.add_block_state(&block_type);
-                                chunk.chunk_data.set_block(
-                                    UVec3::new(
-                                        voxel_pos[0] as u32,
-                                        voxel_pos[1] as u32,
-                                        voxel_pos[2] as u32,
-                                    ),
-                                    &block_type,
-                                );
-                                chunks_to_save.push((*chunk.pos, chunk.chunk_data.clone()));
+                        if let Some(player_entity) = lobby.players.get(&client_id) {
+                            commands.entity(*player_entity).insert(
+                                Transform::from_translation(player_pos)
+                                    .with_rotation(Quat::from_euler(EulerRot::XYZ, 0.0, yaw, 0.0)),
+                            );
+                        }
+                    }
+                }
+            }
+            while let Some(message) = server.receive_message(client_id, ClientChannel::Orders) {
+                let message: ClientOrdered = bincode::deserialize(&message).unwrap();
+                match message {
+                    ClientOrdered::ChatMessage { message } => {
+                        if let Some(player_entity) = lobby.players.get(&client_id) {
+                            if let Ok((_, _, _, username)) = players.get(*player_entity) {
                                 server.broadcast_message(
-                                    ServerChannel::Messages,
-                                    bincode::serialize(&ServerMessage::SentBlock {
-                                        chunk_pos,
-                                        voxel_pos,
-                                        block_type,
+                                    ServerChannel::Orders,
+                                    bincode::serialize(&ServerOrdered::ChatMessage {
+                                        user_name: (*username).clone(),
+                                        message,
+                                        id: client_id,
                                     })
                                     .unwrap(),
                                 );
-                            }
-                        }
-                    }
-                    _ => {}
-                }
-                while let Some(message) = server.receive_message(client_id, ClientChannel::Syncs) {
-                    let message: ClientSync = bincode::deserialize(&message).unwrap();
-                    match message {
-                        ClientSync::Position {
-                            player_pos,
-                            yaw,
-                            head_pitch: _,
-                        } => {
-                            if let Some(player_entity) = lobby.players.get(&client_id) {
-                                commands.entity(*player_entity).insert(
-                                    Transform::from_translation(player_pos).with_rotation(
-                                        Quat::from_euler(EulerRot::XYZ, 0.0, yaw, 0.0),
-                                    ),
-                                );
-                            }
-                        }
-                    }
-                }
-                while let Some(message) = server.receive_message(client_id, ClientChannel::Orders) {
-                    let message: ClientOrdered = bincode::deserialize(&message).unwrap();
-                    match message {
-                        ClientOrdered::ChatMessage { message } => {
-                            if let Some(player_entity) = lobby.players.get(&client_id) {
-                                if let Ok((_, _, _, username)) = players.get(*player_entity) {
-                                    server.broadcast_message(
-                                        ServerChannel::Orders,
-                                        bincode::serialize(&ServerOrdered::ChatMessage {
-                                            user_name: (*username).clone(),
-                                            message,
-                                            id: client_id,
-                                        })
-                                        .unwrap(),
-                                    );
-                                }
                             }
                         }
                     }

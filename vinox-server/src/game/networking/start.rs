@@ -26,8 +26,8 @@ pub fn setup_loadables(mut block_table: ResMut<BlockTable>, mut item_table: ResM
 }
 
 pub fn new_server(mut commands: Commands) {
-    let server_addr = ("0.0.0.0".to_string() + ":25565").parse().unwrap();
-    let socket = UdpSocket::bind(server_addr).unwrap();
+    let server_addr = ("127.0.0.1".to_string() + ":25565").parse().unwrap();
+    let socket = UdpSocket::bind("0.0.0.0:25565").unwrap();
     let connection_config = server_connection_config();
     let server_config =
         ServerConfig::new(8, PROTOCOL_ID, server_addr, ServerAuthentication::Unsecure);
