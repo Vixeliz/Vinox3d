@@ -1,5 +1,9 @@
 pub mod states;
-use bevy::prelude::*;
+use bevy::{
+    // diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
+    prelude::*,
+    window::PresentMode,
+};
 use bevy_quinnet::client::QuinnetClientPlugin;
 use bevy_tweening::TweeningPlugin;
 use directories::*;
@@ -52,8 +56,18 @@ fn main() {
                     asset_folder: asset_path.to_string_lossy().to_string(),
                     watch_for_changes: false,
                 })
-                .set(ImagePlugin::default_nearest()),
+                .set(ImagePlugin::default_nearest())
+                .set(WindowPlugin {
+                    primary_window: Some(Window {
+                        title: "Vinox".into(),
+                        present_mode: PresentMode::AutoVsync,
+                        ..default()
+                    }),
+                    ..default()
+                }),
         )
+        // .add_plugin(LogDiagnosticsPlugin::default())
+        // .add_plugin(FrameTimeDiagnosticsPlugin::default())
         .insert_resource(ProjectPath(asset_path))
         .insert_resource(final_options)
         .add_plugin(MaterialPlugin::<BasicMaterial>::default())
