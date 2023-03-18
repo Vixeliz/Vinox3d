@@ -2,7 +2,7 @@ use leafwing_input_manager::prelude::*;
 use std::f32::consts::{FRAC_PI_2, PI};
 
 use bevy::{
-    input::mouse::MouseMotion,
+    input::mouse::{MouseMotion, MouseScrollUnit, MouseWheel},
     prelude::*,
     render::{
         camera::CameraProjection,
@@ -196,6 +196,14 @@ pub fn movement_input(
     }
 }
 
+fn norm_to_bar(item: usize) -> Option<(usize, usize)> {
+    if item > 8 {
+        return None;
+    }
+    let f_item = item as f32;
+    Some(((f_item / 3.0).floor() as usize, item.rem_euclid(3)))
+}
+
 #[allow(clippy::too_many_arguments)]
 #[allow(clippy::type_complexity)]
 pub fn interact(
@@ -215,12 +223,63 @@ pub fn interact(
     current_chunks: Res<CurrentChunks>,
     block_table: Res<BlockTable>,
     item_table: Res<ItemTable>,
+    mut temp_bar: Local<Option<usize>>,
+    mut norm_item: Local<usize>,
+    mut scroll_evr: EventReader<MouseWheel>,
+    keys: Res<Input<KeyCode>>,
 ) {
     let window = windows.single();
     if window.cursor.grab_mode != CursorGrabMode::Locked {
         return;
     }
     if let Ok((player_transform, action_state, mut inventory)) = player.get_single_mut() {
+        for ev in scroll_evr.iter() {
+            match ev.unit {
+                MouseScrollUnit::Line => {
+                    println!(
+                        "Scroll (line units): vertical: {}, horizontal: {}",
+                        ev.y, ev.x
+                    );
+                    let change = ev.y.abs() as usize;
+                    if *norm_item < 9 {
+                        *norm_item += change;
+                    } else {
+                        *norm_item = 0;
+                    }
+                }
+                MouseScrollUnit::Pixel => {
+                    println!(
+                        "Scroll (pixel units): vertical: {}, horizontal: {}",
+                        ev.y, ev.x
+                    );
+                }
+            }
+        }
+        if keys.just_pressed(KeyCode::Key1) {
+            if temp_bar.is_some() {
+                *inventory.current_bar = temp_bar.unwrap();
+                *inventory.current_item = 0;
+                *temp_bar = None;
+            } else {
+                *temp_bar = Some(0);
+            }
+        } else if keys.just_pressed(KeyCode::Key2) {
+            if temp_bar.is_some() {
+                *inventory.current_bar = temp_bar.unwrap();
+                *inventory.current_item = 1;
+                *temp_bar = None;
+            } else {
+                *temp_bar = Some(1);
+            }
+        } else if keys.just_pressed(KeyCode::Key3) {
+            if temp_bar.is_some() {
+                *inventory.current_bar = temp_bar.unwrap();
+                *inventory.current_item = 2;
+                *temp_bar = None;
+            } else {
+                *temp_bar = Some(2);
+            }
+        }
         let cur_item = inventory.clone().current_item.clone();
         let cur_bar = inventory.clone().current_bar.clone();
         let item_data = inventory.clone().hotbar[*cur_bar][*cur_item].clone();

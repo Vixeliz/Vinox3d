@@ -77,7 +77,13 @@ fn main() {
         .test_on_check_out(false)
         .build(manager)
         .unwrap();
-    pool.get().unwrap();
+    pool.get()
+        .unwrap()
+        .execute_batch(
+            "PRAGMA journal_mode=WAL;
+             PRAGMA synchronous=NORMAL;",
+        )
+        .ok();
     create_database(&pool.get().unwrap());
     App::new()
         .insert_resource(ScheduleRunnerSettings::run_loop(Duration::from_secs_f64(
