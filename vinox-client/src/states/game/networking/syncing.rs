@@ -1,6 +1,6 @@
 use super::components::{ChatMessages, ClientData, ClientLobby, NetworkMapping, PlayerInfo};
 use crate::states::{
-    components::{GameActions, GameOptions},
+    components::{Game, GameActions, GameOptions},
     game::{
         rendering::meshing::BasicMaterial,
         ui::dropdown::Toast,
@@ -110,7 +110,8 @@ pub fn get_messages(
                             action_state: ActionState::default(),
                             input_map: options.input.clone(),
                         })
-                        .insert(*inventory);
+                        .insert(*inventory)
+                        .insert(Game);
                 } else {
                     if init {
                         toast
@@ -123,7 +124,8 @@ pub fn get_messages(
                             Transform::from_translation(translation)
                                 .with_rotation(Quat::from_euler(EulerRot::XYZ, 0.0, yaw, 0.0)),
                         )
-                        .insert(*inventory);
+                        .insert(*inventory)
+                        .insert(Game);
                 }
 
                 let player_info = PlayerInfo {
