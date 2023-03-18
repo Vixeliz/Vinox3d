@@ -212,6 +212,7 @@ pub fn client_connection_config() -> RenetConnectionConfig {
     RenetConnectionConfig {
         send_channels_config: ClientChannel::channels_config(),
         receive_channels_config: ServerChannel::channels_config(),
+        max_packet_size: RELIABLE_CHANNEL_MAX_LENGTH * 4,
         ..Default::default()
     }
 }
@@ -220,6 +221,7 @@ pub fn server_connection_config() -> RenetConnectionConfig {
     RenetConnectionConfig {
         send_channels_config: ServerChannel::channels_config(),
         receive_channels_config: ClientChannel::channels_config(),
+        max_packet_size: RELIABLE_CHANNEL_MAX_LENGTH * 4,
         ..Default::default()
     }
 }
