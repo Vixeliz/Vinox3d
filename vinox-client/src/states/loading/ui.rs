@@ -1,11 +1,9 @@
 use bevy::{asset::LoadState, math::Vec3A, prelude::*, render::primitives::Aabb};
-use std::{
-    net::UdpSocket,
-    time::{Duration, SystemTime},
-};
+use bevy_renet::renet::{ClientAuthentication, RenetClient};
+use std::{net::UdpSocket, time::SystemTime};
 use vinox_common::{
     ecs::bundles::PlayerBundleBuilder,
-    networking::protocol::{client_connection_config, NetworkIP},
+    networking::protocol::{client_connection_config, NetworkIP, PROTOCOL_ID},
     storage::{blocks::load::load_all_blocks, items::load::item_from_block},
     world::chunks::storage::{BlockTable, ItemTable},
 };
@@ -52,11 +50,7 @@ pub fn switch(
             commands.insert_resource(NextState(Some(GameState::Menu)));
         }
         LoadState::Loaded => {
-            for _ in connected_event.iter() {
-                client.connection_mut().set_default_channel(
-                    bevy_quinnet::shared::channel::ChannelId::UnorderedReliable,
-                );
-
+            if client.is_connected() {
                 let mut texture_atlas_builder = TextureAtlasBuilder::default();
                 for handle in loadable_assets.block_textures.values() {
                     for item in handle {
@@ -77,22 +71,6 @@ pub fn switch(
         _ => {
             // NotLoaded/Loading: not fully ready yet
         }
-    }
-}
-
-pub fn timeout(
-    mut commands: Commands,
-    mut timer: Local<Timer>,
-    time: Res<Time>,
-    mut client: ResMut<Client>,
-) {
-    timer.set_mode(TimerMode::Repeating);
-    timer.set_duration(Duration::from_secs_f32(5.));
-
-    timer.tick(time.delta());
-    if timer.just_finished() {
-        client.close_all_connections().ok();
-        commands.insert_resource(NextState(Some(GameState::Menu)));
     }
 }
 

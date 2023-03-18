@@ -1,8 +1,12 @@
-use std::net::{IpAddr, Ipv4Addr};
+use std::{
+    net::{IpAddr, Ipv4Addr, UdpSocket},
+    time::SystemTime,
+};
 
 use bevy::prelude::*;
-use bevy_quinnet::server::*;
+use bevy_renet::renet::{RenetServer, ServerAuthentication, ServerConfig};
 use vinox_common::{
+    networking::protocol::{server_connection_config, PROTOCOL_ID},
     storage::{blocks::load::load_all_blocks, items::load::item_from_block},
     world::chunks::storage::{BlockTable, ItemTable},
 };
@@ -21,8 +25,8 @@ pub fn setup_loadables(mut block_table: ResMut<BlockTable>, mut item_table: ResM
     }
 }
 
-pub fn new_server(mut commands: Commands, mut server: ResMut<Server>) {
-    let server_addr = ("0.0.0.0" + ":25565").parse().unwrap();
+pub fn new_server(mut commands: Commands) {
+    let server_addr = ("0.0.0.0".to_string() + ":25565").parse().unwrap();
     let socket = UdpSocket::bind(server_addr).unwrap();
     let connection_config = server_connection_config();
     let server_config =

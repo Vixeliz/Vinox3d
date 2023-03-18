@@ -12,6 +12,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{ecs::bundles::Inventory, world::chunks::storage::BlockData};
 
+pub const PROTOCOL_ID: u64 = 1;
+
 #[derive(Component)]
 pub struct NetworkedEntity;
 
