@@ -2,10 +2,10 @@ use std::collections::BTreeMap;
 
 use bevy::prelude::*;
 use bevy_egui::{
-    egui::{Color32, FontId},
+    egui::{Color32, FontId, Sense},
     *,
 };
-use vinox_common::ecs::bundles::Inventory;
+use vinox_common::ecs::bundles::{CurrentInvBar, CurrentInvItem, Inventory};
 
 use crate::states::{components::GameOptions, game::world::chunks::ControlledPlayer};
 
@@ -76,7 +76,7 @@ pub fn status_bar(
 }
 
 pub fn inventory(
-    player_query: Query<&Inventory, With<ControlledPlayer>>,
+    mut player_query: Query<&mut Inventory, With<ControlledPlayer>>,
     mut contexts: EguiContexts,
     options: Res<GameOptions>,
     // mut texture_ids: Local<[Option<egui::TextureId>; 9]>,
@@ -84,7 +84,7 @@ pub fn inventory(
     if !options.dark_theme {
         catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
     }
-    if let Ok(inventory) = player_query.get_single() {
+    if let Ok(mut inventory) = player_query.get_single_mut() {
         if inventory.open {
             egui::Window::new("inventory").show(contexts.ctx_mut(), |ui| {
                 ui.with_layout(egui::Layout::bottom_up(egui::Align::Center), |ui| {
@@ -105,7 +105,8 @@ pub fn inventory(
                         },
                         ..Default::default()
                     });
-                    for (row_num, row_section) in inventory.slots.iter().cloned().enumerate() {
+                    let cloned_inv = inventory.clone();
+                    for (row_num, row_section) in cloned_inv.slots.iter().cloned().enumerate() {
                         ui.separator();
                         ui.horizontal(|ui| {
                             for (item_num, item) in row_section.iter().clone().enumerate() {
@@ -123,9 +124,29 @@ pub fn inventory(
                                     .show(ui, |ui| {
                                         ui.separator();
                                         if let Some(item) = item {
-                                            ui.label(format!("{}: {}", item.name, item.stack_size));
+                                            if ui
+                                                .add(
+                                                    egui::Label::new(format!(
+                                                        "{}: {}",
+                                                        item.name, item.stack_size
+                                                    ))
+                                                    .sense(Sense::click()),
+                                                )
+                                                .clicked()
+                                            {
+                                                inventory.current_inv_item =
+                                                    CurrentInvItem(item_num);
+                                                inventory.current_inv_bar = CurrentInvBar(row_num);
+                                            }
                                         } else {
-                                            ui.label("None");
+                                            if ui
+                                                .add(egui::Label::new("None").sense(Sense::click()))
+                                                .clicked()
+                                            {
+                                                inventory.current_inv_item =
+                                                    CurrentInvItem(item_num);
+                                                inventory.current_inv_bar = CurrentInvBar(row_num);
+                                            }
                                         }
                                         ui.separator();
                                     });
