@@ -1,10 +1,13 @@
 use bevy::{math::Vec3A, prelude::*, render::primitives::Aabb};
 use serde::{Deserialize, Serialize};
 
-use crate::{networking::protocol::Player, storage::items::descriptor::ItemData};
+use crate::{
+    networking::protocol::Player,
+    storage::items::descriptor::{ItemData, ItemDescriptor, MAX_STACK_SIZE},
+};
 
 #[derive(Default, Deref, DerefMut, Serialize, Deserialize, Debug, Clone)]
-pub struct HotBar(pub [[ItemData; 3]; 3]);
+pub struct HotBar(pub [[Option<ItemData>; 3]; 3]);
 
 #[derive(Default, Deref, DerefMut, Serialize, Deserialize, Debug, Clone)]
 pub struct CurrentBar(pub usize);
@@ -16,9 +19,59 @@ pub struct CurrentItem(pub usize);
 pub struct Inventory {
     pub username: String,
     pub hotbar: HotBar,
-    pub slots: [[ItemData; 9]; 5],
+    pub slots: [[Option<ItemData>; 9]; 5],
     pub current_bar: CurrentBar,
     pub current_item: CurrentItem,
+}
+
+impl Inventory {
+    // String says whether int the hotbar array or slots
+    pub fn get_first_slot(&self) -> Option<(&str, usize, usize)> {
+        for (hotbar_num, hotbar_sect) in self.hotbar.iter().cloned().enumerate() {
+            for (item_num, item) in hotbar_sect.iter().cloned().enumerate() {
+                if item.is_none() {
+                    return Some(("hotbar", hotbar_num, item_num));
+                }
+            }
+        }
+
+        for (row_num, row) in self.slots.iter().cloned().enumerate() {
+            for (item_num, item) in row.iter().cloned().enumerate() {
+                if item.is_none() {
+                    return Some(("inventory", row_num, item_num));
+                }
+            }
+        }
+        None
+    }
+    pub fn get_first_item(&self, item_comp: &ItemDescriptor) -> Option<(&str, usize, usize, u32)> {
+        for (hotbar_num, hotbar_sect) in self.hotbar.iter().cloned().enumerate() {
+            for (item_num, item) in hotbar_sect.iter().cloned().enumerate() {
+                if let Some(item) = item {
+                    if item.name + &item.namespace
+                        == item_comp.clone().name + &item_comp.clone().namespace
+                        && item.stack_size < MAX_STACK_SIZE
+                    {
+                        return Some(("hotbar", hotbar_num, item_num, item.stack_size));
+                    }
+                }
+            }
+        }
+
+        for (row_num, row) in self.slots.iter().cloned().enumerate() {
+            for (item_num, item) in row.iter().cloned().enumerate() {
+                if let Some(item) = item {
+                    if item.name + &item.namespace
+                        == item_comp.clone().name + &item_comp.clone().namespace
+                        && item.stack_size < MAX_STACK_SIZE
+                    {
+                        return Some(("inventory", row_num, item_num, item.stack_size));
+                    }
+                }
+            }
+        }
+        None
+    }
 }
 
 #[derive(Component, Default, Deref, DerefMut)]

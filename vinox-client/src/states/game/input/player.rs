@@ -15,10 +15,11 @@ use vinox_common::{
     collision::raycast::raycast_world,
     ecs::bundles::Inventory,
     networking::protocol::ClientMessage,
+    storage::items::descriptor::ItemData,
     world::chunks::{
         ecs::{ChunkComp, CurrentChunks},
         positions::{relative_voxel_to_world, voxel_to_world, world_to_chunk, world_to_voxel},
-        storage::{BlockData, BlockTable, CHUNK_SIZE_ARR},
+        storage::{BlockData, BlockTable, ItemTable, CHUNK_SIZE_ARR},
     },
 };
 
@@ -202,7 +203,10 @@ pub fn interact(
     windows: Query<&mut Window, With<PrimaryWindow>>,
     camera_query: Query<&GlobalTransform, With<Camera>>,
     mut client: ResMut<Client>,
-    player: Query<(&Transform, &ActionState<GameActions>, &Inventory), With<ControlledPlayer>>,
+    mut player: Query<
+        (&Transform, &ActionState<GameActions>, &mut Inventory),
+        With<ControlledPlayer>,
+    >,
     mut cube_position: Query<
         (&mut Transform, &mut Visibility),
         (With<HighLightCube>, Without<ControlledPlayer>),
@@ -210,13 +214,21 @@ pub fn interact(
     mut chunks: Query<&mut ChunkComp>,
     current_chunks: Res<CurrentChunks>,
     block_table: Res<BlockTable>,
+    item_table: Res<ItemTable>,
 ) {
     let window = windows.single();
     if window.cursor.grab_mode != CursorGrabMode::Locked {
         return;
     }
-    if let Ok((player_transform, action_state, inventory)) = player.get_single() {
-        let item = BlockData::new("vinox".to_string(), "cobblestone".to_string());
+    if let Ok((player_transform, action_state, mut inventory)) = player.get_single_mut() {
+        let cur_item = inventory.clone().current_item.clone();
+        let cur_bar = inventory.clone().current_bar.clone();
+        let item_data = inventory.clone().hotbar[*cur_bar][*cur_item].clone();
+        let place_item = if let Some(item) = item_data.clone() {
+            Some(BlockData::new(item.namespace, item.name))
+        } else {
+            None
+        };
 
         let mouse_left = action_state.just_pressed(GameActions::PrimaryInteract);
         let mouse_right = action_state.just_pressed(GameActions::SecondaryInteract);
@@ -242,9 +254,18 @@ pub fn interact(
                         }
                         block_transform.translation = point + Vec3::splat(0.5);
                     }
-                    if mouse_left || mouse_right {
+                    if mouse_left || (mouse_right && place_item.is_some()) {
                         if let Ok(mut chunk) = chunks.get_mut(chunk_entity) {
                             if mouse_right {
+                                if item_data.unwrap().stack_size == 1 {
+                                    inventory.hotbar[*cur_bar][*cur_item] = None;
+                                } else {
+                                    inventory.hotbar[*cur_bar][*cur_item]
+                                        .as_mut()
+                                        .unwrap()
+                                        .stack_size -= 1;
+                                }
+
                                 if (point.x <= player_transform.translation.x - 0.5
                                     || point.x >= player_transform.translation.x + 0.5)
                                     || (point.z <= player_transform.translation.z - 0.5
@@ -261,8 +282,12 @@ pub fn interact(
                                     if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos)
                                     {
                                         if let Ok(mut chunk) = chunks.get_mut(chunk_entity) {
-                                            chunk.chunk_data.add_block_state(&item);
-                                            chunk.chunk_data.set_block(voxel_pos, &item);
+                                            chunk
+                                                .chunk_data
+                                                .add_block_state(&place_item.clone().unwrap());
+                                            chunk
+                                                .chunk_data
+                                                .set_block(voxel_pos, &place_item.clone().unwrap());
                                             client.connection_mut().try_send_message(
                                                 ClientMessage::SentBlock {
                                                     chunk_pos,
@@ -271,7 +296,7 @@ pub fn interact(
                                                         voxel_pos.y as u8,
                                                         voxel_pos.z as u8,
                                                     ],
-                                                    block_type: item,
+                                                    block_type: place_item.unwrap(),
                                                 },
                                             );
                                             match voxel_pos.x {
@@ -366,6 +391,59 @@ pub fn interact(
                                     }
                                 }
                             } else if mouse_left {
+                                if let Some(item_def) =
+                                    item_table.get(&chunk.chunk_data.get_identifier(voxel_pos))
+                                {
+                                    if let Some((section, row_index, item_index, stack_size)) =
+                                        inventory.get_first_item(item_def)
+                                    {
+                                        match section {
+                                            "inventory" => {
+                                                inventory.slots[row_index][item_index] =
+                                                    Some(ItemData {
+                                                        name: item_def.name.clone(),
+                                                        namespace: item_def.namespace.clone(),
+                                                        stack_size: stack_size + 1,
+                                                        ..Default::default()
+                                                    });
+                                            }
+                                            "hotbar" => {
+                                                inventory.hotbar[row_index][item_index] =
+                                                    Some(ItemData {
+                                                        name: item_def.name.clone(),
+                                                        namespace: item_def.namespace.clone(),
+                                                        stack_size: stack_size + 1,
+                                                        ..Default::default()
+                                                    });
+                                            }
+                                            _ => {}
+                                        }
+                                    } else if let Some((section, row_index, item_index)) =
+                                        inventory.get_first_slot()
+                                    {
+                                        match section {
+                                            "inventory" => {
+                                                inventory.slots[row_index][item_index] =
+                                                    Some(ItemData {
+                                                        name: item_def.name.clone(),
+                                                        namespace: item_def.namespace.clone(),
+                                                        stack_size: 1,
+                                                        ..Default::default()
+                                                    });
+                                            }
+                                            "hotbar" => {
+                                                inventory.hotbar[row_index][item_index] =
+                                                    Some(ItemData {
+                                                        name: item_def.name.clone(),
+                                                        namespace: item_def.namespace.clone(),
+                                                        stack_size: 1,
+                                                        ..Default::default()
+                                                    });
+                                            }
+                                            _ => {}
+                                        }
+                                    }
+                                }
                                 chunk.chunk_data.set_block(
                                     voxel_pos,
                                     &BlockData::new("vinox".to_string(), "air".to_string()),

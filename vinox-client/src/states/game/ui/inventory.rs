@@ -53,7 +53,11 @@ pub fn status_bar(
                                 .outer_margin(2.0)
                                 .show(ui, |ui| {
                                     ui.separator();
-                                    ui.label(format!("{}: {}", item.name, item.stack_size));
+                                    if let Some(item) = item {
+                                        ui.label(format!("{}: {}", item.name, item.stack_size));
+                                    } else {
+                                        ui.label("None");
+                                    }
                                     ui.separator();
                                 });
                         }
