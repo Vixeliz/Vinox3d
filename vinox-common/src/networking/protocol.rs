@@ -2,7 +2,8 @@ use std::time::Duration;
 
 use bevy::prelude::*;
 use bevy_renet::renet::{
-    ChannelConfig, ReliableChannelConfig, RenetConnectionConfig, UnreliableChannelConfig,
+    ChannelConfig, ChunkChannelConfig, ReliableChannelConfig, RenetConnectionConfig,
+    UnreliableChannelConfig,
 };
 
 #[derive(Resource, Deref, DerefMut)]
@@ -198,12 +199,20 @@ impl ServerChannel {
             .into(),
             ReliableChannelConfig {
                 channel_id: Self::Level.into(),
-                message_resend_time: Duration::ZERO,
-                max_message_size: RELIABLE_CHANNEL_MAX_LENGTH,
-                packet_budget: RELIABLE_CHANNEL_MAX_LENGTH * 2,
+                message_resend_time: Duration::from_millis(300),
+                max_message_size: RELIABLE_CHANNEL_MAX_LENGTH * 2,
+                packet_budget: RELIABLE_CHANNEL_MAX_LENGTH * 4,
                 ..Default::default()
             }
             .into(),
+            // ChunkChannelConfig {
+            //     channel_id: ServerChannel::Level.into(),
+            //     message_send_queue_size: 1500,
+            //     // max_message_size: RELIABLE_CHANNEL_MAX_LENGTH * 2,
+            //     // packet_budget: RELIABLE_CHANNEL_MAX_LENGTH * 10,
+            //     ..default()
+            // }
+            // .into(),
         ]
     }
 }
@@ -212,7 +221,7 @@ pub fn client_connection_config() -> RenetConnectionConfig {
     RenetConnectionConfig {
         send_channels_config: ClientChannel::channels_config(),
         receive_channels_config: ServerChannel::channels_config(),
-        max_packet_size: RELIABLE_CHANNEL_MAX_LENGTH * 4,
+        max_packet_size: RELIABLE_CHANNEL_MAX_LENGTH * 6,
         ..Default::default()
     }
 }
@@ -221,7 +230,7 @@ pub fn server_connection_config() -> RenetConnectionConfig {
     RenetConnectionConfig {
         send_channels_config: ServerChannel::channels_config(),
         receive_channels_config: ClientChannel::channels_config(),
-        max_packet_size: RELIABLE_CHANNEL_MAX_LENGTH * 4,
+        max_packet_size: RELIABLE_CHANNEL_MAX_LENGTH * 6,
         ..Default::default()
     }
 }

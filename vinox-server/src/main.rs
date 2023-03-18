@@ -89,11 +89,11 @@ fn main() {
         .insert_resource(ScheduleRunnerSettings::run_loop(Duration::from_secs_f64(
             1.0 / 60.0,
         )))
-        .add_plugin(RenetServerPlugin::default())
+        .add_plugins(MinimalPlugins)
         .insert_resource(final_world_info)
         .insert_resource(WorldDatabase { connection: pool })
         .insert_resource(NetworkIP(ip))
-        .add_plugins(MinimalPlugins)
+        .add_plugin(RenetServerPlugin::default())
         .add_plugin(DiagnosticsPlugin)
         .add_plugin(LogPlugin::default())
         .add_plugin(GamePlugin)

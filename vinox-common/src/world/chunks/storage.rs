@@ -9,8 +9,8 @@ use strum::EnumString;
 
 use crate::storage::{blocks::descriptor::BlockDescriptor, items::descriptor::ItemDescriptor};
 
-pub const HORIZONTAL_DISTANCE: i32 = 16;
-pub const VERTICAL_DISTANCE: i32 = 8;
+pub const HORIZONTAL_DISTANCE: i32 = 8;
+pub const VERTICAL_DISTANCE: i32 = 4;
 pub const CHUNK_SIZE: u32 = 16;
 pub const CHUNK_SIZE_ARR: u32 = CHUNK_SIZE - 1;
 pub const TOTAL_CHUNK_SIZE: usize =

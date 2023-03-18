@@ -230,7 +230,7 @@ pub fn send_chunks(
                 commands.entity(*player_entity).insert(load_point.clone());
                 for chunk in chunk_manager
                     .get_chunks_around_chunk(chunk_pos, &sent_chunks)
-                    .choose_multiple(&mut rng, 64)
+                    .choose_multiple(&mut rng, 16)
                 {
                     let raw_chunk = chunk.chunk_data.clone();
                     if let Ok(raw_chunk_bin) = bincode::serialize(&raw_chunk) {
