@@ -641,7 +641,7 @@ pub fn process_priority_queue(
                     .await
                     .ok();
             })
-            .detach()
+            .detach() // TODO: Switch to polling so we can cancel task outside of view distance or if we break or place a block
     }
 
     while let Ok(chunk) = priority_channel.rx.try_recv() {
