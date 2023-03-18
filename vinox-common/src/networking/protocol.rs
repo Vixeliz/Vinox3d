@@ -65,8 +65,8 @@ pub enum ClientOrdered {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LevelData {
-    chunk_data: Vec<u8>,
-    pos: IVec3,
+    pub chunk_data: Vec<u8>,
+    pub pos: IVec3,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

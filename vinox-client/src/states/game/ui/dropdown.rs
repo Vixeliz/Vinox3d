@@ -1,8 +1,8 @@
-use bevy_quinnet::client::Client;
+use bevy_renet::renet::RenetClient;
 use brigadier_rs::*;
 use egui_notify::Toasts;
 use std::{collections::BTreeMap, convert::Infallible};
-use vinox_common::networking::protocol::ClientMessage;
+use vinox_common::networking::protocol::{ClientChannel, ClientMessage, ClientOrdered};
 
 use bevy::prelude::*;
 use bevy_egui::{
@@ -20,7 +20,7 @@ pub struct Toast(pub Toasts);
 
 pub fn create_ui(
     // mut commands: Commands,
-    mut client: ResMut<Client>,
+    mut client: ResMut<RenetClient>,
     is_open: Res<ConsoleOpen>, // mut username_res: ResMut<UserName>,
     mut current_message: Local<String>,
     mut messages: ResMut<ChatMessages>,
@@ -85,10 +85,12 @@ pub fn create_ui(
                                     if let Ok((result, _)) = parser.parse((), &current_message) {
                                         messages.push(("Console".to_string(), result.to_string()));
                                     } else {
-                                        client.connection_mut().try_send_message(
-                                            ClientMessage::ChatMessage {
+                                        client.send_message(
+                                            ClientChannel::Orders,
+                                            bincode::serialize(&ClientOrdered::ChatMessage {
                                                 message: current_message.to_string(),
-                                            },
+                                            })
+                                            .unwrap(),
                                         );
                                         current_message.clear();
                                     }

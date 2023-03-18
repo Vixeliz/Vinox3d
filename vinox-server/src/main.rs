@@ -2,6 +2,7 @@ mod game;
 use bevy::{
     app::ScheduleRunnerSettings, diagnostic::DiagnosticsPlugin, log::LogPlugin, prelude::*,
 };
+use bevy_renet::RenetClientPlugin;
 use directories::*;
 use game::{
     plugin::GamePlugin,

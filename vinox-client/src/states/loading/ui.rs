@@ -16,7 +16,7 @@ pub struct AssetsLoading(pub Vec<HandleUntyped>);
 //TODO: Right now we are building the client only as a multiplayer client. This is fine but eventually we need to have singleplayer.
 // To achieve this we will just have the client start up a server. But for now I am just going to use a dedicated one for testing
 pub fn new_client(mut commands: Commands, ip_res: Res<NetworkIP>) {
-    let server_addr = (**ip_res + ":25565").parse().unwrap();
+    let server_addr = (ip_res.clone() + ":25565").parse().unwrap();
     let socket = UdpSocket::bind("127.0.0.1:0").unwrap();
     let connection_config = client_connection_config();
     let current_time = SystemTime::now()

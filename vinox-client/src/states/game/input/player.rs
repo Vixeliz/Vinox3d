@@ -1,3 +1,4 @@
+use bevy_renet::renet::RenetClient;
 use leafwing_input_manager::prelude::*;
 use std::f32::consts::{FRAC_PI_2, PI};
 
@@ -10,11 +11,10 @@ use bevy::{
     },
     window::{CursorGrabMode, PrimaryWindow},
 };
-use bevy_quinnet::client::Client;
 use vinox_common::{
     collision::raycast::raycast_world,
     ecs::bundles::Inventory,
-    networking::protocol::ClientMessage,
+    networking::protocol::{ClientChannel, ClientMessage},
     storage::items::descriptor::ItemData,
     world::chunks::{
         ecs::{ChunkComp, CurrentChunks},
@@ -210,7 +210,7 @@ pub fn interact(
     mut commands: Commands,
     windows: Query<&mut Window, With<PrimaryWindow>>,
     camera_query: Query<&GlobalTransform, With<Camera>>,
-    mut client: ResMut<Client>,
+    mut client: ResMut<RenetClient>,
     mut player: Query<
         (&Transform, &ActionState<GameActions>, &mut Inventory),
         With<ControlledPlayer>,
@@ -366,8 +366,9 @@ pub fn interact(
                                             chunk
                                                 .chunk_data
                                                 .set_block(voxel_pos, &place_item.clone().unwrap());
-                                            client.connection_mut().try_send_message(
-                                                ClientMessage::SentBlock {
+                                            client.send_message(
+                                                ClientChannel::Messages,
+                                                bincode::serialize(&ClientMessage::SentBlock {
                                                     chunk_pos,
                                                     voxel_pos: [
                                                         voxel_pos.x as u8,
@@ -375,7 +376,8 @@ pub fn interact(
                                                         voxel_pos.z as u8,
                                                     ],
                                                     block_type: place_item.unwrap(),
-                                                },
+                                                })
+                                                .unwrap(),
                                             );
                                             match voxel_pos.x {
                                                 0 => {
@@ -526,8 +528,9 @@ pub fn interact(
                                     voxel_pos,
                                     &BlockData::new("vinox".to_string(), "air".to_string()),
                                 );
-                                client.connection_mut().try_send_message(
-                                    ClientMessage::SentBlock {
+                                client.send_message(
+                                    ClientChannel::Messages,
+                                    bincode::serialize(&ClientMessage::SentBlock {
                                         chunk_pos,
                                         voxel_pos: [
                                             voxel_pos.x as u8,
@@ -538,7 +541,8 @@ pub fn interact(
                                             "vinox".to_string(),
                                             "air".to_string(),
                                         ),
-                                    },
+                                    })
+                                    .unwrap(),
                                 );
 
                                 match voxel_pos.x {

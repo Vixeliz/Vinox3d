@@ -7,7 +7,7 @@ use crate::states::{
     game::networking::components::ClientData,
 };
 
-use super::ui::{load_blocks, new_client, setup_resources, switch, timeout, AssetsLoading};
+use super::ui::{load_blocks, new_client, setup_resources, switch, AssetsLoading};
 
 pub struct LoadingPlugin;
 
@@ -23,7 +23,7 @@ impl Plugin for LoadingPlugin {
                     .chain()
                     .in_schedule(OnEnter(GameState::Loading)),
             )
-            .add_systems((load_blocks, switch, timeout).in_set(OnUpdate(GameState::Loading)))
+            .add_systems((load_blocks, switch).in_set(OnUpdate(GameState::Loading)))
             .add_system(despawn_with::<Loading>.in_schedule(OnExit(GameState::Loading)));
     }
 }
