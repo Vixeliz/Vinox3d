@@ -152,7 +152,7 @@ impl ClientChannel {
             }
             .into(),
             ReliableChannelConfig {
-                channel_id: Self::Messages.into(),
+                channel_id: Self::Orders.into(),
                 message_resend_time: Duration::ZERO,
                 ordered: true,
                 ..Default::default()
