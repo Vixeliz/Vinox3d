@@ -133,6 +133,16 @@ pub fn options(
                             });
                             ui.separator();
                             ui.horizontal(|ui| {
+                                ui.label("Standard Hotbar: ");
+                                if ui
+                                    .small_button(format!("{}", options.standard_bar))
+                                    .clicked()
+                                {
+                                    options.standard_bar = !options.standard_bar;
+                                }
+                            });
+                            ui.separator();
+                            ui.horizontal(|ui| {
                                 ui.label("FOV: ");
                                 ui.add(egui::Slider::new(&mut options.fov, 30.0..=120.0));
                             });

@@ -227,6 +227,7 @@ pub fn interact(
     mut norm_item: Local<usize>,
     mut scroll_evr: EventReader<MouseWheel>,
     keys: Res<Input<KeyCode>>,
+    options: Res<GameOptions>,
 ) {
     let window = windows.single();
     if window.cursor.grab_mode != CursorGrabMode::Locked {
@@ -275,31 +276,112 @@ pub fn interact(
                 }
             }
         }
-        if keys.just_pressed(KeyCode::Key1) {
-            if temp_bar.is_some() {
-                *inventory.current_bar = temp_bar.unwrap();
-                *inventory.current_item = 0;
-                *temp_bar = None;
-            } else {
-                *temp_bar = Some(0);
+        if !options.standard_bar {
+            if keys.just_pressed(KeyCode::Key1) {
+                if temp_bar.is_some() {
+                    *inventory.current_bar = temp_bar.unwrap();
+                    *inventory.current_item = 0;
+                    *temp_bar = None;
+                } else {
+                    *temp_bar = Some(0);
+                }
+            } else if keys.just_pressed(KeyCode::Key2) {
+                if temp_bar.is_some() {
+                    *inventory.current_bar = temp_bar.unwrap();
+                    *inventory.current_item = 1;
+                    *temp_bar = None;
+                } else {
+                    *temp_bar = Some(1);
+                }
+            } else if keys.just_pressed(KeyCode::Key3) {
+                if temp_bar.is_some() {
+                    *inventory.current_bar = temp_bar.unwrap();
+                    *inventory.current_item = 2;
+                    *temp_bar = None;
+                } else {
+                    *temp_bar = Some(2);
+                }
             }
-        } else if keys.just_pressed(KeyCode::Key2) {
-            if temp_bar.is_some() {
-                *inventory.current_bar = temp_bar.unwrap();
-                *inventory.current_item = 1;
-                *temp_bar = None;
-            } else {
-                *temp_bar = Some(1);
-            }
-        } else if keys.just_pressed(KeyCode::Key3) {
-            if temp_bar.is_some() {
-                *inventory.current_bar = temp_bar.unwrap();
-                *inventory.current_item = 2;
-                *temp_bar = None;
-            } else {
-                *temp_bar = Some(2);
+        } else {
+            for key in keys.get_just_pressed() {
+                match key {
+                    KeyCode::Key1 => {
+                        *norm_item = 0;
+
+                        if let Some((cur_bar, cur_item)) = norm_to_bar(*norm_item) {
+                            *inventory.current_bar = cur_bar;
+                            *inventory.current_item = cur_item;
+                        }
+                    }
+                    KeyCode::Key2 => {
+                        *norm_item = 1;
+
+                        if let Some((cur_bar, cur_item)) = norm_to_bar(*norm_item) {
+                            *inventory.current_bar = cur_bar;
+                            *inventory.current_item = cur_item;
+                        }
+                    }
+                    KeyCode::Key3 => {
+                        *norm_item = 2;
+
+                        if let Some((cur_bar, cur_item)) = norm_to_bar(*norm_item) {
+                            *inventory.current_bar = cur_bar;
+                            *inventory.current_item = cur_item;
+                        }
+                    }
+                    KeyCode::Key4 => {
+                        *norm_item = 3;
+
+                        if let Some((cur_bar, cur_item)) = norm_to_bar(*norm_item) {
+                            *inventory.current_bar = cur_bar;
+                            *inventory.current_item = cur_item;
+                        }
+                    }
+                    KeyCode::Key5 => {
+                        *norm_item = 4;
+
+                        if let Some((cur_bar, cur_item)) = norm_to_bar(*norm_item) {
+                            *inventory.current_bar = cur_bar;
+                            *inventory.current_item = cur_item;
+                        }
+                    }
+                    KeyCode::Key6 => {
+                        *norm_item = 5;
+
+                        if let Some((cur_bar, cur_item)) = norm_to_bar(*norm_item) {
+                            *inventory.current_bar = cur_bar;
+                            *inventory.current_item = cur_item;
+                        }
+                    }
+                    KeyCode::Key7 => {
+                        *norm_item = 6;
+
+                        if let Some((cur_bar, cur_item)) = norm_to_bar(*norm_item) {
+                            *inventory.current_bar = cur_bar;
+                            *inventory.current_item = cur_item;
+                        }
+                    }
+                    KeyCode::Key8 => {
+                        *norm_item = 7;
+
+                        if let Some((cur_bar, cur_item)) = norm_to_bar(*norm_item) {
+                            *inventory.current_bar = cur_bar;
+                            *inventory.current_item = cur_item;
+                        }
+                    }
+                    KeyCode::Key9 => {
+                        *norm_item = 8;
+
+                        if let Some((cur_bar, cur_item)) = norm_to_bar(*norm_item) {
+                            *inventory.current_bar = cur_bar;
+                            *inventory.current_item = cur_item;
+                        }
+                    }
+                    _ => {}
+                }
             }
         }
+
         let cur_item = inventory.clone().current_item;
         let cur_bar = inventory.clone().current_bar;
         let item_data = inventory.clone().hotbar[*cur_bar][*cur_item].clone();

@@ -46,6 +46,7 @@ pub struct GameOptions {
     pub fov: f32,
     pub dark_theme: bool,
     pub user_name: String,
+    pub standard_bar: bool,
 }
 
 impl Default for GameOptions {
@@ -68,6 +69,7 @@ impl Default for GameOptions {
             fov: 70.0,
             dark_theme: true,
             user_name: "User".to_string(),
+            standard_bar: false,
         }
     }
 }
