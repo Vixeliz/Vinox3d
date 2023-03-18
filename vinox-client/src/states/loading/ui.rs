@@ -36,7 +36,8 @@ pub fn new_client(mut commands: Commands, ip_res: Res<NetworkIP>) {
 }
 
 pub fn panic_on_error_system(mut renet_error: EventReader<RenetError>, mut commands: Commands) {
-    for _e in renet_error.iter() {
+    for e in renet_error.iter() {
+        error!("{e}");
         commands.remove_resource::<RenetClient>();
         commands.insert_resource(NextState(Some(GameState::Menu)));
     }
