@@ -255,13 +255,13 @@ pub fn interact(
                     }
                 }
                 MouseScrollUnit::Pixel => {
-                    if (ev.y * 10.0) < -1.0 {
+                    if (ev.y * 0.05) < -1.0 {
                         if *norm_item < 9 {
                             *norm_item += 1;
                         } else {
                             *norm_item = 0;
                         }
-                    } else if (ev.y * 10.0) > 1.0 {
+                    } else if (ev.y * 0.05) > 1.0 {
                         if *norm_item > 0 {
                             *norm_item -= 1;
                         } else {
