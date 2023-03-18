@@ -5,7 +5,8 @@ use serde_big_array::Array;
 use vinox_common::{
     storage::blocks::descriptor::BlockDescriptor,
     world::chunks::storage::{
-        BlockData, BlockTable, Chunk, RawChunk, VoxelType, VoxelVisibility, CHUNK_SIZE,
+        BlockData, BlockTable, Chunk, Direction, GrowthState, RawChunk, RenderedBlockData,
+        VoxelType, VoxelVisibility, CHUNK_SIZE,
     },
 };
 
@@ -16,7 +17,7 @@ const CHUNK_SIZE_PADDED: u32 = CHUNK_SIZE + 2;
 
 #[derive(Clone)]
 pub struct ChunkBoundary {
-    pub palette: BiMap<u16, BlockData>,
+    pub palette: BiMap<u16, RenderedBlockData>,
     pub voxels: Box<[u16; TOTAL_CHUNK_SIZE_PADDED]>,
 }
 
@@ -31,7 +32,7 @@ impl Chunk for ChunkBoundary {
     }
 }
 
-fn max_block_id(palette: &BiMap<u16, BlockData>) -> u16 {
+fn max_block_id(palette: &BiMap<u16, RenderedBlockData>) -> u16 {
     let mut counter = 0;
     for id in palette.left_values().sorted() {
         if *id != 0 && counter < id - 1 {
@@ -42,7 +43,7 @@ fn max_block_id(palette: &BiMap<u16, BlockData>) -> u16 {
     counter + 1
 }
 
-fn add_block_state(palette: &mut BiMap<u16, BlockData>, block_data: &BlockData) {
+fn add_block_state(palette: &mut BiMap<u16, RenderedBlockData>, block_data: &RenderedBlockData) {
     palette.insert(max_block_id(palette), block_data.to_owned());
 }
 
@@ -58,8 +59,9 @@ impl ChunkBoundary {
     pub fn new(center: RawChunk, neighbors: Box<Array<RawChunk, 26>>) -> Self {
         const MAX: u32 = CHUNK_SIZE;
         // Just cause CHUNK_SIZE is long
-        let mut voxels: Box<[BlockData; TOTAL_CHUNK_SIZE_PADDED]> =
-            vec_to_boxed_array(BlockData::new("vinox".to_string(), "air".to_string()));
+        let mut voxels: Box<[RenderedBlockData; TOTAL_CHUNK_SIZE_PADDED]> = vec_to_boxed_array(
+            RenderedBlockData::new("vinox".to_string(), "air".to_string(), None, None),
+        );
 
         for z in 0..ChunkBoundary::Z {
             for y in 0..ChunkBoundary::Y {
@@ -68,49 +70,40 @@ impl ChunkBoundary {
                     let idx = ChunkBoundary::linearize(UVec3::new(x, y, z));
                     // let (x, y, z) = ChunkBoundary::delinearize(idx);
                     voxels[idx] = match (x, y, z) {
-                        (0, 0, 0) => neighbors[0].get_data_pos(MAX - 1, MAX - 1, MAX - 1),
-                        (0, 0, 1..=MAX) => neighbors[1].get_data_pos(MAX - 1, MAX - 1, z - 1),
-                        (0, 0, CHUNK_BOUND) => neighbors[2].get_data_pos(MAX - 1, MAX - 1, 0),
-                        (0, 1..=MAX, 0) => neighbors[3].get_data_pos(MAX - 1, y - 1, MAX - 1),
-                        (0, 1..=MAX, 1..=MAX) => neighbors[4].get_data_pos(MAX - 1, y - 1, z - 1),
-                        (0, 1..=MAX, CHUNK_BOUND) => neighbors[5].get_data_pos(MAX - 1, y - 1, 0),
-                        (0, CHUNK_BOUND, 0) => neighbors[6].get_data_pos(MAX - 1, 0, MAX - 1),
-                        (0, CHUNK_BOUND, 1..=MAX) => neighbors[7].get_data_pos(MAX - 1, 0, z - 1),
-                        (0, CHUNK_BOUND, CHUNK_BOUND) => neighbors[8].get_data_pos(MAX - 1, 0, 0),
-                        (1..=MAX, 0, 0) => neighbors[9].get_data_pos(x - 1, MAX - 1, MAX - 1),
-                        (1..=MAX, 0, 1..=MAX) => neighbors[10].get_data_pos(x - 1, MAX - 1, z - 1),
-                        (1..=MAX, 0, CHUNK_BOUND) => neighbors[11].get_data_pos(x - 1, MAX - 1, 0),
-                        (1..=MAX, 1..=MAX, 0) => neighbors[12].get_data_pos(x - 1, y - 1, MAX - 1),
-                        (1..=MAX, 1..=MAX, 1..=MAX) => center.get_data_pos(x - 1, y - 1, z - 1),
-                        (1..=MAX, 1..=MAX, CHUNK_BOUND) => {
-                            neighbors[13].get_data_pos(x - 1, y - 1, 0)
-                        }
-                        (1..=MAX, CHUNK_BOUND, 0) => neighbors[14].get_data_pos(x - 1, 0, MAX - 1),
-                        (1..=MAX, CHUNK_BOUND, 1..=MAX) => {
-                            neighbors[15].get_data_pos(x - 1, 0, z - 1)
-                        }
-                        (1..=MAX, CHUNK_BOUND, CHUNK_BOUND) => {
-                            neighbors[16].get_data_pos(x - 1, 0, 0)
-                        }
-                        (CHUNK_BOUND, 0, 0) => neighbors[17].get_data_pos(0, MAX - 1, MAX - 1),
-                        (CHUNK_BOUND, 0, 1..=MAX) => neighbors[18].get_data_pos(0, MAX - 1, z - 1),
-                        (CHUNK_BOUND, 0, CHUNK_BOUND) => neighbors[19].get_data_pos(0, MAX - 1, 0),
-                        (CHUNK_BOUND, 1..=MAX, 0) => neighbors[20].get_data_pos(0, y - 1, MAX - 1),
-                        (CHUNK_BOUND, 1..=MAX, 1..=MAX) => {
-                            neighbors[21].get_data_pos(0, y - 1, z - 1)
-                        }
-                        (CHUNK_BOUND, 1..=MAX, CHUNK_BOUND) => {
-                            neighbors[22].get_data_pos(0, y - 1, 0)
-                        }
-                        (CHUNK_BOUND, CHUNK_BOUND, 0) => neighbors[23].get_data_pos(0, 0, MAX - 1),
-                        (CHUNK_BOUND, CHUNK_BOUND, 1..=MAX) => {
-                            neighbors[24].get_data_pos(0, 0, z - 1)
-                        }
-                        (CHUNK_BOUND, CHUNK_BOUND, CHUNK_BOUND) => {
-                            neighbors[25].get_data_pos(0, 0, 0)
-                        }
+                        (0, 0, 0) => neighbors[0].get_rend(MAX - 1, MAX - 1, MAX - 1),
+                        (0, 0, 1..=MAX) => neighbors[1].get_rend(MAX - 1, MAX - 1, z - 1),
+                        (0, 0, CHUNK_BOUND) => neighbors[2].get_rend(MAX - 1, MAX - 1, 0),
+                        (0, 1..=MAX, 0) => neighbors[3].get_rend(MAX - 1, y - 1, MAX - 1),
+                        (0, 1..=MAX, 1..=MAX) => neighbors[4].get_rend(MAX - 1, y - 1, z - 1),
+                        (0, 1..=MAX, CHUNK_BOUND) => neighbors[5].get_rend(MAX - 1, y - 1, 0),
+                        (0, CHUNK_BOUND, 0) => neighbors[6].get_rend(MAX - 1, 0, MAX - 1),
+                        (0, CHUNK_BOUND, 1..=MAX) => neighbors[7].get_rend(MAX - 1, 0, z - 1),
+                        (0, CHUNK_BOUND, CHUNK_BOUND) => neighbors[8].get_rend(MAX - 1, 0, 0),
+                        (1..=MAX, 0, 0) => neighbors[9].get_rend(x - 1, MAX - 1, MAX - 1),
+                        (1..=MAX, 0, 1..=MAX) => neighbors[10].get_rend(x - 1, MAX - 1, z - 1),
+                        (1..=MAX, 0, CHUNK_BOUND) => neighbors[11].get_rend(x - 1, MAX - 1, 0),
+                        (1..=MAX, 1..=MAX, 0) => neighbors[12].get_rend(x - 1, y - 1, MAX - 1),
+                        (1..=MAX, 1..=MAX, 1..=MAX) => center.get_rend(x - 1, y - 1, z - 1),
+                        (1..=MAX, 1..=MAX, CHUNK_BOUND) => neighbors[13].get_rend(x - 1, y - 1, 0),
+                        (1..=MAX, CHUNK_BOUND, 0) => neighbors[14].get_rend(x - 1, 0, MAX - 1),
+                        (1..=MAX, CHUNK_BOUND, 1..=MAX) => neighbors[15].get_rend(x - 1, 0, z - 1),
+                        (1..=MAX, CHUNK_BOUND, CHUNK_BOUND) => neighbors[16].get_rend(x - 1, 0, 0),
+                        (CHUNK_BOUND, 0, 0) => neighbors[17].get_rend(0, MAX - 1, MAX - 1),
+                        (CHUNK_BOUND, 0, 1..=MAX) => neighbors[18].get_rend(0, MAX - 1, z - 1),
+                        (CHUNK_BOUND, 0, CHUNK_BOUND) => neighbors[19].get_rend(0, MAX - 1, 0),
+                        (CHUNK_BOUND, 1..=MAX, 0) => neighbors[20].get_rend(0, y - 1, MAX - 1),
+                        (CHUNK_BOUND, 1..=MAX, 1..=MAX) => neighbors[21].get_rend(0, y - 1, z - 1),
+                        (CHUNK_BOUND, 1..=MAX, CHUNK_BOUND) => neighbors[22].get_rend(0, y - 1, 0),
+                        (CHUNK_BOUND, CHUNK_BOUND, 0) => neighbors[23].get_rend(0, 0, MAX - 1),
+                        (CHUNK_BOUND, CHUNK_BOUND, 1..=MAX) => neighbors[24].get_rend(0, 0, z - 1),
+                        (CHUNK_BOUND, CHUNK_BOUND, CHUNK_BOUND) => neighbors[25].get_rend(0, 0, 0),
 
-                        (_, _, _) => BlockData::new("vinox".to_string(), "air".to_string()),
+                        (_, _, _) => RenderedBlockData::new(
+                            "vinox".to_string(),
+                            "air".to_string(),
+                            None,
+                            None,
+                        ),
                     };
                 }
             }
@@ -120,11 +113,7 @@ impl ChunkBoundary {
 
         palette.insert(
             0,
-            BlockData {
-                namespace: "vinox".to_string(),
-                name: "air".to_string(),
-                ..Default::default()
-            },
+            RenderedBlockData::new("vinox".to_string(), "air".to_string(), None, None),
         );
 
         for idx in 0..TOTAL_CHUNK_SIZE_PADDED {
@@ -188,10 +177,7 @@ impl ChunkBoundary {
             .get_state_for_index(self.voxels[index] as usize)
             .unwrap();
         let block_id = self.get_index_for_state(&block_state).unwrap();
-        let mut block_name = block_state.namespace.clone();
-        block_name.push(':');
-        block_name.push_str(block_state.name.as_str());
-        if let Some(voxel) = block_table.get(&block_name) {
+        if let Some(voxel) = block_table.get(&block_state.identifier) {
             let voxel_visibility = voxel.visibility;
             if let Some(voxel_visibility) = voxel_visibility {
                 match voxel_visibility {
@@ -203,7 +189,7 @@ impl ChunkBoundary {
                 VoxelType::Empty(0)
             }
         } else {
-            println!("No name: {block_name:?}");
+            println!("No name: {block_state:?}");
             VoxelType::Empty(0)
         }
     }
@@ -212,21 +198,21 @@ impl ChunkBoundary {
         let block_state = self
             .get_state_for_index(self.voxels[index] as usize)
             .unwrap();
-        let mut block_name = block_state.namespace.clone();
-        block_name.push(':');
-        block_name.push_str(block_state.name.as_str());
-        block_table.get(&block_name).unwrap().clone()
+        block_table
+            .get(&block_state.identifier.clone())
+            .unwrap()
+            .clone()
     }
 
-    pub fn get_index_for_state(&self, block_data: &BlockData) -> Option<u16> {
+    pub fn get_index_for_state(&self, block_data: &RenderedBlockData) -> Option<u16> {
         self.palette.get_by_right(block_data).copied()
     }
 
-    pub fn get_state_for_index(&self, index: usize) -> Option<BlockData> {
+    pub fn get_state_for_index(&self, index: usize) -> Option<RenderedBlockData> {
         self.palette.get_by_left(&(index as u16)).cloned()
     }
 
-    pub fn get_block(&self, pos: UVec3) -> Option<BlockData> {
+    pub fn get_block(&self, pos: UVec3) -> Option<RenderedBlockData> {
         let index = ChunkBoundary::linearize(pos);
         self.get_state_for_index(self.voxels[index] as usize)
     }
@@ -234,10 +220,7 @@ impl ChunkBoundary {
     pub fn get_identifier(&self, pos: UVec3) -> String {
         let index = ChunkBoundary::linearize(pos);
         if let Some(block) = self.get_state_for_index(self.voxels[index] as usize) {
-            let mut identifier = block.namespace.clone();
-            identifier.push(':');
-            identifier.push_str(&block.name);
-            identifier
+            block.identifier
         } else {
             "vinox:air".to_string()
         }

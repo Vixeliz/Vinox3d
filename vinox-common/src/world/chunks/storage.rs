@@ -56,6 +56,31 @@ pub struct Container {
     pub max_size: u8,
 }
 
+#[derive(Debug, PartialEq, Eq, Hash, Default, Clone)]
+pub struct RenderedBlockData {
+    pub identifier: String,
+    pub direction: Option<Direction>,
+    pub growth_state: Option<GrowthState>,
+}
+
+impl RenderedBlockData {
+    pub fn new(
+        namespace: String,
+        name: String,
+        direction: Option<Direction>,
+        growth_state: Option<GrowthState>,
+    ) -> Self {
+        let mut identifier = namespace;
+        identifier.push(':');
+        identifier.push_str(&name);
+        RenderedBlockData {
+            identifier,
+            direction,
+            growth_state,
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Default, Clone)]
 pub struct BlockData {
     pub namespace: String,
@@ -245,13 +270,17 @@ impl RawChunk {
         block_table.get(&block_name).unwrap().clone()
     }
 
-    pub fn get_data_pos(&self, x: u32, y: u32, z: u32) -> BlockData {
+    pub fn get_rend(&self, x: u32, y: u32, z: u32) -> RenderedBlockData {
         let index = RawChunk::linearize(UVec3::new(x, y, z));
         let block_state = self
             .get_state_for_index(self.voxels[index] as usize)
             .unwrap();
-
-        block_state.clone()
+        RenderedBlockData::new(
+            block_state.namespace,
+            block_state.name,
+            block_state.direction,
+            block_state.growth_state,
+        )
     }
 
     pub fn get_index_for_state(&self, block_data: &BlockData) -> Option<u16> {

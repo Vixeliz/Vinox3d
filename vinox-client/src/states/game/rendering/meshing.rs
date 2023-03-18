@@ -523,12 +523,12 @@ fn full_mesh(
                 face.voxel()[2] as u32,
             ))
             .unwrap();
-        let mut block_name = block.namespace.clone();
-        block_name.push(':');
-        block_name.push_str(&block.name);
 
         if let Some(texture_index) = texture_atlas.get_texture_index(
-            &loadable_assets.block_textures.get(&block_name).unwrap()[matched_index],
+            &loadable_assets
+                .block_textures
+                .get(&block.identifier)
+                .unwrap()[matched_index],
         ) {
             let face_coords =
                 calculate_coords(texture_index, Vec2::new(16.0, 16.0), texture_atlas.size);
@@ -576,12 +576,12 @@ fn full_mesh(
                 face.voxel()[2] as u32,
             ))
             .unwrap();
-        let mut block_name = block.namespace.clone();
-        block_name.push(':');
-        block_name.push_str(&block.name);
 
         if let Some(texture_index) = texture_atlas.get_texture_index(
-            &loadable_assets.block_textures.get(&block_name).unwrap()[matched_index],
+            &loadable_assets
+                .block_textures
+                .get(&block.identifier)
+                .unwrap()[matched_index],
         ) {
             let face_coords =
                 calculate_coords(texture_index, Vec2::new(16.0, 16.0), texture_atlas.size);
