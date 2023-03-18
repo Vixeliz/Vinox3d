@@ -202,6 +202,8 @@ pub fn grab_stack(
         **holding = false;
     }
 }
+
+// TODO: Actually make this work
 pub fn grab_half_stack(
     held_items: &mut CurrentItemsHeld,
     inventory: &mut Inventory,
