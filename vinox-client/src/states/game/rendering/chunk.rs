@@ -1,7 +1,12 @@
-use bevy::prelude::UVec3;
+use bevy::prelude::{warn, UVec3};
+use bimap::BiMap;
+use itertools::*;
 use serde_big_array::Array;
-use vinox_common::world::chunks::storage::{
-    BlockData, BlockTable, Chunk, RawChunk, VoxelType, CHUNK_SIZE,
+use vinox_common::{
+    storage::blocks::descriptor::BlockDescriptor,
+    world::chunks::storage::{
+        BlockData, BlockTable, Chunk, RawChunk, VoxelType, VoxelVisibility, CHUNK_SIZE,
+    },
 };
 
 const CHUNK_BOUND: u32 = CHUNK_SIZE + 1;
@@ -11,8 +16,8 @@ const CHUNK_SIZE_PADDED: u32 = CHUNK_SIZE + 2;
 
 #[derive(Clone)]
 pub struct ChunkBoundary {
-    center: RawChunk,
-    neighbors: Box<Array<RawChunk, 26>>,
+    pub palette: BiMap<u16, BlockData>,
+    pub voxels: Box<[u16; TOTAL_CHUNK_SIZE_PADDED]>,
 }
 
 impl Chunk for ChunkBoundary {
@@ -21,120 +26,151 @@ impl Chunk for ChunkBoundary {
     const X: usize = CHUNK_SIZE_PADDED as usize;
     const Y: usize = CHUNK_SIZE_PADDED as usize;
     const Z: usize = CHUNK_SIZE_PADDED as usize;
-
     fn get(&self, x: u32, y: u32, z: u32, block_table: &BlockTable) -> Self::Output {
-        // let [x, y, z] = ChunkBoundary::delinearize(idx);
-        // const MAX: usize = CHUNK_SIZE as usize;
-        const MAX: u32 = CHUNK_SIZE; // Just cause CHUNK_SIZE is long
-        match (x, y, z) {
-            (0, 0, 0) => self.neighbors[0].get(MAX - 1, MAX - 1, MAX - 1, block_table),
-            (0, 0, 1..=MAX) => self.neighbors[1].get(MAX - 1, MAX - 1, z - 1, block_table),
-            (0, 0, CHUNK_BOUND) => self.neighbors[2].get(MAX - 1, MAX - 1, 0, block_table),
-            (0, 1..=MAX, 0) => self.neighbors[3].get(MAX - 1, y - 1, MAX - 1, block_table),
-            (0, 1..=MAX, 1..=MAX) => self.neighbors[4].get(MAX - 1, y - 1, z - 1, block_table),
-            (0, 1..=MAX, CHUNK_BOUND) => self.neighbors[5].get(MAX - 1, y - 1, 0, block_table),
-            (0, CHUNK_BOUND, 0) => self.neighbors[6].get(MAX - 1, 0, MAX - 1, block_table),
-            (0, CHUNK_BOUND, 1..=MAX) => self.neighbors[7].get(MAX - 1, 0, z - 1, block_table),
-            (0, CHUNK_BOUND, CHUNK_BOUND) => self.neighbors[8].get(MAX - 1, 0, 0, block_table),
-            (1..=MAX, 0, 0) => self.neighbors[9].get(x - 1, MAX - 1, MAX - 1, block_table),
-            (1..=MAX, 0, 1..=MAX) => self.neighbors[10].get(x - 1, MAX - 1, z - 1, block_table),
-            (1..=MAX, 0, CHUNK_BOUND) => self.neighbors[11].get(x - 1, MAX - 1, 0, block_table),
-            (1..=MAX, 1..=MAX, 0) => self.neighbors[12].get(x - 1, y - 1, MAX - 1, block_table),
-            (1..=MAX, 1..=MAX, 1..=MAX) => self.center.get(x - 1, y - 1, z - 1, block_table),
-            (1..=MAX, 1..=MAX, CHUNK_BOUND) => self.neighbors[13].get(x - 1, y - 1, 0, block_table),
-            (1..=MAX, CHUNK_BOUND, 0) => self.neighbors[14].get(x - 1, 0, MAX - 1, block_table),
-            (1..=MAX, CHUNK_BOUND, 1..=MAX) => self.neighbors[15].get(x - 1, 0, z - 1, block_table),
-            (1..=MAX, CHUNK_BOUND, CHUNK_BOUND) => self.neighbors[16].get(x - 1, 0, 0, block_table),
-            (CHUNK_BOUND, 0, 0) => self.neighbors[17].get(0, MAX - 1, MAX - 1, block_table),
-            (CHUNK_BOUND, 0, 1..=MAX) => self.neighbors[18].get(0, MAX - 1, z - 1, block_table),
-            (CHUNK_BOUND, 0, CHUNK_BOUND) => self.neighbors[19].get(0, MAX - 1, 0, block_table),
-            (CHUNK_BOUND, 1..=MAX, 0) => self.neighbors[20].get(0, y - 1, MAX - 1, block_table),
-            (CHUNK_BOUND, 1..=MAX, 1..=MAX) => self.neighbors[21].get(0, y - 1, z - 1, block_table),
-            (CHUNK_BOUND, 1..=MAX, CHUNK_BOUND) => self.neighbors[22].get(0, y - 1, 0, block_table),
-            (CHUNK_BOUND, CHUNK_BOUND, 0) => self.neighbors[23].get(0, 0, MAX - 1, block_table),
-            (CHUNK_BOUND, CHUNK_BOUND, 1..=MAX) => self.neighbors[24].get(0, 0, z - 1, block_table),
-            (CHUNK_BOUND, CHUNK_BOUND, CHUNK_BOUND) => self.neighbors[25].get(0, 0, 0, block_table),
-
-            (_, _, _) => VoxelType::Empty(0),
-        }
+        self.get_voxel(ChunkBoundary::linearize(UVec3::new(x, y, z)), block_table)
     }
+}
+fn max_block_id(palette: &BiMap<u16, BlockData>) -> u16 {
+    let mut counter = 0;
+    for id in palette.left_values().sorted() {
+        if *id != 0 && counter < id - 1 {
+            return *id;
+        }
+        counter = *id;
+    }
+    counter + 1
+}
+
+fn add_block_state(palette: &mut BiMap<u16, BlockData>, block_data: &BlockData) {
+    palette.insert(max_block_id(palette), block_data.to_owned());
 }
 
 impl ChunkBoundary {
     pub fn new(center: RawChunk, neighbors: Box<Array<RawChunk, 26>>) -> Self {
-        Self { center, neighbors }
+        const MAX: u32 = CHUNK_SIZE; // Just cause CHUNK_SIZE is long
+        let voxels: Box<[BlockData; TOTAL_CHUNK_SIZE_PADDED]> =
+            Box::new(std::array::from_fn(|idx| {
+                let (x, y, z) = ChunkBoundary::delinearize(idx);
+                match (x, y, z) {
+                    (0, 0, 0) => neighbors[0].get_data_pos(MAX - 1, MAX - 1, MAX - 1),
+                    (0, 0, 1..=MAX) => neighbors[1].get_data_pos(MAX - 1, MAX - 1, z - 1),
+                    (0, 0, CHUNK_BOUND) => neighbors[2].get_data_pos(MAX - 1, MAX - 1, 0),
+                    (0, 1..=MAX, 0) => neighbors[3].get_data_pos(MAX - 1, y - 1, MAX - 1),
+                    (0, 1..=MAX, 1..=MAX) => neighbors[4].get_data_pos(MAX - 1, y - 1, z - 1),
+                    (0, 1..=MAX, CHUNK_BOUND) => neighbors[5].get_data_pos(MAX - 1, y - 1, 0),
+                    (0, CHUNK_BOUND, 0) => neighbors[6].get_data_pos(MAX - 1, 0, MAX - 1),
+                    (0, CHUNK_BOUND, 1..=MAX) => neighbors[7].get_data_pos(MAX - 1, 0, z - 1),
+                    (0, CHUNK_BOUND, CHUNK_BOUND) => neighbors[8].get_data_pos(MAX - 1, 0, 0),
+                    (1..=MAX, 0, 0) => neighbors[9].get_data_pos(x - 1, MAX - 1, MAX - 1),
+                    (1..=MAX, 0, 1..=MAX) => neighbors[10].get_data_pos(x - 1, MAX - 1, z - 1),
+                    (1..=MAX, 0, CHUNK_BOUND) => neighbors[11].get_data_pos(x - 1, MAX - 1, 0),
+                    (1..=MAX, 1..=MAX, 0) => neighbors[12].get_data_pos(x - 1, y - 1, MAX - 1),
+                    (1..=MAX, 1..=MAX, 1..=MAX) => center.get_data_pos(x - 1, y - 1, z - 1),
+                    (1..=MAX, 1..=MAX, CHUNK_BOUND) => neighbors[13].get_data_pos(x - 1, y - 1, 0),
+                    (1..=MAX, CHUNK_BOUND, 0) => neighbors[14].get_data_pos(x - 1, 0, MAX - 1),
+                    (1..=MAX, CHUNK_BOUND, 1..=MAX) => neighbors[15].get_data_pos(x - 1, 0, z - 1),
+                    (1..=MAX, CHUNK_BOUND, CHUNK_BOUND) => neighbors[16].get_data_pos(x - 1, 0, 0),
+                    (CHUNK_BOUND, 0, 0) => neighbors[17].get_data_pos(0, MAX - 1, MAX - 1),
+                    (CHUNK_BOUND, 0, 1..=MAX) => neighbors[18].get_data_pos(0, MAX - 1, z - 1),
+                    (CHUNK_BOUND, 0, CHUNK_BOUND) => neighbors[19].get_data_pos(0, MAX - 1, 0),
+                    (CHUNK_BOUND, 1..=MAX, 0) => neighbors[20].get_data_pos(0, y - 1, MAX - 1),
+                    (CHUNK_BOUND, 1..=MAX, 1..=MAX) => neighbors[21].get_data_pos(0, y - 1, z - 1),
+                    (CHUNK_BOUND, 1..=MAX, CHUNK_BOUND) => neighbors[22].get_data_pos(0, y - 1, 0),
+                    (CHUNK_BOUND, CHUNK_BOUND, 0) => neighbors[23].get_data_pos(0, 0, MAX - 1),
+                    (CHUNK_BOUND, CHUNK_BOUND, 1..=MAX) => neighbors[24].get_data_pos(0, 0, z - 1),
+                    (CHUNK_BOUND, CHUNK_BOUND, CHUNK_BOUND) => neighbors[25].get_data_pos(0, 0, 0),
+
+                    (_, _, _) => BlockData::new("vinox".to_string(), "air".to_string()),
+                }
+            }));
+
+        let mut palette = BiMap::new();
+
+        palette.insert(
+            0,
+            BlockData {
+                namespace: "vinox".to_string(),
+                name: "air".to_string(),
+                ..Default::default()
+            },
+        );
+
+        for idx in 0..=TOTAL_CHUNK_SIZE_PADDED {
+            if !palette.contains_right(&voxels[idx]) {
+                add_block_state(&mut palette, &voxels[idx]);
+            }
+        }
+        let fin_voxels = Box::new(std::array::from_fn(|idx| {
+            *palette.get_by_right(&voxels[idx]).unwrap()
+        }));
+
+        ChunkBoundary {
+            palette,
+            voxels: fin_voxels,
+        }
     }
 
     pub const fn size() -> usize {
         TOTAL_CHUNK_SIZE_PADDED
     }
 
-    pub fn get_block(&self, x: u32, y: u32, z: u32) -> Option<BlockData> {
-        // let [x, y, z] = ChunkBoundary::delinearize(idx);
-        // const MAX: usize = CHUNK_SIZE as usize;
-        const MAX: u32 = CHUNK_SIZE; // Just cause CHUNK_SIZE is long
-        match (x, y, z) {
-            (0, 0, 0) => self.neighbors[0].get_block(UVec3::new(MAX - 1, MAX - 1, MAX - 1)),
-            (0, 0, 1..=MAX) => self.neighbors[1].get_block(UVec3::new(MAX - 1, MAX - 1, z - 1)),
-            (0, 0, CHUNK_BOUND) => self.neighbors[2].get_block(UVec3::new(MAX - 1, MAX - 1, 0)),
-            (0, 1..=MAX, 0) => self.neighbors[3].get_block(UVec3::new(MAX - 1, y - 1, MAX - 1)),
-            (0, 1..=MAX, 1..=MAX) => self.neighbors[4].get_block(UVec3::new(MAX - 1, y - 1, z - 1)),
-            (0, 1..=MAX, CHUNK_BOUND) => self.neighbors[5].get_block(UVec3::new(MAX - 1, y - 1, 0)),
-            (0, CHUNK_BOUND, 0) => self.neighbors[6].get_block(UVec3::new(MAX - 1, 0, MAX - 1)),
-            (0, CHUNK_BOUND, 1..=MAX) => self.neighbors[7].get_block(UVec3::new(MAX - 1, 0, z - 1)),
-            (0, CHUNK_BOUND, CHUNK_BOUND) => self.neighbors[8].get_block(UVec3::new(MAX - 1, 0, 0)),
-            (1..=MAX, 0, 0) => self.neighbors[9].get_block(UVec3::new(x - 1, MAX - 1, MAX - 1)),
-            (1..=MAX, 0, 1..=MAX) => {
-                self.neighbors[10].get_block(UVec3::new(x - 1, MAX - 1, z - 1))
+    pub fn get_voxel(&self, index: usize, block_table: &BlockTable) -> VoxelType {
+        let block_state = self
+            .get_state_for_index(self.voxels[index] as usize)
+            .unwrap();
+        let block_id = self.get_index_for_state(&block_state).unwrap();
+        let mut block_name = block_state.namespace.clone();
+        block_name.push(':');
+        block_name.push_str(block_state.name.as_str());
+        if let Some(voxel) = block_table.get(&block_name) {
+            let voxel_visibility = voxel.visibility;
+            if let Some(voxel_visibility) = voxel_visibility {
+                match voxel_visibility {
+                    VoxelVisibility::Empty => VoxelType::Empty(block_id),
+                    VoxelVisibility::Opaque => VoxelType::Opaque(block_id),
+                    VoxelVisibility::Transparent => VoxelType::Transparent(block_id),
+                }
+            } else {
+                VoxelType::Empty(0)
             }
-            (1..=MAX, 0, CHUNK_BOUND) => {
-                self.neighbors[11].get_block(UVec3::new(x - 1, MAX - 1, 0))
-            }
-            (1..=MAX, 1..=MAX, 0) => {
-                self.neighbors[12].get_block(UVec3::new(x - 1, y - 1, MAX - 1))
-            }
-            (1..=MAX, 1..=MAX, 1..=MAX) => self.center.get_block(UVec3::new(x - 1, y - 1, z - 1)),
-            (1..=MAX, 1..=MAX, CHUNK_BOUND) => {
-                self.neighbors[13].get_block(UVec3::new(x - 1, y - 1, 0))
-            }
-            (1..=MAX, CHUNK_BOUND, 0) => {
-                self.neighbors[14].get_block(UVec3::new(x - 1, 0, MAX - 1))
-            }
-            (1..=MAX, CHUNK_BOUND, 1..=MAX) => {
-                self.neighbors[15].get_block(UVec3::new(x - 1, 0, z - 1))
-            }
-            (1..=MAX, CHUNK_BOUND, CHUNK_BOUND) => {
-                self.neighbors[16].get_block(UVec3::new(x - 1, 0, 0))
-            }
-            (CHUNK_BOUND, 0, 0) => self.neighbors[17].get_block(UVec3::new(0, MAX - 1, MAX - 1)),
-            (CHUNK_BOUND, 0, 1..=MAX) => {
-                self.neighbors[18].get_block(UVec3::new(0, MAX - 1, z - 1))
-            }
-            (CHUNK_BOUND, 0, CHUNK_BOUND) => {
-                self.neighbors[19].get_block(UVec3::new(0, MAX - 1, 0))
-            }
-            (CHUNK_BOUND, 1..=MAX, 0) => {
-                self.neighbors[20].get_block(UVec3::new(0, y - 1, MAX - 1))
-            }
-            (CHUNK_BOUND, 1..=MAX, 1..=MAX) => {
-                self.neighbors[21].get_block(UVec3::new(0, y - 1, z - 1))
-            }
-            (CHUNK_BOUND, 1..=MAX, CHUNK_BOUND) => {
-                self.neighbors[22].get_block(UVec3::new(0, y - 1, 0))
-            }
-            (CHUNK_BOUND, CHUNK_BOUND, 0) => {
-                self.neighbors[23].get_block(UVec3::new(0, 0, MAX - 1))
-            }
-            (CHUNK_BOUND, CHUNK_BOUND, 1..=MAX) => {
-                self.neighbors[24].get_block(UVec3::new(0, 0, z - 1))
-            }
-            (CHUNK_BOUND, CHUNK_BOUND, CHUNK_BOUND) => {
-                self.neighbors[25].get_block(UVec3::new(0, 0, 0))
-            }
+        } else {
+            println!("No name: {block_name:?}");
+            VoxelType::Empty(0)
+        }
+    }
 
-            (_, _, _) => Some(BlockData::new("vinox".to_string(), "air".to_string())),
+    pub fn get_data(&self, index: usize, block_table: &BlockTable) -> BlockDescriptor {
+        let block_state = self
+            .get_state_for_index(self.voxels[index] as usize)
+            .unwrap();
+        let mut block_name = block_state.namespace.clone();
+        block_name.push(':');
+        block_name.push_str(block_state.name.as_str());
+        block_table.get(&block_name).unwrap().clone()
+    }
+
+    pub fn get_index_for_state(&self, block_data: &BlockData) -> Option<u16> {
+        self.palette.get_by_right(block_data).copied()
+    }
+
+    pub fn get_state_for_index(&self, index: usize) -> Option<BlockData> {
+        self.palette.get_by_left(&(index as u16)).cloned()
+    }
+
+    pub fn get_block(&self, pos: UVec3) -> Option<BlockData> {
+        let index = ChunkBoundary::linearize(pos);
+        self.get_state_for_index(self.voxels[index] as usize)
+    }
+
+    pub fn get_identifier(&self, pos: UVec3) -> String {
+        let index = ChunkBoundary::linearize(pos);
+        if let Some(block) = self.get_state_for_index(self.voxels[index] as usize) {
+            let mut identifier = block.namespace.clone();
+            identifier.push(':');
+            identifier.push_str(&block.name);
+            identifier
+        } else {
+            "vinox:air".to_string()
         }
     }
 }
-
-pub fn chunk_boundary() {}

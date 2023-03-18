@@ -517,11 +517,11 @@ fn full_mesh(
             (Axis::Z, true) => 4,
         };
         let block = raw_chunk
-            .get_block(
+            .get_block(UVec3::new(
                 face.voxel()[0] as u32,
                 face.voxel()[1] as u32,
                 face.voxel()[2] as u32,
-            )
+            ))
             .unwrap();
         let mut block_name = block.namespace.clone();
         block_name.push(':');
@@ -570,11 +570,11 @@ fn full_mesh(
         };
 
         let block = &raw_chunk
-            .get_block(
+            .get_block(UVec3::new(
                 face.voxel()[0] as u32,
                 face.voxel()[1] as u32,
                 face.voxel()[2] as u32,
-            )
+            ))
             .unwrap();
         let mut block_name = block.namespace.clone();
         block_name.push(':');

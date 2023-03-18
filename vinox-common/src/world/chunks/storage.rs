@@ -245,6 +245,15 @@ impl RawChunk {
         block_table.get(&block_name).unwrap().clone()
     }
 
+    pub fn get_data_pos(&self, x: u32, y: u32, z: u32) -> BlockData {
+        let index = RawChunk::linearize(UVec3::new(x, y, z));
+        let block_state = self
+            .get_state_for_index(self.voxels[index] as usize)
+            .unwrap();
+
+        block_state.clone()
+    }
+
     pub fn get_index_for_state(&self, block_data: &BlockData) -> Option<u16> {
         self.palette.get_by_right(block_data).copied()
     }

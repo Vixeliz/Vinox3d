@@ -28,3 +28,4 @@ egui-notify = "0.6.0"
 leafwing-input-manager = "0.9.0"
 ron.workspace=true
 fs_extra = "1.3.0"
+bimap.workspace=true
