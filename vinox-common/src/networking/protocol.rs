@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 use crate::{ecs::bundles::Inventory, world::chunks::storage::BlockData};
 
 pub const PROTOCOL_ID: u64 = 1;
+pub const RELIABLE_CHANNEL_MAX_LENGTH: u64 = 10240;
 
 #[derive(Component)]
 pub struct NetworkedEntity;
@@ -198,6 +199,8 @@ impl ServerChannel {
             ReliableChannelConfig {
                 channel_id: Self::Level.into(),
                 message_resend_time: Duration::ZERO,
+                max_message_size: RELIABLE_CHANNEL_MAX_LENGTH,
+                packet_budget: RELIABLE_CHANNEL_MAX_LENGTH * 2,
                 ..Default::default()
             }
             .into(),
