@@ -95,13 +95,19 @@ fn main() {
 }
 
 pub fn save_world_info(world_info: WorldInfo, path: PathBuf) {
-    if let Ok(mut output) = File::create(path) {
+    if create_dir_all(path.parent().unwrap()).is_err() {
+        println!("Failed to create {:?} directory!", path.parent());
+        return;
+    }
+    if let Ok(mut output) = File::create(path.clone()) {
         let pretty = PrettyConfig::new()
             .depth_limit(2)
             .separate_tuple_members(true)
             .enumerate_arrays(true);
         let s = to_string_pretty(&world_info, pretty).ok().unwrap();
         write!(output, "{s}").ok();
+    } else {
+        println!("Failed to save world at path {:?}!", path);
     }
 }
 
