@@ -8,8 +8,11 @@ use std::time::Duration;
 use vinox_common::{
     ecs::bundles::PlayerBundleBuilder,
     networking::protocol::NetworkIP,
-    storage::{blocks::load::load_all_blocks, items::load::item_from_block},
-    world::chunks::storage::{BlockTable, ItemTable},
+    storage::{
+        blocks::load::load_all_blocks, crafting::load::load_all_recipes,
+        items::load::item_from_block,
+    },
+    world::chunks::storage::{BlockTable, ItemTable, RecipeTable},
 };
 
 use crate::states::{assets::load::LoadableAssets, components::GameState};
@@ -99,6 +102,7 @@ pub fn setup_resources(
     mut loading: ResMut<AssetsLoading>,
     mut block_table: ResMut<BlockTable>,
     mut item_table: ResMut<ItemTable>,
+    mut recipe_table: ResMut<RecipeTable>,
 ) {
     let player_handle = asset_server.load("base_player.gltf#Scene0");
     loading.push(player_handle.clone_untyped());
@@ -120,6 +124,12 @@ pub fn setup_resources(
             }
         }
         block_table.insert(name, block);
+    }
+    for recipe in load_all_recipes() {
+        let mut name = recipe.clone().namespace;
+        name.push(':');
+        name.push_str(&recipe.name);
+        recipe_table.insert(name, recipe);
     }
 }
 

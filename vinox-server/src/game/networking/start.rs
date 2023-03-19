@@ -3,11 +3,18 @@ use std::net::{IpAddr, Ipv4Addr};
 use bevy::prelude::*;
 use bevy_quinnet::server::*;
 use vinox_common::{
-    storage::{blocks::load::load_all_blocks, items::load::item_from_block},
-    world::chunks::storage::{BlockTable, ItemTable},
+    storage::{
+        blocks::load::load_all_blocks, crafting::load::load_all_recipes,
+        items::load::item_from_block,
+    },
+    world::chunks::storage::{BlockTable, ItemTable, RecipeTable},
 };
 
-pub fn setup_loadables(mut block_table: ResMut<BlockTable>, mut item_table: ResMut<ItemTable>) {
+pub fn setup_loadables(
+    mut block_table: ResMut<BlockTable>,
+    mut item_table: ResMut<ItemTable>,
+    mut recipe_table: ResMut<RecipeTable>,
+) {
     for block in load_all_blocks() {
         let mut name = block.clone().namespace;
         name.push(':');
@@ -18,6 +25,12 @@ pub fn setup_loadables(mut block_table: ResMut<BlockTable>, mut item_table: ResM
             }
         }
         block_table.insert(name, block);
+    }
+    for recipe in load_all_recipes() {
+        let mut name = recipe.clone().namespace;
+        name.push(':');
+        name.push_str(&recipe.name);
+        recipe_table.insert(name, recipe);
     }
 }
 

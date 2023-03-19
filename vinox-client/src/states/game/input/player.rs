@@ -204,6 +204,7 @@ fn norm_to_bar(item: usize) -> Option<(usize, usize)> {
     Some(((f_item / 3.0).floor() as usize, item.rem_euclid(3)))
 }
 
+//TODO: Overhaul of inventory and crafting to be reliant on server.
 #[allow(clippy::too_many_arguments)]
 #[allow(clippy::type_complexity)]
 pub fn interact(

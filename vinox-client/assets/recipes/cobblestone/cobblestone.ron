@@ -1,0 +1,10 @@
+RecipeDescriptor(
+    namespace: "vinox",
+    name: "cobblestone",
+    required_items: {
+        "vinox:dirt": 4,
+    }
+    output_items: [
+        ("vinox:cobblestone", 1)
+    ]
+)

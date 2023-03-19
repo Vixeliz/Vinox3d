@@ -7,7 +7,10 @@ use serde::{Deserialize, Serialize};
 use serde_big_array::Array;
 use strum::EnumString;
 
-use crate::storage::{blocks::descriptor::BlockDescriptor, items::descriptor::ItemDescriptor};
+use crate::storage::{
+    blocks::descriptor::BlockDescriptor, crafting::descriptor::RecipeDescriptor,
+    items::descriptor::ItemDescriptor,
+};
 
 pub const HORIZONTAL_DISTANCE: i32 = 16;
 pub const VERTICAL_DISTANCE: i32 = 8;
@@ -15,6 +18,9 @@ pub const CHUNK_SIZE: u32 = 16;
 pub const CHUNK_SIZE_ARR: u32 = CHUNK_SIZE - 1;
 pub const TOTAL_CHUNK_SIZE: usize =
     (CHUNK_SIZE as usize) * (CHUNK_SIZE as usize) * (CHUNK_SIZE as usize);
+
+#[derive(Resource, Clone, Default, Deref, DerefMut)]
+pub struct RecipeTable(pub HashMap<String, RecipeDescriptor>);
 
 #[derive(Resource, Clone, Default, Deref, DerefMut)]
 pub struct BlockTable(pub HashMap<String, BlockDescriptor>);
