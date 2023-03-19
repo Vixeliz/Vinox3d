@@ -278,9 +278,9 @@ impl<'a> Face<'a> {
         top: bool,
         direction: Option<storage::Direction>,
         neighbors: [bool; 4], // 4 neighbors whether they are a stair or not. 0 north 1 south, 2 east, 3 wess
-        neighbors_geometry: [storage::Direction; 4], // 4 neighbors whether they are a stair or not. 0 north 1 south, 2 east, 3 wess
+        neighbors_direction: [storage::Direction; 4], // 4 neighbors whether they are a stair or not. 0 north 1 south, 2 east, 3 wess
         neighbors_top: [bool; 4], // 4 neighbors whether they are a stair or not. 0 north 1 south, 2 east, 3 wess
-    ) -> Vec<([[f32; 3]; 4], [u32; 6])> {
+    ) -> Vec<(Vec<[f32; 3]>, [u32; 6])> {
         let mut combo = Vec::new();
         let (min_x, max_x, min_z, max_z) = if let Some(direction) = direction.clone() {
             match direction {
@@ -338,28 +338,27 @@ impl<'a> Face<'a> {
             (self.quad.voxel[2] - 1) as f32,
         );
 
-        let face_vert = [
-            [
-                x * voxel_size + positions[0][0] * voxel_size,
-                y * voxel_size + positions[0][1] * voxel_size,
-                z * voxel_size + positions[0][2] * voxel_size,
-            ],
-            [
-                x * voxel_size + positions[1][0] * voxel_size,
-                y * voxel_size + positions[1][1] * voxel_size,
-                z * voxel_size + positions[1][2] * voxel_size,
-            ],
-            [
-                x * voxel_size + positions[2][0] * voxel_size,
-                y * voxel_size + positions[2][1] * voxel_size,
-                z * voxel_size + positions[2][2] * voxel_size,
-            ],
-            [
-                x * voxel_size + positions[3][0] * voxel_size,
-                y * voxel_size + positions[3][1] * voxel_size,
-                z * voxel_size + positions[3][2] * voxel_size,
-            ],
-        ];
+        let mut face_vert = Vec::new();
+        face_vert.push([
+            x * voxel_size + positions[0][0] * voxel_size,
+            y * voxel_size + positions[0][1] * voxel_size,
+            z * voxel_size + positions[0][2] * voxel_size,
+        ]);
+        face_vert.push([
+            x * voxel_size + positions[1][0] * voxel_size,
+            y * voxel_size + positions[1][1] * voxel_size,
+            z * voxel_size + positions[1][2] * voxel_size,
+        ]);
+        face_vert.push([
+            x * voxel_size + positions[2][0] * voxel_size,
+            y * voxel_size + positions[2][1] * voxel_size,
+            z * voxel_size + positions[2][2] * voxel_size,
+        ]);
+        face_vert.push([
+            x * voxel_size + positions[3][0] * voxel_size,
+            y * voxel_size + positions[3][1] * voxel_size,
+            z * voxel_size + positions[3][2] * voxel_size,
+        ]);
 
         combo.push((
             face_vert,
@@ -368,96 +367,6 @@ impl<'a> Face<'a> {
         // There is ever only 2 faces per side on any given stair so we don't need to loop or anything.
         // This is the hardest part this is the part of the stair that changes based off of neighbors
         // There is probably way better ways to do this using bitmask or something but instead you have me lmao
-        let (min_x, max_x, min_z, max_z) = if let Some(direction) = direction {
-            match direction {
-                storage::Direction::North => (0.0, 1.0, 0.0, 0.5),
-                storage::Direction::South => (0.0, 1.0, 0.5, 1.0),
-                storage::Direction::West => (0.5, 1.0, 0.0, 1.0),
-                storage::Direction::East => (0.0, 0.5, 0.0, 1.0),
-            }
-        } else {
-            (0.0, 1.0, 0.0, 1.0)
-        };
-        let (min_y, max_y) = if top { (0.0, 0.5) } else { (0.5, 1.0) };
-        let positions = match (&self.side.axis, &self.side.positive) {
-            (Axis::X, false) => [
-                [min_x, min_y, max_z],
-                [min_x, min_y, min_z],
-                [min_x, max_y, max_z],
-                [min_x, max_y, min_z],
-            ],
-            (Axis::X, true) => [
-                [max_x, min_y, min_z],
-                [max_x, min_y, max_z],
-                [max_x, max_y, min_z],
-                [max_x, max_y, max_z],
-            ],
-            (Axis::Y, false) => [
-                [min_x, min_y, max_z],
-                [max_x, min_y, max_z],
-                [min_x, min_y, min_z],
-                [max_x, min_y, min_z],
-            ],
-            (Axis::Y, true) => [
-                [min_x, max_y, max_z],
-                [min_x, max_y, min_z],
-                [max_x, max_y, max_z],
-                [max_x, max_y, min_z],
-            ],
-            (Axis::Z, false) => [
-                [min_x, min_y, min_z],
-                [max_x, min_y, min_z],
-                [min_x, max_y, min_z],
-                [max_x, max_y, min_z],
-            ],
-            (Axis::Z, true) => [
-                [max_x, min_y, max_z],
-                [min_x, min_y, max_z],
-                [max_x, max_y, max_z],
-                [min_x, max_y, max_z],
-            ],
-        };
-
-        let (x, y, z) = (
-            (self.quad.voxel[0] - 1) as f32,
-            (self.quad.voxel[1] - 1) as f32,
-            (self.quad.voxel[2] - 1) as f32,
-        );
-
-        let face_vert = [
-            [
-                x * voxel_size + positions[0][0] * voxel_size,
-                y * voxel_size + positions[0][1] * voxel_size,
-                z * voxel_size + positions[0][2] * voxel_size,
-            ],
-            [
-                x * voxel_size + positions[1][0] * voxel_size,
-                y * voxel_size + positions[1][1] * voxel_size,
-                z * voxel_size + positions[1][2] * voxel_size,
-            ],
-            [
-                x * voxel_size + positions[2][0] * voxel_size,
-                y * voxel_size + positions[2][1] * voxel_size,
-                z * voxel_size + positions[2][2] * voxel_size,
-            ],
-            [
-                x * voxel_size + positions[3][0] * voxel_size,
-                y * voxel_size + positions[3][1] * voxel_size,
-                z * voxel_size + positions[3][2] * voxel_size,
-            ],
-        ];
-        combo.push((
-            face_vert,
-            [
-                start + 4,
-                start + 6,
-                start + 5,
-                start + 5,
-                start + 6,
-                start + 7,
-            ],
-        ));
-
         combo
     }
 
