@@ -541,30 +541,48 @@ where
                             chunk.get(x, y, z - 1, block_table),
                             chunk.get(x, y, z + 1, block_table),
                         ];
+                        let neighbor_block = [
+                            chunk.get_descriptor(x - 1, y, z, block_table),
+                            chunk.get_descriptor(x + 1, y, z, block_table),
+                            chunk.get_descriptor(x, y - 1, z, block_table),
+                            chunk.get_descriptor(x, y + 1, z, block_table),
+                            chunk.get_descriptor(x, y, z - 1, block_table),
+                            chunk.get_descriptor(x, y, z + 1, block_table),
+                        ];
                         let voxel_descriptor = chunk.get_descriptor(x, y, z, block_table);
                         let voxel_data = chunk.get_data(x, y, z);
                         match voxel_descriptor.geometry.unwrap_or_default() {
                             BlockGeometry::Block => {
                                 for (i, neighbor) in neighbors.into_iter().enumerate() {
                                     let other = neighbor.visibility();
+                                    let generate =
+                                        if neighbor_block[i].geometry.clone().unwrap_or_default()
+                                            == BlockGeometry::Block
+                                        {
+                                            if solid_pass {
+                                                match (visibility, other) {
+                                                    (OPAQUE, EMPTY) | (OPAQUE, TRANSPARENT) => true,
 
-                                    let generate = if solid_pass {
-                                        match (visibility, other) {
-                                            (OPAQUE, EMPTY) | (OPAQUE, TRANSPARENT) => true,
+                                                    (TRANSPARENT, TRANSPARENT) => voxel != neighbor,
 
-                                            (TRANSPARENT, TRANSPARENT) => voxel != neighbor,
+                                                    (_, _) => false,
+                                                }
+                                            } else {
+                                                match (visibility, other) {
+                                                    (TRANSPARENT, EMPTY) => true,
 
-                                            (_, _) => false,
-                                        }
-                                    } else {
-                                        match (visibility, other) {
-                                            (TRANSPARENT, EMPTY) => true,
+                                                    (TRANSPARENT, TRANSPARENT) => voxel != neighbor,
 
-                                            (TRANSPARENT, TRANSPARENT) => voxel != neighbor,
-
-                                            (_, _) => false,
-                                        }
-                                    };
+                                                    (_, _) => false,
+                                                }
+                                            }
+                                        } else if (visibility == OPAQUE && solid_pass)
+                                            || (visibility == TRANSPARENT && !solid_pass)
+                                        {
+                                            true
+                                        } else {
+                                            false
+                                        };
 
                                     if generate {
                                         buffer.groups[i].push(Quad {
