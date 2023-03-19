@@ -22,7 +22,7 @@ use vinox_common::{
     world::chunks::{
         ecs::{ChunkComp, CurrentChunks},
         positions::voxel_to_world,
-        storage::{BlockTable, Chunk, RawChunk, Voxel, VoxelVisibility, CHUNK_SIZE},
+        storage::{self, BlockTable, Chunk, RawChunk, Voxel, VoxelVisibility, CHUNK_SIZE},
     },
 };
 
@@ -341,43 +341,62 @@ impl<'a> Face<'a> {
         ]
     }
 
-    pub fn slab_positions(&self, voxel_size: f32) -> [[f32; 3]; 4] {
+    pub fn slab_positions(
+        &self,
+        voxel_size: f32,
+        top: bool,
+        direction: Option<storage::Direction>,
+    ) -> [[f32; 3]; 4] {
+        let (min_x, max_x, min_y, max_y, min_z, max_z) = if let Some(direction) = direction {
+            match direction {
+                storage::Direction::North => (0.0, 1.0, 0.0, 1.0, 0.0, 0.5),
+                storage::Direction::South => (0.0, 1.0, 0.0, 1.0, 0.5, 1.0),
+                storage::Direction::West => (0.5, 1.0, 0.0, 1.0, 0.0, 1.0),
+                storage::Direction::East => (0.0, 0.5, 0.0, 1.0, 0.0, 1.0),
+            }
+        } else {
+            if top {
+                (0.0, 1.0, 0.5, 1.0, 0.0, 1.0)
+            } else {
+                (0.0, 1.0, 0.0, 0.5, 0.0, 1.0)
+            }
+        };
         let positions = match (&self.side.axis, &self.side.positive) {
             (Axis::X, false) => [
-                [0.0, 0.0, 1.0],
-                [0.0, 0.0, 0.0],
-                [0.0, 1.0, 1.0],
-                [0.0, 1.0, 0.0],
+                [min_x, min_y, max_z],
+                [min_x, min_y, min_z],
+                [min_x, max_y, max_z],
+                [min_x, max_y, min_z],
             ],
             (Axis::X, true) => [
-                [1.0, 0.0, 0.0],
-                [1.0, 0.0, 1.0],
-                [1.0, 1.0, 0.0],
-                [1.0, 1.0, 1.0],
+                [max_x, min_y, min_z],
+                [max_x, min_y, max_z],
+                [max_x, max_y, min_z],
+                [max_x, max_y, max_z],
             ],
             (Axis::Y, false) => [
-                [0.0, 0.0, 1.0],
-                [1.0, 0.0, 1.0],
-                [0.0, 0.0, 0.0],
-                [1.0, 0.0, 0.0],
+                [min_x, min_y, max_z],
+                [max_x, min_y, max_z],
+                [min_x, min_y, min_z],
+                [max_x, min_y, min_z],
             ],
             (Axis::Y, true) => [
-                [0.0, 0.5, 1.0],
-                [0.0, 0.5, 0.0],
-                [1.0, 0.5, 1.0],
-                [1.0, 0.5, 0.0],
+                [min_x, max_y, max_z],
+                [min_x, max_y, min_z],
+                [max_x, max_y, max_z],
+                [max_x, max_y, min_z],
             ],
             (Axis::Z, false) => [
-                [0.0, 0.0, 0.0],
-                [1.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0],
-                [1.0, 1.0, 0.0],
+                [min_x, min_y, min_z],
+                [max_x, min_y, min_z],
+                [min_x, max_y, min_z],
+                [max_x, max_y, min_z],
             ],
             (Axis::Z, true) => [
-                [1.0, 0.0, 1.0],
-                [0.0, 0.0, 1.0],
-                [1.0, 1.0, 1.0],
-                [0.0, 1.0, 1.0],
+                [max_x, min_y, max_z],
+                [min_x, min_y, max_z],
+                [max_x, max_y, max_z],
+                [min_x, max_y, max_z],
             ],
         };
 
@@ -511,49 +530,86 @@ where
             for x in 1..C::X - 1 {
                 let (x, y, z) = (x as u32, y as u32, z as u32);
                 let voxel = chunk.get(x, y, z, block_table);
-                let voxel_descriptor = chunk.get_descriptor(x, y, z, block_table);
-                if voxel_descriptor.geometry.unwrap_or_default() == BlockGeometry::Block {
-                    match voxel.visibility() {
-                        EMPTY => continue,
-                        visibility => {
-                            let neighbors = [
-                                chunk.get(x - 1, y, z, block_table),
-                                chunk.get(x + 1, y, z, block_table),
-                                chunk.get(x, y - 1, z, block_table),
-                                chunk.get(x, y + 1, z, block_table),
-                                chunk.get(x, y, z - 1, block_table),
-                                chunk.get(x, y, z + 1, block_table),
-                            ];
+                match voxel.visibility() {
+                    EMPTY => continue,
+                    visibility => {
+                        let neighbors = [
+                            chunk.get(x - 1, y, z, block_table),
+                            chunk.get(x + 1, y, z, block_table),
+                            chunk.get(x, y - 1, z, block_table),
+                            chunk.get(x, y + 1, z, block_table),
+                            chunk.get(x, y, z - 1, block_table),
+                            chunk.get(x, y, z + 1, block_table),
+                        ];
+                        let voxel_descriptor = chunk.get_descriptor(x, y, z, block_table);
+                        match voxel_descriptor.geometry.unwrap_or_default() {
+                            BlockGeometry::Block => {
+                                for (i, neighbor) in neighbors.into_iter().enumerate() {
+                                    let other = neighbor.visibility();
 
-                            for (i, neighbor) in neighbors.into_iter().enumerate() {
-                                let other = neighbor.visibility();
+                                    let generate = if solid_pass {
+                                        match (visibility, other) {
+                                            (OPAQUE, EMPTY) | (OPAQUE, TRANSPARENT) => true,
 
-                                let generate = if solid_pass {
-                                    match (visibility, other) {
-                                        (OPAQUE, EMPTY) | (OPAQUE, TRANSPARENT) => true,
+                                            (TRANSPARENT, TRANSPARENT) => voxel != neighbor,
 
-                                        (TRANSPARENT, TRANSPARENT) => voxel != neighbor,
+                                            (_, _) => false,
+                                        }
+                                    } else {
+                                        match (visibility, other) {
+                                            (TRANSPARENT, EMPTY) => true,
 
-                                        (_, _) => false,
+                                            (TRANSPARENT, TRANSPARENT) => voxel != neighbor,
+
+                                            (_, _) => false,
+                                        }
+                                    };
+
+                                    if generate {
+                                        buffer.groups[i].push(Quad {
+                                            voxel: [x as usize, y as usize, z as usize],
+                                            width: 1,
+                                            height: 1,
+                                        });
                                     }
-                                } else {
-                                    match (visibility, other) {
-                                        (TRANSPARENT, EMPTY) => true,
-
-                                        (TRANSPARENT, TRANSPARENT) => voxel != neighbor,
-
-                                        (_, _) => false,
-                                    }
-                                };
-
-                                if generate {
-                                    buffer.groups[i].push(Quad {
-                                        voxel: [x as usize, y as usize, z as usize],
-                                        width: 1,
-                                        height: 1,
-                                    });
                                 }
                             }
+                            BlockGeometry::Stairs => {}
+                            BlockGeometry::Cross => {}
+                            BlockGeometry::BorderedBlock => {}
+                            BlockGeometry::Slab => {
+                                for (i, neighbor) in neighbors.into_iter().enumerate() {
+                                    let other = neighbor.visibility();
+
+                                    let generate = if solid_pass {
+                                        match (visibility, other) {
+                                            (OPAQUE, EMPTY) | (OPAQUE, TRANSPARENT) => true,
+
+                                            (TRANSPARENT, TRANSPARENT) => voxel != neighbor,
+
+                                            (_, _) => false,
+                                        }
+                                    } else {
+                                        match (visibility, other) {
+                                            (TRANSPARENT, EMPTY) => true,
+
+                                            (TRANSPARENT, TRANSPARENT) => voxel != neighbor,
+
+                                            (_, _) => false,
+                                        }
+                                    };
+
+                                    if generate {
+                                        buffer.groups[i].push(Quad {
+                                            voxel: [x as usize, y as usize, z as usize],
+                                            width: 1,
+                                            height: 1,
+                                        });
+                                    }
+                                }
+                            }
+                            BlockGeometry::Flat => {}
+                            BlockGeometry::Fence => {}
                         }
                     }
                 }
@@ -578,41 +634,107 @@ fn full_mesh(
     let mut uvs = Vec::new();
     let mut ao = Vec::new();
     for face in mesh_result.iter_with_ao(raw_chunk, block_table) {
-        indices.extend_from_slice(&face.indices(positions.len() as u32));
-        positions.extend_from_slice(&face.positions(1.0)); // Voxel size is 1m
-        normals.extend_from_slice(&face.normals());
-        ao.extend_from_slice(&face.aos());
-
-        let matched_index = match (face.side.axis, face.side.positive) {
-            (Axis::X, false) => 2,
-            (Axis::X, true) => 3,
-            (Axis::Y, false) => 1,
-            (Axis::Y, true) => 0,
-            (Axis::Z, false) => 5,
-            (Axis::Z, true) => 4,
-        };
-        let block = raw_chunk
+        let voxel = raw_chunk
             .get_block(UVec3::new(
                 face.voxel()[0] as u32,
                 face.voxel()[1] as u32,
                 face.voxel()[2] as u32,
             ))
-            .unwrap();
+            .unwrap_or_default();
+        match raw_chunk
+            .get_data(
+                ChunkBoundary::linearize(UVec3::new(
+                    face.voxel()[0] as u32,
+                    face.voxel()[1] as u32,
+                    face.voxel()[2] as u32,
+                )),
+                &block_table,
+            )
+            .geometry
+            .unwrap_or_default()
+        {
+            BlockGeometry::Block => {
+                indices.extend_from_slice(&face.indices(positions.len() as u32));
+                positions.extend_from_slice(&face.positions(1.0)); // Voxel size is 1m
+                normals.extend_from_slice(&face.normals());
+                ao.extend_from_slice(&face.aos());
+                let matched_index = match (face.side.axis, face.side.positive) {
+                    (Axis::X, false) => 2,
+                    (Axis::X, true) => 3,
+                    (Axis::Y, false) => 1,
+                    (Axis::Y, true) => 0,
+                    (Axis::Z, false) => 5,
+                    (Axis::Z, true) => 4,
+                };
 
-        if let Some(texture_index) = texture_atlas.get_texture_index(
-            &loadable_assets
-                .block_textures
-                .get(&block.identifier)
-                .unwrap()[matched_index],
-        ) {
-            let face_coords =
-                calculate_coords(texture_index, Vec2::new(16.0, 16.0), texture_atlas.size);
-            uvs.push(face_coords[0]);
-            uvs.push(face_coords[1]);
-            uvs.push(face_coords[2]);
-            uvs.push(face_coords[3]);
-        } else {
-            uvs.extend_from_slice(&face.uvs(false, false));
+                let block = &raw_chunk
+                    .get_block(UVec3::new(
+                        face.voxel()[0] as u32,
+                        face.voxel()[1] as u32,
+                        face.voxel()[2] as u32,
+                    ))
+                    .unwrap();
+
+                if let Some(texture_index) = texture_atlas.get_texture_index(
+                    &loadable_assets
+                        .block_textures
+                        .get(&block.identifier)
+                        .unwrap()[matched_index],
+                ) {
+                    let face_coords =
+                        calculate_coords(texture_index, Vec2::new(16.0, 16.0), texture_atlas.size);
+                    uvs.push(face_coords[0]);
+                    uvs.push(face_coords[1]);
+                    uvs.push(face_coords[2]);
+                    uvs.push(face_coords[3]);
+                } else {
+                    uvs.extend_from_slice(&face.uvs(false, false));
+                }
+            }
+            BlockGeometry::Slab => {
+                indices.extend_from_slice(&face.indices(positions.len() as u32));
+                positions.extend_from_slice(&face.slab_positions(
+                    1.0,
+                    voxel.top.unwrap_or_default(),
+                    voxel.direction,
+                )); // Voxel size is 1m
+                normals.extend_from_slice(&face.normals());
+                ao.extend_from_slice(&face.aos());
+
+                let matched_index = match (face.side.axis, face.side.positive) {
+                    (Axis::X, false) => 2,
+                    (Axis::X, true) => 3,
+                    (Axis::Y, false) => 1,
+                    (Axis::Y, true) => 0,
+                    (Axis::Z, false) => 5,
+                    (Axis::Z, true) => 4,
+                };
+
+                let block = &raw_chunk
+                    .get_block(UVec3::new(
+                        face.voxel()[0] as u32,
+                        face.voxel()[1] as u32,
+                        face.voxel()[2] as u32,
+                    ))
+                    .unwrap();
+
+                if let Some(texture_index) = texture_atlas.get_texture_index(
+                    &loadable_assets
+                        .block_textures
+                        .get(&block.identifier)
+                        .unwrap()[matched_index],
+                ) {
+                    let face_coords =
+                        calculate_coords(texture_index, Vec2::new(16.0, 16.0), texture_atlas.size);
+                    uvs.push(face_coords[0]);
+                    uvs.push(face_coords[1]);
+                    uvs.push(face_coords[2]);
+                    uvs.push(face_coords[3]);
+                } else {
+                    uvs.extend_from_slice(&face.uvs(false, false));
+                }
+            }
+            _ => {}
         }
     }
 
@@ -631,41 +753,95 @@ fn full_mesh(
     let mut normals = Vec::new();
     let mut uvs = Vec::new();
     for face in mesh_result.iter() {
-        indices.extend_from_slice(&face.indices(positions.len() as u32));
-        positions.extend_from_slice(&face.positions(1.0)); // Voxel size is 1m
-        normals.extend_from_slice(&face.normals());
+        match raw_chunk
+            .get_data(
+                ChunkBoundary::linearize(UVec3::new(
+                    face.voxel()[0] as u32,
+                    face.voxel()[1] as u32,
+                    face.voxel()[2] as u32,
+                )),
+                &block_table,
+            )
+            .geometry
+            .unwrap_or_default()
+        {
+            BlockGeometry::Block => {
+                indices.extend_from_slice(&face.indices(positions.len() as u32));
+                positions.extend_from_slice(&face.positions(1.0)); // Voxel size is 1m
+                normals.extend_from_slice(&face.normals());
 
-        let matched_index = match (face.side.axis, face.side.positive) {
-            (Axis::X, false) => 2,
-            (Axis::X, true) => 3,
-            (Axis::Y, false) => 1,
-            (Axis::Y, true) => 0,
-            (Axis::Z, false) => 5,
-            (Axis::Z, true) => 4,
-        };
+                let matched_index = match (face.side.axis, face.side.positive) {
+                    (Axis::X, false) => 2,
+                    (Axis::X, true) => 3,
+                    (Axis::Y, false) => 1,
+                    (Axis::Y, true) => 0,
+                    (Axis::Z, false) => 5,
+                    (Axis::Z, true) => 4,
+                };
 
-        let block = &raw_chunk
-            .get_block(UVec3::new(
-                face.voxel()[0] as u32,
-                face.voxel()[1] as u32,
-                face.voxel()[2] as u32,
-            ))
-            .unwrap();
+                let block = &raw_chunk
+                    .get_block(UVec3::new(
+                        face.voxel()[0] as u32,
+                        face.voxel()[1] as u32,
+                        face.voxel()[2] as u32,
+                    ))
+                    .unwrap();
 
-        if let Some(texture_index) = texture_atlas.get_texture_index(
-            &loadable_assets
-                .block_textures
-                .get(&block.identifier)
-                .unwrap()[matched_index],
-        ) {
-            let face_coords =
-                calculate_coords(texture_index, Vec2::new(16.0, 16.0), texture_atlas.size);
-            uvs.push(face_coords[0]);
-            uvs.push(face_coords[1]);
-            uvs.push(face_coords[2]);
-            uvs.push(face_coords[3]);
-        } else {
-            uvs.extend_from_slice(&face.uvs(false, false));
+                if let Some(texture_index) = texture_atlas.get_texture_index(
+                    &loadable_assets
+                        .block_textures
+                        .get(&block.identifier)
+                        .unwrap()[matched_index],
+                ) {
+                    let face_coords =
+                        calculate_coords(texture_index, Vec2::new(16.0, 16.0), texture_atlas.size);
+                    uvs.push(face_coords[0]);
+                    uvs.push(face_coords[1]);
+                    uvs.push(face_coords[2]);
+                    uvs.push(face_coords[3]);
+                } else {
+                    uvs.extend_from_slice(&face.uvs(false, false));
+                }
+            }
+            BlockGeometry::Slab => {
+                indices.extend_from_slice(&face.indices(positions.len() as u32));
+                positions.extend_from_slice(&face.positions(1.0)); // Voxel size is 1m
+                normals.extend_from_slice(&face.normals());
+
+                let matched_index = match (face.side.axis, face.side.positive) {
+                    (Axis::X, false) => 2,
+                    (Axis::X, true) => 3,
+                    (Axis::Y, false) => 1,
+                    (Axis::Y, true) => 0,
+                    (Axis::Z, false) => 5,
+                    (Axis::Z, true) => 4,
+                };
+
+                let block = &raw_chunk
+                    .get_block(UVec3::new(
+                        face.voxel()[0] as u32,
+                        face.voxel()[1] as u32,
+                        face.voxel()[2] as u32,
+                    ))
+                    .unwrap();
+
+                if let Some(texture_index) = texture_atlas.get_texture_index(
+                    &loadable_assets
+                        .block_textures
+                        .get(&block.identifier)
+                        .unwrap()[matched_index],
+                ) {
+                    let face_coords =
+                        calculate_coords(texture_index, Vec2::new(16.0, 16.0), texture_atlas.size);
+                    uvs.push(face_coords[0]);
+                    uvs.push(face_coords[1]);
+                    uvs.push(face_coords[2]);
+                    uvs.push(face_coords[3]);
+                } else {
+                    uvs.extend_from_slice(&face.uvs(false, false));
+                }
+            }
+            _ => {}
         }
     }
     let mut transparent_mesh = Mesh::new(PrimitiveTopology::TriangleList);

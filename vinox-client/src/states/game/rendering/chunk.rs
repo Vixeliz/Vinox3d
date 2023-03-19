@@ -85,9 +85,13 @@ impl ChunkBoundary {
                     (CHUNK_BOUND, CHUNK_BOUND, 1..=MAX) => neighbors[24].get_rend(0, 0, z - 1),
                     (CHUNK_BOUND, CHUNK_BOUND, CHUNK_BOUND) => neighbors[25].get_rend(0, 0, 0),
 
-                    (_, _, _) => {
-                        RenderedBlockData::new("vinox".to_string(), "air".to_string(), None, None)
-                    }
+                    (_, _, _) => RenderedBlockData::new(
+                        "vinox".to_string(),
+                        "air".to_string(),
+                        None,
+                        None,
+                        None,
+                    ),
                 }
             }));
 
@@ -95,7 +99,7 @@ impl ChunkBoundary {
 
         palette.insert(
             0,
-            RenderedBlockData::new("vinox".to_string(), "air".to_string(), None, None),
+            RenderedBlockData::new("vinox".to_string(), "air".to_string(), None, None, None),
         );
 
         for idx in 0..TOTAL_CHUNK_SIZE_PADDED {

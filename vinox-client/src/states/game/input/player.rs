@@ -19,7 +19,7 @@ use vinox_common::{
     world::chunks::{
         ecs::{ChunkComp, CurrentChunks},
         positions::{relative_voxel_to_world, voxel_to_world, world_to_chunk, world_to_voxel},
-        storage::{BlockData, BlockTable, ItemTable, CHUNK_SIZE_ARR},
+        storage::{self, BlockData, BlockTable, ItemTable, CHUNK_SIZE_ARR},
     },
 };
 
@@ -442,10 +442,43 @@ pub fn interact(
                                         ));
                                     if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos)
                                     {
+                                        let mut modified_item = place_item.clone().unwrap();
                                         if let Ok(mut chunk) = chunks.get_mut(chunk_entity) {
+                                            let normal = normal.as_ivec3();
+                                            match normal.x {
+                                                -1 => {
+                                                    modified_item.direction =
+                                                        Some(storage::Direction::West)
+                                                }
+                                                1 => {
+                                                    modified_item.direction =
+                                                        Some(storage::Direction::East)
+                                                }
+                                                _ => {}
+                                            }
+                                            match normal.y {
+                                                -1 => {
+                                                    modified_item.top = Some(true);
+                                                }
+                                                1 => {
+                                                    modified_item.top = Some(false);
+                                                }
+                                                _ => {}
+                                            }
+                                            match normal.z {
+                                                -1 => {
+                                                    modified_item.direction =
+                                                        Some(storage::Direction::South)
+                                                }
+                                                1 => {
+                                                    modified_item.direction =
+                                                        Some(storage::Direction::North)
+                                                }
+                                                _ => {}
+                                            }
                                             chunk
                                                 .chunk_data
-                                                .add_block_state(&place_item.clone().unwrap());
+                                                .add_block_state(&modified_item.clone());
                                             chunk
                                                 .chunk_data
                                                 .set_block(voxel_pos, &place_item.clone().unwrap());
@@ -457,7 +490,7 @@ pub fn interact(
                                                         voxel_pos.y as u8,
                                                         voxel_pos.z as u8,
                                                     ],
-                                                    block_type: place_item.unwrap(),
+                                                    block_type: modified_item,
                                                 },
                                             );
                                             match voxel_pos.x {

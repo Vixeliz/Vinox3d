@@ -36,14 +36,13 @@ pub enum VoxelVisibility {
     Transparent,
 }
 
-#[derive(EnumString, Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(EnumString, Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone, Default)]
 pub enum Direction {
+    #[default]
     North,
     West,
     East,
     South,
-    Down,
-    Up,
 }
 
 #[derive(EnumString, Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Default, Clone)]
@@ -66,6 +65,7 @@ pub struct Container {
 pub struct RenderedBlockData {
     pub identifier: String,
     pub direction: Option<Direction>,
+    pub top: Option<bool>,
     pub growth_state: Option<GrowthState>,
 }
 
@@ -89,6 +89,7 @@ impl RenderedBlockData {
         name: String,
         direction: Option<Direction>,
         growth_state: Option<GrowthState>,
+        top: Option<bool>,
     ) -> Self {
         let mut identifier = namespace;
         identifier.push(':');
@@ -97,6 +98,7 @@ impl RenderedBlockData {
             identifier,
             direction,
             growth_state,
+            top,
         }
     }
 }
@@ -110,6 +112,7 @@ pub struct BlockData {
     pub growth_state: Option<GrowthState>,
     pub last_tick: Option<u64>,
     pub arbitary_data: Option<String>,
+    pub top: Option<bool>,
 }
 
 impl BlockData {
@@ -304,6 +307,7 @@ impl RawChunk {
             block_state.name,
             block_state.direction,
             block_state.growth_state,
+            block_state.top,
         )
     }
 
