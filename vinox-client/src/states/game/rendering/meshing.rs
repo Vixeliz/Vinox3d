@@ -227,6 +227,219 @@ impl<'a> FaceWithAO<'a> {
             [start, start + 3, start + 1, start, start + 2, start + 3]
         }
     }
+
+    pub fn stair_ind_vert(
+        &self,
+        start: u32,
+        voxel_size: f32,
+        top: bool,
+        direction: Option<storage::Direction>,
+        neighbors: [bool; 4], // 4 neighbors whether they are a stair or not. 0 north 1 south, 2 east, 3 wess
+        neighbors_direction: [storage::Direction; 4], // 4 neighbors whether they are a stair or not. 0 north 1 south, 2 east, 3 wess
+        neighbors_top: [bool; 4], // 4 neighbors whether they are a stair or not. 0 north 1 south, 2 east, 3 wess
+    ) -> Vec<(Vec<[f32; 3]>, Vec<u32>, Vec<[f32; 3]>, Vec<u32>)> {
+        // 3 vertices per vertex 3 indices per triangle
+        let mut combo = Vec::new();
+        let (min_x, max_x, min_z, max_z) = if let Some(direction) = direction.clone() {
+            match direction {
+                storage::Direction::North => (0.0, 1.0, 0.0, 1.0),
+                storage::Direction::South => (0.0, 1.0, 0.0, 1.0),
+                storage::Direction::West => (0.0, 1.0, 0.0, 1.0),
+                storage::Direction::East => (0.0, 1.0, 0.0, 1.0),
+            }
+        } else {
+            (0.0, 1.0, 0.0, 1.0)
+        };
+        let (min_y, max_y) = if top { (0.5, 1.0) } else { (0.0, 0.5) };
+        if self.side.axis == Axis::Y {
+            let positions = match (&self.side.axis, &self.side.positive) {
+                (Axis::Y, false) => [
+                    [min_x, min_y, max_z],
+                    [max_x, min_y, max_z],
+                    [min_x, min_y, min_z],
+                    [max_x, min_y, min_z],
+                ],
+                (Axis::Y, true) => [
+                    [min_x, max_y, max_z],
+                    [min_x, max_y, min_z],
+                    [max_x, max_y, max_z],
+                    [max_x, max_y, min_z],
+                ],
+                _ => [
+                    [0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0],
+                ],
+            };
+
+            let (x, y, z) = (
+                (self.quad.voxel[0] - 1) as f32,
+                (self.quad.voxel[1] - 1) as f32,
+                (self.quad.voxel[2] - 1) as f32,
+            );
+
+            let mut face_vert = Vec::new();
+            face_vert.push([
+                x * voxel_size + positions[0][0] * voxel_size,
+                y * voxel_size + positions[0][1] * voxel_size,
+                z * voxel_size + positions[0][2] * voxel_size,
+            ]);
+            face_vert.push([
+                x * voxel_size + positions[1][0] * voxel_size,
+                y * voxel_size + positions[1][1] * voxel_size,
+                z * voxel_size + positions[1][2] * voxel_size,
+            ]);
+            face_vert.push([
+                x * voxel_size + positions[2][0] * voxel_size,
+                y * voxel_size + positions[2][1] * voxel_size,
+                z * voxel_size + positions[2][2] * voxel_size,
+            ]);
+            face_vert.push([
+                x * voxel_size + positions[3][0] * voxel_size,
+                y * voxel_size + positions[3][1] * voxel_size,
+                z * voxel_size + positions[3][2] * voxel_size,
+            ]);
+            let mut face_ind = Vec::new();
+            // 3 indices per face
+            // Tri 1
+            face_ind.push(start);
+            face_ind.push(start + 2);
+            face_ind.push(start + 1);
+            // Tri 2
+            face_ind.push(start + 1);
+            face_ind.push(start + 2);
+            face_ind.push(start + 3);
+            let mut face_normal = Vec::new();
+            let mut face_ao = Vec::new();
+            face_normal.push(self.side.normal());
+            face_normal.push(self.side.normal());
+            face_normal.push(self.side.normal());
+            face_normal.push(self.side.normal());
+            face_ao.push(self.aos()[0]);
+            face_ao.push(self.aos()[1]);
+            face_ao.push(self.aos()[2]);
+            face_ao.push(self.aos()[3]);
+            combo.push((face_vert, face_ind, face_normal, face_ao));
+            combo
+        } else {
+            let positions = match (&self.side.axis, &self.side.positive) {
+                (Axis::X, false) => [
+                    [min_x, min_y, max_z],
+                    [min_x, min_y, min_z],
+                    [min_x, max_y, max_z],
+                    [min_x, max_y, min_z],
+                    [min_x, max_y, min_z],
+                    [min_x, max_y, min_z],
+                ],
+                (Axis::X, true) => [
+                    [max_x, min_y, min_z],
+                    [max_x, min_y, max_z],
+                    [max_x, max_y, min_z],
+                    [max_x, max_y, max_z],
+                    [max_x, max_y, max_z],
+                    [max_x, max_y, max_z],
+                ],
+                (Axis::Z, false) => [
+                    [min_x, min_y, min_z],
+                    [max_x, min_y, min_z],
+                    [min_x, max_y, min_z],
+                    [max_x, max_y, min_z],
+                    [max_x, max_y, min_z],
+                    [max_x, max_y, min_z],
+                ],
+                (Axis::Z, true) => [
+                    [max_x, min_y, max_z],
+                    [min_x, min_y, max_z],
+                    [max_x, max_y, max_z],
+                    [min_x, max_y, max_z],
+                    [min_x, max_y, max_z],
+                    [min_x, max_y, max_z],
+                ],
+                _ => [
+                    [0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0],
+                ],
+            };
+
+            let (x, y, z) = (
+                (self.quad.voxel[0] - 1) as f32,
+                (self.quad.voxel[1] - 1) as f32,
+                (self.quad.voxel[2] - 1) as f32,
+            );
+
+            let mut face_vert = Vec::new();
+            face_vert.push([
+                x * voxel_size + positions[0][0] * voxel_size,
+                y * voxel_size + positions[0][1] * voxel_size,
+                z * voxel_size + positions[0][2] * voxel_size,
+            ]);
+            face_vert.push([
+                x * voxel_size + positions[1][0] * voxel_size,
+                y * voxel_size + positions[1][1] * voxel_size,
+                z * voxel_size + positions[1][2] * voxel_size,
+            ]);
+            face_vert.push([
+                x * voxel_size + positions[2][0] * voxel_size,
+                y * voxel_size + positions[2][1] * voxel_size,
+                z * voxel_size + positions[2][2] * voxel_size,
+            ]);
+            face_vert.push([
+                x * voxel_size + positions[3][0] * voxel_size,
+                y * voxel_size + positions[3][1] * voxel_size,
+                z * voxel_size + positions[3][2] * voxel_size,
+            ]);
+            face_vert.push([
+                x * voxel_size + positions[3][0] * voxel_size,
+                y * voxel_size + positions[3][1] * voxel_size,
+                z * voxel_size + positions[3][2] * voxel_size,
+            ]);
+            face_vert.push([
+                x * voxel_size + positions[3][0] * voxel_size,
+                y * voxel_size + positions[3][1] * voxel_size,
+                z * voxel_size + positions[3][2] * voxel_size,
+            ]);
+
+            let mut face_ind = Vec::new();
+            // Tri 1
+            face_ind.push(start);
+            face_ind.push(start + 2);
+            face_ind.push(start + 1);
+            // Tri 2
+            face_ind.push(start + 1);
+            face_ind.push(start + 2);
+            face_ind.push(start + 3);
+            // Tri 3
+            face_ind.push(start + 1);
+            face_ind.push(start + 2);
+            face_ind.push(start + 3);
+            // Tri 4
+            face_ind.push(start + 1);
+            face_ind.push(start + 2);
+            face_ind.push(start + 3);
+
+            let mut face_normal = Vec::new();
+            face_normal.push(self.side.normal());
+            face_normal.push(self.side.normal());
+            face_normal.push(self.side.normal());
+            face_normal.push(self.side.normal());
+            face_normal.push(self.side.normal());
+            face_normal.push(self.side.normal());
+            let mut face_ao = Vec::new();
+            face_ao.push(self.aos()[0]);
+            face_ao.push(self.aos()[1]);
+            face_ao.push(self.aos()[2]);
+            face_ao.push(self.aos()[3]);
+            face_ao.push(self.aos()[2]);
+            face_ao.push(self.aos()[3]);
+            combo.push((face_vert, face_ind, face_normal, face_ao));
+            combo
+        }
+    }
 }
 
 pub(crate) fn ao_value(side1: bool, corner: bool, side2: bool) -> u32 {
@@ -269,102 +482,6 @@ impl<'a> Deref for FaceWithAO<'a> {
 impl<'a> Face<'a> {
     pub fn indices(&self, start: u32) -> [u32; 6] {
         [start, start + 2, start + 1, start + 1, start + 2, start + 3]
-    }
-
-    pub fn stair_ind_vert(
-        &self,
-        start: u32,
-        voxel_size: f32,
-        top: bool,
-        direction: Option<storage::Direction>,
-        neighbors: [bool; 4], // 4 neighbors whether they are a stair or not. 0 north 1 south, 2 east, 3 wess
-        neighbors_direction: [storage::Direction; 4], // 4 neighbors whether they are a stair or not. 0 north 1 south, 2 east, 3 wess
-        neighbors_top: [bool; 4], // 4 neighbors whether they are a stair or not. 0 north 1 south, 2 east, 3 wess
-    ) -> Vec<(Vec<[f32; 3]>, [u32; 6])> {
-        let mut combo = Vec::new();
-        let (min_x, max_x, min_z, max_z) = if let Some(direction) = direction.clone() {
-            match direction {
-                storage::Direction::North => (0.0, 1.0, 0.0, 1.0),
-                storage::Direction::South => (0.0, 1.0, 0.0, 1.0),
-                storage::Direction::West => (0.0, 1.0, 0.0, 1.0),
-                storage::Direction::East => (0.0, 1.0, 0.0, 1.0),
-            }
-        } else {
-            (0.0, 1.0, 0.0, 1.0)
-        };
-        let (min_y, max_y) = if top { (0.5, 1.0) } else { (0.0, 0.5) };
-        let positions = match (&self.side.axis, &self.side.positive) {
-            (Axis::X, false) => [
-                [min_x, min_y, max_z],
-                [min_x, min_y, min_z],
-                [min_x, max_y, max_z],
-                [min_x, max_y, min_z],
-            ],
-            (Axis::X, true) => [
-                [max_x, min_y, min_z],
-                [max_x, min_y, max_z],
-                [max_x, max_y, min_z],
-                [max_x, max_y, max_z],
-            ],
-            (Axis::Y, false) => [
-                [min_x, min_y, max_z],
-                [max_x, min_y, max_z],
-                [min_x, min_y, min_z],
-                [max_x, min_y, min_z],
-            ],
-            (Axis::Y, true) => [
-                [min_x, max_y, max_z],
-                [min_x, max_y, min_z],
-                [max_x, max_y, max_z],
-                [max_x, max_y, min_z],
-            ],
-            (Axis::Z, false) => [
-                [min_x, min_y, min_z],
-                [max_x, min_y, min_z],
-                [min_x, max_y, min_z],
-                [max_x, max_y, min_z],
-            ],
-            (Axis::Z, true) => [
-                [max_x, min_y, max_z],
-                [min_x, min_y, max_z],
-                [max_x, max_y, max_z],
-                [min_x, max_y, max_z],
-            ],
-        };
-
-        let (x, y, z) = (
-            (self.quad.voxel[0] - 1) as f32,
-            (self.quad.voxel[1] - 1) as f32,
-            (self.quad.voxel[2] - 1) as f32,
-        );
-
-        let mut face_vert = Vec::new();
-        face_vert.push([
-            x * voxel_size + positions[0][0] * voxel_size,
-            y * voxel_size + positions[0][1] * voxel_size,
-            z * voxel_size + positions[0][2] * voxel_size,
-        ]);
-        face_vert.push([
-            x * voxel_size + positions[1][0] * voxel_size,
-            y * voxel_size + positions[1][1] * voxel_size,
-            z * voxel_size + positions[1][2] * voxel_size,
-        ]);
-        face_vert.push([
-            x * voxel_size + positions[2][0] * voxel_size,
-            y * voxel_size + positions[2][1] * voxel_size,
-            z * voxel_size + positions[2][2] * voxel_size,
-        ]);
-        face_vert.push([
-            x * voxel_size + positions[3][0] * voxel_size,
-            y * voxel_size + positions[3][1] * voxel_size,
-            z * voxel_size + positions[3][2] * voxel_size,
-        ]);
-
-        combo.push((
-            face_vert,
-            [start, start + 2, start + 1, start + 1, start + 2, start + 3],
-        ));
-        combo
     }
 
     pub fn positions(&self, voxel_size: f32) -> [[f32; 3]; 4] {
@@ -1429,7 +1546,7 @@ fn full_mesh(
                         .top
                         .unwrap_or_default(),
                 ];
-                for (pos, ind) in &face.stair_ind_vert(
+                for (pos, ind, norm, aos) in &face.stair_ind_vert(
                     positions.len() as u32,
                     1.0,
                     voxel.top.unwrap_or_default(),
@@ -1438,10 +1555,13 @@ fn full_mesh(
                     neighbors_geometry,
                     neighbors_top,
                 ) {
+                    // assert_eq!(indices.len() / 6, positions.len() / 4);
                     indices.extend_from_slice(ind);
                     positions.extend_from_slice(pos);
-                    normals.extend_from_slice(&face.normals());
-                    ao.extend_from_slice(&face.aos());
+                    normals.extend_from_slice(norm);
+                    ao.extend_from_slice(aos);
+                    // normals.extend_from_slice(&face.normals());
+                    // ao.extend_from_slice(&face.aos());
 
                     let matched_index = match (face.side.axis, face.side.positive) {
                         (Axis::X, false) => 2,
@@ -1471,12 +1591,34 @@ fn full_mesh(
                             Vec2::new(16.0, 16.0),
                             texture_atlas.size,
                         );
-                        uvs.push(face_coords[0]);
-                        uvs.push(face_coords[1]);
-                        uvs.push(face_coords[2]);
-                        uvs.push(face_coords[3]);
+                        if face.side.axis == Axis::Y {
+                            uvs.push(face_coords[0]);
+                            uvs.push(face_coords[1]);
+                            uvs.push(face_coords[2]);
+                            uvs.push(face_coords[3]);
+                        } else {
+                            uvs.push(face_coords[0]);
+                            uvs.push(face_coords[1]);
+                            uvs.push(face_coords[2]);
+                            uvs.push(face_coords[3]);
+                            uvs.push(face_coords[3]);
+                            uvs.push(face_coords[3]);
+                        }
                     } else {
-                        uvs.extend_from_slice(&face.uvs(false, false));
+                        let calculated_uv = face.uvs(false, false);
+                        if face.side.axis == Axis::Y {
+                            uvs.push(calculated_uv[0]);
+                            uvs.push(calculated_uv[1]);
+                            uvs.push(calculated_uv[2]);
+                            uvs.push(calculated_uv[3]);
+                        } else {
+                            uvs.push(calculated_uv[0]);
+                            uvs.push(calculated_uv[1]);
+                            uvs.push(calculated_uv[2]);
+                            uvs.push(calculated_uv[3]);
+                            uvs.push(calculated_uv[3]);
+                            uvs.push(calculated_uv[3]);
+                        }
                     }
                 }
             }
