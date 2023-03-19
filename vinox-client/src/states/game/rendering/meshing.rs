@@ -2086,6 +2086,7 @@ pub fn process_queue(
     chunk_material: Res<ChunkMaterial>,
     current_chunks: ResMut<CurrentChunks>,
     chunks: Query<&Handle<Mesh>>,
+    player_chunk: Res<PlayerChunk>,
 ) {
     let task_pool = AsyncComputeTaskPool::get();
     let block_atlas: TextureAtlas = texture_atlas
@@ -2137,7 +2138,13 @@ pub fn process_queue(
             )
             .with_repeat_count(RepeatCount::Finite(1));
 
-            let chunk_pos = if chunks.get(chunk_entity).is_err() {
+            let chunk_pos = if chunks.get(chunk_entity).is_err()
+                && chunk
+                    .pos
+                    .as_vec3()
+                    .distance(player_chunk.chunk_pos.as_vec3())
+                    > 4.0
+            {
                 commands.entity(chunk_entity).insert(Animator::new(tween));
                 Vec3::new(
                     (chunk.pos[0] * (CHUNK_SIZE) as i32) as f32,
