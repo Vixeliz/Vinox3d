@@ -341,6 +341,76 @@ impl<'a> Face<'a> {
         ]
     }
 
+    pub fn slab_positions(&self, voxel_size: f32) -> [[f32; 3]; 4] {
+        let positions = match (&self.side.axis, &self.side.positive) {
+            (Axis::X, false) => [
+                [0.0, 0.0, 1.0],
+                [0.0, 0.0, 0.0],
+                [0.0, 1.0, 1.0],
+                [0.0, 1.0, 0.0],
+            ],
+            (Axis::X, true) => [
+                [1.0, 0.0, 0.0],
+                [1.0, 0.0, 1.0],
+                [1.0, 1.0, 0.0],
+                [1.0, 1.0, 1.0],
+            ],
+            (Axis::Y, false) => [
+                [0.0, 0.0, 1.0],
+                [1.0, 0.0, 1.0],
+                [0.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0],
+            ],
+            (Axis::Y, true) => [
+                [0.0, 0.5, 1.0],
+                [0.0, 0.5, 0.0],
+                [1.0, 0.5, 1.0],
+                [1.0, 0.5, 0.0],
+            ],
+            (Axis::Z, false) => [
+                [0.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [1.0, 1.0, 0.0],
+            ],
+            (Axis::Z, true) => [
+                [1.0, 0.0, 1.0],
+                [0.0, 0.0, 1.0],
+                [1.0, 1.0, 1.0],
+                [0.0, 1.0, 1.0],
+            ],
+        };
+
+        let (x, y, z) = (
+            (self.quad.voxel[0] - 1) as f32,
+            (self.quad.voxel[1] - 1) as f32,
+            (self.quad.voxel[2] - 1) as f32,
+        );
+
+        [
+            [
+                x * voxel_size + positions[0][0] * voxel_size,
+                y * voxel_size + positions[0][1] * voxel_size,
+                z * voxel_size + positions[0][2] * voxel_size,
+            ],
+            [
+                x * voxel_size + positions[1][0] * voxel_size,
+                y * voxel_size + positions[1][1] * voxel_size,
+                z * voxel_size + positions[1][2] * voxel_size,
+            ],
+            [
+                x * voxel_size + positions[2][0] * voxel_size,
+                y * voxel_size + positions[2][1] * voxel_size,
+                z * voxel_size + positions[2][2] * voxel_size,
+            ],
+            [
+                x * voxel_size + positions[3][0] * voxel_size,
+                y * voxel_size + positions[3][1] * voxel_size,
+                z * voxel_size + positions[3][2] * voxel_size,
+            ],
+        ]
+    }
+
     pub fn normals(&self) -> [[f32; 3]; 4] {
         self.side.normals()
     }
@@ -441,45 +511,48 @@ where
             for x in 1..C::X - 1 {
                 let (x, y, z) = (x as u32, y as u32, z as u32);
                 let voxel = chunk.get(x, y, z, block_table);
-                match voxel.visibility() {
-                    EMPTY => continue,
-                    visibility => {
-                        let neighbors = [
-                            chunk.get(x - 1, y, z, block_table),
-                            chunk.get(x + 1, y, z, block_table),
-                            chunk.get(x, y - 1, z, block_table),
-                            chunk.get(x, y + 1, z, block_table),
-                            chunk.get(x, y, z - 1, block_table),
-                            chunk.get(x, y, z + 1, block_table),
-                        ];
+                let voxel_descriptor = chunk.get_descriptor(x, y, z, block_table);
+                if voxel_descriptor.geometry.unwrap_or_default() == BlockGeometry::Block {
+                    match voxel.visibility() {
+                        EMPTY => continue,
+                        visibility => {
+                            let neighbors = [
+                                chunk.get(x - 1, y, z, block_table),
+                                chunk.get(x + 1, y, z, block_table),
+                                chunk.get(x, y - 1, z, block_table),
+                                chunk.get(x, y + 1, z, block_table),
+                                chunk.get(x, y, z - 1, block_table),
+                                chunk.get(x, y, z + 1, block_table),
+                            ];
 
-                        for (i, neighbor) in neighbors.into_iter().enumerate() {
-                            let other = neighbor.visibility();
+                            for (i, neighbor) in neighbors.into_iter().enumerate() {
+                                let other = neighbor.visibility();
 
-                            let generate = if solid_pass {
-                                match (visibility, other) {
-                                    (OPAQUE, EMPTY) | (OPAQUE, TRANSPARENT) => true,
+                                let generate = if solid_pass {
+                                    match (visibility, other) {
+                                        (OPAQUE, EMPTY) | (OPAQUE, TRANSPARENT) => true,
 
-                                    (TRANSPARENT, TRANSPARENT) => voxel != neighbor,
+                                        (TRANSPARENT, TRANSPARENT) => voxel != neighbor,
 
-                                    (_, _) => false,
+                                        (_, _) => false,
+                                    }
+                                } else {
+                                    match (visibility, other) {
+                                        (TRANSPARENT, EMPTY) => true,
+
+                                        (TRANSPARENT, TRANSPARENT) => voxel != neighbor,
+
+                                        (_, _) => false,
+                                    }
+                                };
+
+                                if generate {
+                                    buffer.groups[i].push(Quad {
+                                        voxel: [x as usize, y as usize, z as usize],
+                                        width: 1,
+                                        height: 1,
+                                    });
                                 }
-                            } else {
-                                match (visibility, other) {
-                                    (TRANSPARENT, EMPTY) => true,
-
-                                    (TRANSPARENT, TRANSPARENT) => voxel != neighbor,
-
-                                    (_, _) => false,
-                                }
-                            };
-
-                            if generate {
-                                buffer.groups[i].push(Quad {
-                                    voxel: [x as usize, y as usize, z as usize],
-                                    width: 1,
-                                    height: 1,
-                                });
                             }
                         }
                     }
