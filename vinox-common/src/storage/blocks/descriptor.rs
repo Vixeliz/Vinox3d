@@ -9,13 +9,13 @@ due to personal preference i would rather only allow certain types listed below.
 #[derive(EnumString, Default, Deserialize, Serialize, PartialEq, Eq, Debug, Clone)]
 pub enum BlockGeometry {
     #[default]
-    Block,
+    Block, // Standard Voxel --DONE
     Stairs,
-    Slab,          // Both vertical and horizontal
-    BorderedBlock, //Basically the bottom still touchs the normal bottom of a block but has a border around all the others
+    Slab,          // Both vertical and horizontal --DONE
+    BorderedBlock, //Basically the bottom still touchs the normal bottom of a block but has a border around all the others --DONE
     Fence,
-    Flat,  // Flat texture that can go on top of a block
-    Cross, // Crossed textures think like flowers from a popular block game
+    Flat,  // Flat texture that can go on top of a block --DONE
+    Cross, // Crossed textures think like flowers from a popular block game --DONE
 }
 
 // Anything optional here that is necessary for the game to function but we have a default value for ie texture or geometry
