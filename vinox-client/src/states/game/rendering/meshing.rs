@@ -364,9 +364,6 @@ impl<'a> Face<'a> {
             face_vert,
             [start, start + 2, start + 1, start + 1, start + 2, start + 3],
         ));
-        // There is ever only 2 faces per side on any given stair so we don't need to loop or anything.
-        // This is the hardest part this is the part of the stair that changes based off of neighbors
-        // There is probably way better ways to do this using bitmask or something but instead you have me lmao
         combo
     }
 
