@@ -69,6 +69,20 @@ pub struct RenderedBlockData {
     pub growth_state: Option<GrowthState>,
 }
 
+pub fn name_to_identifier(namespace: String, name: String) -> String {
+    let mut temp_name = namespace.clone();
+    temp_name.push(':');
+    temp_name.push_str(&name);
+    temp_name
+}
+
+pub fn identifier_to_name(identifier: String) -> Option<(String, String)> {
+    for (namespace, name) in identifier.splitn(2, ':').tuples() {
+        return Some((namespace.to_string(), name.to_string()));
+    }
+    None
+}
+
 impl RenderedBlockData {
     pub fn new(
         namespace: String,

@@ -8,6 +8,6 @@ pub struct RecipeDescriptor {
     pub namespace: String, // TODO: Make sure that we only allow one namespace:name pair
     pub name: String,      // Name of the recipe
     pub required_items: Option<HashMap<String, u32>>,
-    pub output_items: Vec<(String, u32)>,
+    pub output_item: (String, u32),
     pub script: Option<String>,
 }

@@ -1,0 +1,190 @@
+use std::collections::{BTreeMap, HashMap};
+
+use bevy::prelude::*;
+use bevy_egui::EguiContexts;
+use bevy_egui::{
+    egui::{Color32, FontId, Sense},
+    *,
+};
+use vinox_common::storage::items::descriptor::ItemData;
+use vinox_common::world::chunks::storage::{identifier_to_name, name_to_identifier, ItemTable};
+use vinox_common::{ecs::bundles::Inventory, world::chunks::storage::RecipeTable};
+
+use crate::states::{components::GameOptions, game::world::chunks::ControlledPlayer};
+
+//TODO: This is pretty jank rn. Many edge cases aren't accounted for
+pub fn craft(
+    inventory: &mut Inventory,
+    required_items: &HashMap<String, u32>,
+    output_item: (String, u32),
+    item_table: &ItemTable,
+) {
+    let mut modified_items = required_items.clone();
+    let mut new_inventory = inventory.clone();
+    for (row_num, bar_row) in new_inventory.clone().hotbar.0.iter().enumerate() {
+        for (item_num, bar_item) in bar_row.iter().cloned().enumerate() {
+            if let Some(bar_item) = bar_item {
+                let identifier =
+                    name_to_identifier(bar_item.clone().namespace, bar_item.clone().name);
+                if modified_items.contains_key(&identifier) {
+                    let amount_left = modified_items.get(&identifier).unwrap().clone();
+                    if amount_left < bar_item.stack_size {
+                        let mut new_item = bar_item.clone();
+                        new_item.stack_size -= amount_left;
+                        new_inventory.hotbar[row_num][item_num] = Some(new_item);
+                        modified_items.remove(&identifier);
+                    } else {
+                        new_inventory.hotbar[row_num][item_num] = None;
+                        if (amount_left as i32 - bar_item.stack_size as i32) <= 0 {
+                            modified_items.remove(&identifier);
+                        } else {
+                            modified_items
+                                .insert(identifier.clone(), amount_left - bar_item.stack_size);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    for (row_num, inv_row) in new_inventory.clone().slots.iter().enumerate() {
+        for (item_num, inv_item) in inv_row.iter().cloned().enumerate() {
+            if let Some(inv_item) = inv_item {
+                let identifier =
+                    name_to_identifier(inv_item.clone().namespace, inv_item.clone().name);
+                if modified_items.contains_key(&identifier) {
+                    let amount_left = modified_items.get(&identifier).unwrap().clone();
+                    if amount_left < inv_item.stack_size {
+                        let mut new_item = inv_item.clone();
+                        new_item.stack_size -= amount_left;
+                        new_inventory.slots[row_num][item_num] = Some(new_item);
+                        modified_items.remove(&identifier);
+                    } else {
+                        new_inventory.slots[row_num][item_num] = None;
+                        if (amount_left as i32 - inv_item.stack_size as i32) <= 0 {
+                            modified_items.remove(&identifier);
+                        } else {
+                            modified_items
+                                .insert(identifier.clone(), amount_left - inv_item.stack_size);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if modified_items.is_empty() {
+        if let Some((section, row_index, item_index, count)) =
+            new_inventory.get_first_item(&item_table.get(&output_item.0).unwrap())
+        {
+            if let Some((namespace, name)) = identifier_to_name(output_item.0) {
+                match section {
+                    "inventory" => {
+                        new_inventory.slots[row_index][item_index] = Some(ItemData {
+                            name,
+                            namespace,
+                            stack_size: count + output_item.1,
+                            ..Default::default()
+                        });
+                    }
+                    "hotbar" => {
+                        new_inventory.hotbar[row_index][item_index] = Some(ItemData {
+                            name,
+                            namespace,
+                            stack_size: count + output_item.1,
+                            ..Default::default()
+                        });
+                    }
+                    _ => {}
+                }
+                *inventory = new_inventory.clone();
+            }
+        } else if let Some((section, row_index, item_index)) = new_inventory.get_first_slot() {
+            if let Some((namespace, name)) = identifier_to_name(output_item.0) {
+                match section {
+                    "inventory" => {
+                        new_inventory.slots[row_index][item_index] = Some(ItemData {
+                            name,
+                            namespace,
+                            stack_size: output_item.1,
+                            ..Default::default()
+                        });
+                    }
+                    "hotbar" => {
+                        new_inventory.hotbar[row_index][item_index] = Some(ItemData {
+                            name,
+                            namespace,
+                            stack_size: output_item.1,
+                            ..Default::default()
+                        });
+                    }
+                    _ => {}
+                }
+                *inventory = new_inventory.clone();
+            }
+        }
+    }
+}
+
+pub fn crafting_ui(
+    recipe_table: Res<RecipeTable>,
+    item_table: Res<ItemTable>,
+    mut player_query: Query<&mut Inventory, With<ControlledPlayer>>,
+    mut contexts: EguiContexts,
+    options: Res<GameOptions>,
+    mut current_search: Local<String>,
+) {
+    if !options.dark_theme {
+        catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
+    }
+    if let Ok(mut inventory) = player_query.get_single_mut() {
+        if inventory.open {
+            egui::Window::new("crafting").show(contexts.ctx_mut(), |ui| {
+                ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                    ui.ctx().set_style(egui::Style {
+                        text_styles: {
+                            let mut texts = BTreeMap::new();
+                            texts.insert(egui::style::TextStyle::Small, FontId::proportional(18.0));
+                            texts.insert(egui::style::TextStyle::Body, FontId::proportional(18.0));
+                            texts.insert(
+                                egui::style::TextStyle::Heading,
+                                FontId::proportional(20.0),
+                            );
+                            texts
+                                .insert(egui::style::TextStyle::Monospace, FontId::monospace(18.0));
+                            texts
+                                .insert(egui::style::TextStyle::Button, FontId::proportional(18.0));
+                            texts
+                        },
+                        ..Default::default()
+                    });
+
+                    ui.horizontal(|ui| {
+                        ui.label("Search: ");
+                        ui.text_edit_singleline(&mut *current_search);
+                    });
+
+                    egui::ScrollArea::vertical()
+                        .auto_shrink([false; 2])
+                        .max_width(2000.0)
+                        .show(ui, |ui| {
+                            for recipe in recipe_table.values() {
+                                ui.horizontal(|ui| {
+                                    ui.label(format!("{}: x{}", recipe.name, recipe.output_item.1));
+                                    if ui.button("Craft").clicked() {
+                                        if let Some(required_items) = recipe.required_items.clone()
+                                        {
+                                            craft(
+                                                &mut inventory,
+                                                &required_items,
+                                                recipe.output_item.clone(),
+                                                &item_table,
+                                            );
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                });
+            });
+        }
+    }
+}
