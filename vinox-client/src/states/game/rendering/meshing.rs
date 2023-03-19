@@ -625,6 +625,7 @@ where
                             BlockGeometry::Block => {
                                 for (i, neighbor) in neighbors.into_iter().enumerate() {
                                     let other = neighbor.visibility();
+                                    //TODO: Actually determine what faces to cull based off of neighbors geometry. This is just temporary
                                     let generate =
                                         if neighbor_block[i].geometry.clone().unwrap_or_default()
                                             == BlockGeometry::Block
