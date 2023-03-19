@@ -29,6 +29,9 @@ impl Chunk for ChunkBoundary {
     fn get(&self, x: u32, y: u32, z: u32, block_table: &BlockTable) -> Self::Output {
         self.get_voxel(ChunkBoundary::linearize(UVec3::new(x, y, z)), block_table)
     }
+    fn get_descriptor(&self, x: u32, y: u32, z: u32, block_table: &BlockTable) -> BlockDescriptor {
+        self.get_data(RawChunk::linearize(UVec3::new(x, y, z)), block_table)
+    }
 }
 
 fn max_block_id(palette: &BiMap<u16, RenderedBlockData>) -> u16 {

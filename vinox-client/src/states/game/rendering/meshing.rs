@@ -17,10 +17,13 @@ use itertools::Itertools;
 use serde_big_array::Array;
 use std::{ops::Deref, time::Duration};
 use tokio::sync::mpsc::{Receiver, Sender};
-use vinox_common::world::chunks::{
-    ecs::{ChunkComp, CurrentChunks},
-    positions::voxel_to_world,
-    storage::{BlockTable, Chunk, RawChunk, Voxel, VoxelVisibility, CHUNK_SIZE},
+use vinox_common::{
+    storage::blocks::descriptor::BlockGeometry,
+    world::chunks::{
+        ecs::{ChunkComp, CurrentChunks},
+        positions::voxel_to_world,
+        storage::{BlockTable, Chunk, RawChunk, Voxel, VoxelVisibility, CHUNK_SIZE},
+    },
 };
 
 use crate::states::{
@@ -438,7 +441,6 @@ where
             for x in 1..C::X - 1 {
                 let (x, y, z) = (x as u32, y as u32, z as u32);
                 let voxel = chunk.get(x, y, z, block_table);
-
                 match voxel.visibility() {
                     EMPTY => continue,
                     visibility => {
