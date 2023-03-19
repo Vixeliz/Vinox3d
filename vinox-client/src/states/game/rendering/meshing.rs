@@ -542,6 +542,7 @@ where
                             chunk.get(x, y, z + 1, block_table),
                         ];
                         let voxel_descriptor = chunk.get_descriptor(x, y, z, block_table);
+                        let voxel_data = chunk.get_data(x, y, z);
                         match voxel_descriptor.geometry.unwrap_or_default() {
                             BlockGeometry::Block => {
                                 for (i, neighbor) in neighbors.into_iter().enumerate() {
@@ -581,7 +582,7 @@ where
                                 for (i, neighbor) in neighbors.into_iter().enumerate() {
                                     let other = neighbor.visibility();
 
-                                    let generate = if solid_pass {
+                                    let mut generate = if solid_pass {
                                         match (visibility, other) {
                                             (OPAQUE, EMPTY) | (OPAQUE, TRANSPARENT) => true,
 
@@ -598,6 +599,14 @@ where
                                             (_, _) => false,
                                         }
                                     };
+
+                                    if let Some(top) = voxel_data.top.clone() {
+                                        match (top, i) {
+                                            (false, 3) => generate = true,
+                                            (true, 2) => generate = true,
+                                            _ => {}
+                                        }
+                                    }
 
                                     if generate {
                                         buffer.groups[i].push(Quad {
