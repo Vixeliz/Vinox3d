@@ -341,6 +341,76 @@ impl<'a> Face<'a> {
         ]
     }
 
+    pub fn flat_positions(&self, voxel_size: f32) -> [[f32; 3]; 4] {
+        let positions = match (&self.side.axis, &self.side.positive) {
+            (Axis::X, false) => [
+                [0.95, 0.0, 1.0],
+                [0.95, 0.0, 0.0],
+                [0.95, 1.0, 1.0],
+                [0.95, 1.0, 0.0],
+            ],
+            (Axis::X, true) => [
+                [0.05, 0.0, 0.0],
+                [0.05, 0.0, 1.0],
+                [0.05, 1.0, 0.0],
+                [0.05, 1.0, 1.0],
+            ],
+            (Axis::Y, false) => [
+                [0.0, 0.95, 1.0],
+                [1.0, 0.95, 1.0],
+                [0.0, 0.95, 0.0],
+                [1.0, 0.95, 0.0],
+            ],
+            (Axis::Y, true) => [
+                [0.0, 0.05, 1.0],
+                [0.0, 0.05, 0.0],
+                [1.0, 0.05, 1.0],
+                [1.0, 0.05, 0.0],
+            ],
+            (Axis::Z, false) => [
+                [0.0, 0.0, 0.95],
+                [1.0, 0.0, 0.95],
+                [0.0, 1.0, 0.95],
+                [1.0, 1.0, 0.95],
+            ],
+            (Axis::Z, true) => [
+                [1.0, 0.0, 0.05],
+                [0.0, 0.0, 0.05],
+                [1.0, 1.0, 0.05],
+                [0.0, 1.0, 0.05],
+            ],
+        };
+
+        let (x, y, z) = (
+            (self.quad.voxel[0] - 1) as f32,
+            (self.quad.voxel[1] - 1) as f32,
+            (self.quad.voxel[2] - 1) as f32,
+        );
+
+        [
+            [
+                x * voxel_size + positions[0][0] * voxel_size,
+                y * voxel_size + positions[0][1] * voxel_size,
+                z * voxel_size + positions[0][2] * voxel_size,
+            ],
+            [
+                x * voxel_size + positions[1][0] * voxel_size,
+                y * voxel_size + positions[1][1] * voxel_size,
+                z * voxel_size + positions[1][2] * voxel_size,
+            ],
+            [
+                x * voxel_size + positions[2][0] * voxel_size,
+                y * voxel_size + positions[2][1] * voxel_size,
+                z * voxel_size + positions[2][2] * voxel_size,
+            ],
+            [
+                x * voxel_size + positions[3][0] * voxel_size,
+                y * voxel_size + positions[3][1] * voxel_size,
+                z * voxel_size + positions[3][2] * voxel_size,
+            ],
+        ]
+    }
+
     pub fn border_positions(&self, voxel_size: f32) -> [[f32; 3]; 4] {
         let positions = match (&self.side.axis, &self.side.positive) {
             (Axis::X, false) => [
@@ -378,6 +448,140 @@ impl<'a> Face<'a> {
                 [0.1, 0.0, 0.9],
                 [0.9, 0.8, 0.9],
                 [0.1, 0.8, 0.9],
+            ],
+        };
+
+        let (x, y, z) = (
+            (self.quad.voxel[0] - 1) as f32,
+            (self.quad.voxel[1] - 1) as f32,
+            (self.quad.voxel[2] - 1) as f32,
+        );
+
+        [
+            [
+                x * voxel_size + positions[0][0] * voxel_size,
+                y * voxel_size + positions[0][1] * voxel_size,
+                z * voxel_size + positions[0][2] * voxel_size,
+            ],
+            [
+                x * voxel_size + positions[1][0] * voxel_size,
+                y * voxel_size + positions[1][1] * voxel_size,
+                z * voxel_size + positions[1][2] * voxel_size,
+            ],
+            [
+                x * voxel_size + positions[2][0] * voxel_size,
+                y * voxel_size + positions[2][1] * voxel_size,
+                z * voxel_size + positions[2][2] * voxel_size,
+            ],
+            [
+                x * voxel_size + positions[3][0] * voxel_size,
+                y * voxel_size + positions[3][1] * voxel_size,
+                z * voxel_size + positions[3][2] * voxel_size,
+            ],
+        ]
+    }
+
+    pub fn cross_positions(&self, voxel_size: f32) -> [[f32; 3]; 4] {
+        let positions = match (&self.side.axis, &self.side.positive) {
+            (Axis::X, false) => [
+                [0.0, 0.0, 0.0],
+                [1.0, 0.0, 1.0],
+                [0.0, 1.0, 0.0],
+                [1.0, 1.0, 1.0],
+            ],
+            (Axis::X, true) => [
+                [0.0, 0.0, 0.0],
+                [1.0, 0.0, 1.0],
+                [0.0, 1.0, 0.0],
+                [1.0, 1.0, 1.0],
+            ],
+            (Axis::Z, false) => [
+                [1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0],
+                [1.0, 1.0, 0.0],
+                [0.0, 1.0, 1.0],
+            ],
+            (Axis::Z, true) => [
+                [1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0],
+                [1.0, 1.0, 0.0],
+                [0.0, 1.0, 1.0],
+            ],
+            _ => [
+                [0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0],
+            ],
+        };
+
+        let (x, y, z) = (
+            (self.quad.voxel[0] - 1) as f32,
+            (self.quad.voxel[1] - 1) as f32,
+            (self.quad.voxel[2] - 1) as f32,
+        );
+
+        [
+            [
+                x * voxel_size + positions[0][0] * voxel_size,
+                y * voxel_size + positions[0][1] * voxel_size,
+                z * voxel_size + positions[0][2] * voxel_size,
+            ],
+            [
+                x * voxel_size + positions[1][0] * voxel_size,
+                y * voxel_size + positions[1][1] * voxel_size,
+                z * voxel_size + positions[1][2] * voxel_size,
+            ],
+            [
+                x * voxel_size + positions[2][0] * voxel_size,
+                y * voxel_size + positions[2][1] * voxel_size,
+                z * voxel_size + positions[2][2] * voxel_size,
+            ],
+            [
+                x * voxel_size + positions[3][0] * voxel_size,
+                y * voxel_size + positions[3][1] * voxel_size,
+                z * voxel_size + positions[3][2] * voxel_size,
+            ],
+        ]
+    }
+
+    pub fn fence_positions(&self, voxel_size: f32) -> [[f32; 3]; 4] {
+        let positions = match (&self.side.axis, &self.side.positive) {
+            (Axis::X, false) => [
+                [0.4, 0.0, 0.6],
+                [0.4, 0.0, 0.4],
+                [0.4, 1.0, 0.6],
+                [0.4, 1.0, 0.4],
+            ],
+            (Axis::X, true) => [
+                [0.6, 0.0, 0.4],
+                [0.6, 0.0, 0.6],
+                [0.6, 1.0, 0.4],
+                [0.6, 1.0, 0.6],
+            ],
+            (Axis::Y, false) => [
+                [0.4, 0.0, 0.6],
+                [0.6, 0.0, 0.6],
+                [0.4, 0.0, 0.4],
+                [0.6, 0.0, 0.4],
+            ],
+            (Axis::Y, true) => [
+                [0.4, 1.0, 0.6],
+                [0.4, 1.0, 0.4],
+                [0.6, 1.0, 0.6],
+                [0.6, 1.0, 0.4],
+            ],
+            (Axis::Z, false) => [
+                [0.4, 0.0, 0.4],
+                [0.6, 0.0, 0.4],
+                [0.4, 1.0, 0.4],
+                [0.6, 1.0, 0.4],
+            ],
+            (Axis::Z, true) => [
+                [0.6, 0.0, 0.6],
+                [0.4, 0.0, 0.6],
+                [0.6, 1.0, 0.6],
+                [0.4, 1.0, 0.6],
             ],
         };
 
@@ -666,39 +870,14 @@ where
                             }
                             BlockGeometry::Stairs => {}
                             BlockGeometry::Cross => {
-                                for (i, neighbor) in neighbors.into_iter().enumerate() {
-                                    let other = neighbor.visibility();
-
-                                    let mut generate = if solid_pass {
-                                        match (visibility, other) {
-                                            (OPAQUE, EMPTY) | (OPAQUE, TRANSPARENT) => true,
-
-                                            (TRANSPARENT, TRANSPARENT) => voxel != neighbor,
-
-                                            (_, _) => false,
-                                        }
-                                    } else {
-                                        match (visibility, other) {
-                                            (TRANSPARENT, EMPTY) => true,
-
-                                            (TRANSPARENT, TRANSPARENT) => voxel != neighbor,
-
-                                            (_, _) => false,
-                                        }
-                                    };
-
-                                    if !generate
-                                        && ((visibility == OPAQUE && solid_pass)
-                                            || (visibility == TRANSPARENT && !solid_pass))
+                                for i in vec![0, 1, 4, 5].into_iter() {
+                                    let generate = if (visibility == OPAQUE && solid_pass)
+                                        || (visibility == TRANSPARENT && !solid_pass)
                                     {
-                                        if let Some(top) = voxel_data.top.clone() {
-                                            match (top, i) {
-                                                (false, 3) => generate = true,
-                                                (true, 2) => generate = true,
-                                                _ => {}
-                                            }
-                                        }
-                                    }
+                                        true
+                                    } else {
+                                        false
+                                    };
 
                                     if generate {
                                         buffer.groups[i].push(Quad {
@@ -792,83 +971,66 @@ where
                                 }
                             }
                             BlockGeometry::Flat => {
-                                for (i, neighbor) in neighbors.into_iter().enumerate() {
-                                    let other = neighbor.visibility();
-
-                                    let mut generate = if solid_pass {
-                                        match (visibility, other) {
-                                            (OPAQUE, EMPTY) | (OPAQUE, TRANSPARENT) => true,
-
-                                            (TRANSPARENT, TRANSPARENT) => voxel != neighbor,
-
-                                            (_, _) => false,
-                                        }
+                                let i = if let Some(direction) = voxel_data.direction {
+                                    match direction {
+                                        storage::Direction::North => 5,
+                                        storage::Direction::South => 4,
+                                        storage::Direction::West => 0,
+                                        storage::Direction::East => 1,
+                                    }
+                                } else if let Some(top) = voxel_data.top {
+                                    if top {
+                                        2
                                     } else {
-                                        match (visibility, other) {
-                                            (TRANSPARENT, EMPTY) => true,
-
-                                            (TRANSPARENT, TRANSPARENT) => voxel != neighbor,
-
-                                            (_, _) => false,
-                                        }
-                                    };
-
-                                    if !generate
-                                        && ((visibility == OPAQUE && solid_pass)
-                                            || (visibility == TRANSPARENT && !solid_pass))
-                                    {
-                                        if let Some(top) = voxel_data.top.clone() {
-                                            match (top, i) {
-                                                (false, 3) => generate = true,
-                                                (true, 2) => generate = true,
-                                                _ => {}
-                                            }
-                                        }
+                                        3
                                     }
+                                } else {
+                                    3
+                                };
+                                let generate = if (visibility == OPAQUE && solid_pass)
+                                    || (visibility == TRANSPARENT && !solid_pass)
+                                {
+                                    true
+                                } else {
+                                    false
+                                };
 
-                                    if generate {
-                                        buffer.groups[i].push(Quad {
-                                            voxel: [x as usize, y as usize, z as usize],
-                                            width: 1,
-                                            height: 1,
-                                        });
-                                    }
+                                if generate {
+                                    buffer.groups[i].push(Quad {
+                                        voxel: [x as usize, y as usize, z as usize],
+                                        width: 1,
+                                        height: 1,
+                                    });
                                 }
                             }
                             BlockGeometry::Fence => {
                                 for (i, neighbor) in neighbors.into_iter().enumerate() {
                                     let other = neighbor.visibility();
+                                    let generate = if i == 2 {
+                                        if solid_pass {
+                                            match (visibility, other) {
+                                                (OPAQUE, EMPTY) | (OPAQUE, TRANSPARENT) => true,
 
-                                    let mut generate = if solid_pass {
-                                        match (visibility, other) {
-                                            (OPAQUE, EMPTY) | (OPAQUE, TRANSPARENT) => true,
+                                                (TRANSPARENT, TRANSPARENT) => voxel != neighbor,
 
-                                            (TRANSPARENT, TRANSPARENT) => voxel != neighbor,
+                                                (_, _) => false,
+                                            }
+                                        } else {
+                                            match (visibility, other) {
+                                                (TRANSPARENT, EMPTY) => true,
 
-                                            (_, _) => false,
-                                        }
-                                    } else {
-                                        match (visibility, other) {
-                                            (TRANSPARENT, EMPTY) => true,
+                                                (TRANSPARENT, TRANSPARENT) => voxel != neighbor,
 
-                                            (TRANSPARENT, TRANSPARENT) => voxel != neighbor,
-
-                                            (_, _) => false,
-                                        }
-                                    };
-
-                                    if !generate
-                                        && ((visibility == OPAQUE && solid_pass)
-                                            || (visibility == TRANSPARENT && !solid_pass))
-                                    {
-                                        if let Some(top) = voxel_data.top.clone() {
-                                            match (top, i) {
-                                                (false, 3) => generate = true,
-                                                (true, 2) => generate = true,
-                                                _ => {}
+                                                (_, _) => false,
                                             }
                                         }
-                                    }
+                                    } else if (visibility == OPAQUE && solid_pass)
+                                        || (visibility == TRANSPARENT && !solid_pass)
+                                    {
+                                        true
+                                    } else {
+                                        false
+                                    };
 
                                     if generate {
                                         buffer.groups[i].push(Quad {
@@ -1006,6 +1168,123 @@ fn full_mesh(
             BlockGeometry::BorderedBlock => {
                 indices.extend_from_slice(&face.indices(positions.len() as u32));
                 positions.extend_from_slice(&face.border_positions(1.0)); // Voxel size is 1m
+                normals.extend_from_slice(&face.normals());
+                ao.extend_from_slice(&face.aos());
+
+                let matched_index = match (face.side.axis, face.side.positive) {
+                    (Axis::X, false) => 2,
+                    (Axis::X, true) => 3,
+                    (Axis::Y, false) => 1,
+                    (Axis::Y, true) => 0,
+                    (Axis::Z, false) => 5,
+                    (Axis::Z, true) => 4,
+                };
+
+                let block = &raw_chunk
+                    .get_block(UVec3::new(
+                        face.voxel()[0] as u32,
+                        face.voxel()[1] as u32,
+                        face.voxel()[2] as u32,
+                    ))
+                    .unwrap();
+
+                if let Some(texture_index) = texture_atlas.get_texture_index(
+                    &loadable_assets
+                        .block_textures
+                        .get(&block.identifier)
+                        .unwrap()[matched_index],
+                ) {
+                    let face_coords =
+                        calculate_coords(texture_index, Vec2::new(16.0, 16.0), texture_atlas.size);
+                    uvs.push(face_coords[0]);
+                    uvs.push(face_coords[1]);
+                    uvs.push(face_coords[2]);
+                    uvs.push(face_coords[3]);
+                } else {
+                    uvs.extend_from_slice(&face.uvs(false, false));
+                }
+            }
+            BlockGeometry::Fence => {
+                indices.extend_from_slice(&face.indices(positions.len() as u32));
+                positions.extend_from_slice(&face.fence_positions(1.0)); // Voxel size is 1m
+                normals.extend_from_slice(&face.normals());
+                ao.extend_from_slice(&face.aos());
+
+                let matched_index = match (face.side.axis, face.side.positive) {
+                    (Axis::X, false) => 2,
+                    (Axis::X, true) => 3,
+                    (Axis::Y, false) => 1,
+                    (Axis::Y, true) => 0,
+                    (Axis::Z, false) => 5,
+                    (Axis::Z, true) => 4,
+                };
+
+                let block = &raw_chunk
+                    .get_block(UVec3::new(
+                        face.voxel()[0] as u32,
+                        face.voxel()[1] as u32,
+                        face.voxel()[2] as u32,
+                    ))
+                    .unwrap();
+
+                if let Some(texture_index) = texture_atlas.get_texture_index(
+                    &loadable_assets
+                        .block_textures
+                        .get(&block.identifier)
+                        .unwrap()[matched_index],
+                ) {
+                    let face_coords =
+                        calculate_coords(texture_index, Vec2::new(16.0, 16.0), texture_atlas.size);
+                    uvs.push(face_coords[0]);
+                    uvs.push(face_coords[1]);
+                    uvs.push(face_coords[2]);
+                    uvs.push(face_coords[3]);
+                } else {
+                    uvs.extend_from_slice(&face.uvs(false, false));
+                }
+            }
+            BlockGeometry::Cross => {
+                indices.extend_from_slice(&face.indices(positions.len() as u32));
+                positions.extend_from_slice(&face.cross_positions(1.0)); // Voxel size is 1m
+                normals.extend_from_slice(&face.normals());
+                ao.extend_from_slice(&face.aos());
+
+                let matched_index = match (face.side.axis, face.side.positive) {
+                    (Axis::X, false) => 2,
+                    (Axis::X, true) => 3,
+                    (Axis::Y, false) => 1,
+                    (Axis::Y, true) => 0,
+                    (Axis::Z, false) => 5,
+                    (Axis::Z, true) => 4,
+                };
+
+                let block = &raw_chunk
+                    .get_block(UVec3::new(
+                        face.voxel()[0] as u32,
+                        face.voxel()[1] as u32,
+                        face.voxel()[2] as u32,
+                    ))
+                    .unwrap();
+
+                if let Some(texture_index) = texture_atlas.get_texture_index(
+                    &loadable_assets
+                        .block_textures
+                        .get(&block.identifier)
+                        .unwrap()[matched_index],
+                ) {
+                    let face_coords =
+                        calculate_coords(texture_index, Vec2::new(16.0, 16.0), texture_atlas.size);
+                    uvs.push(face_coords[0]);
+                    uvs.push(face_coords[1]);
+                    uvs.push(face_coords[2]);
+                    uvs.push(face_coords[3]);
+                } else {
+                    uvs.extend_from_slice(&face.uvs(false, false));
+                }
+            }
+            BlockGeometry::Flat => {
+                indices.extend_from_slice(&face.indices(positions.len() as u32));
+                positions.extend_from_slice(&face.flat_positions(1.0)); // Voxel size is 1m
                 normals.extend_from_slice(&face.normals());
                 ao.extend_from_slice(&face.aos());
 
