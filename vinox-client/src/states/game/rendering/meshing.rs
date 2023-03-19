@@ -600,11 +600,16 @@ where
                                         }
                                     };
 
-                                    if let Some(top) = voxel_data.top.clone() {
-                                        match (top, i) {
-                                            (false, 3) => generate = true,
-                                            (true, 2) => generate = true,
-                                            _ => {}
+                                    if !generate
+                                        && ((visibility == OPAQUE && solid_pass)
+                                            || (visibility == TRANSPARENT && !solid_pass))
+                                    {
+                                        if let Some(top) = voxel_data.top.clone() {
+                                            match (top, i) {
+                                                (false, 3) => generate = true,
+                                                (true, 2) => generate = true,
+                                                _ => {}
+                                            }
                                         }
                                     }
 
@@ -762,6 +767,13 @@ fn full_mesh(
     let mut normals = Vec::new();
     let mut uvs = Vec::new();
     for face in mesh_result.iter() {
+        let voxel = raw_chunk
+            .get_block(UVec3::new(
+                face.voxel()[0] as u32,
+                face.voxel()[1] as u32,
+                face.voxel()[2] as u32,
+            ))
+            .unwrap_or_default();
         match raw_chunk
             .get_data(
                 ChunkBoundary::linearize(UVec3::new(
@@ -814,7 +826,11 @@ fn full_mesh(
             }
             BlockGeometry::Slab => {
                 indices.extend_from_slice(&face.indices(positions.len() as u32));
-                positions.extend_from_slice(&face.positions(1.0)); // Voxel size is 1m
+                positions.extend_from_slice(&face.slab_positions(
+                    1.0,
+                    voxel.top.unwrap_or_default(),
+                    voxel.direction,
+                )); // Voxel size is 1m
                 normals.extend_from_slice(&face.normals());
 
                 let matched_index = match (face.side.axis, face.side.positive) {
