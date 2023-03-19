@@ -228,9 +228,8 @@ pub fn interact(
     mut scroll_evr: EventReader<MouseWheel>,
     keys: Res<Input<KeyCode>>,
     options: Res<GameOptions>,
-    mut in_ui: ResMut<InUi>,
 ) {
-    let mut window = windows.single_mut();
+    let window = windows.single_mut();
     if window.cursor.grab_mode != CursorGrabMode::Locked {
         return;
     }

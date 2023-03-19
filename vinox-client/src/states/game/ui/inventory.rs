@@ -23,6 +23,7 @@ pub fn status_bar(
     if !options.dark_theme {
         catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
     }
+
     egui::TopBottomPanel::bottom("status_bar")
         .default_height(40.0)
         .max_height(75.0)
@@ -79,20 +80,18 @@ pub fn status_bar(
                                                 true,
                                             );
                                         }
-                                    } else {
-                                        if ui
-                                            .add(egui::Label::new("None").sense(Sense::click()))
-                                            .clicked()
-                                        {
-                                            grab_stack(
-                                                &mut held_items,
-                                                &mut inventory,
-                                                &mut holding,
-                                                hotbar_num,
-                                                item_num,
-                                                true,
-                                            );
-                                        }
+                                    } else if ui
+                                        .add(egui::Label::new("None").sense(Sense::click()))
+                                        .clicked()
+                                    {
+                                        grab_stack(
+                                            &mut held_items,
+                                            &mut inventory,
+                                            &mut holding,
+                                            hotbar_num,
+                                            item_num,
+                                            true,
+                                        );
                                     }
                                     ui.separator();
                                 });
@@ -143,20 +142,18 @@ pub fn grab_stack(
                 inventory.hotbar[row_index][row_item] = None;
                 **holding = true;
             }
-        } else {
-            if inventory.slots[row_index][row_item].is_some() {
-                held_items.insert(
-                    0,
-                    (
-                        inventory.slots[row_index][row_item].clone().unwrap(),
-                        "inventory",
-                        row_index,
-                        row_item,
-                    ),
-                );
-                inventory.slots[row_index][row_item] = None;
-                **holding = true;
-            }
+        } else if inventory.slots[row_index][row_item].is_some() {
+            held_items.insert(
+                0,
+                (
+                    inventory.slots[row_index][row_item].clone().unwrap(),
+                    "inventory",
+                    row_index,
+                    row_item,
+                ),
+            );
+            inventory.slots[row_index][row_item] = None;
+            **holding = true;
         }
     } else {
         if bar {
@@ -171,7 +168,7 @@ pub fn grab_stack(
                 inventory.hotbar[row_index][row_item] = Some(held_item.0.clone());
                 match held_item.1 {
                     "inventory" => {
-                        inventory.slots[held_item.2][held_item.3] = temp_item.clone();
+                        inventory.slots[held_item.2][held_item.3] = temp_item;
                     }
                     "bar" => {
                         inventory.hotbar[held_item.2][held_item.3] = temp_item;
@@ -179,24 +176,22 @@ pub fn grab_stack(
                     _ => {}
                 }
             }
+        } else if inventory.slots[row_index][row_item].is_none() {
+            inventory.slots[row_index][row_item] = Some(held_items.0.get(0).unwrap().0.clone());
+            held_items.remove(0);
         } else {
-            if inventory.slots[row_index][row_item].is_none() {
-                inventory.slots[row_index][row_item] = Some(held_items.0.get(0).unwrap().0.clone());
-                held_items.remove(0);
-            } else {
-                let held_item = held_items.get(0).unwrap().clone();
-                held_items.remove(0);
-                let temp_item = inventory.slots[row_index][row_item].clone();
-                inventory.slots[row_index][row_item] = Some(held_item.0.clone());
-                match held_item.1 {
-                    "inventory" => {
-                        inventory.slots[held_item.2][held_item.3] = temp_item.clone();
-                    }
-                    "bar" => {
-                        inventory.hotbar[held_item.2][held_item.3] = temp_item;
-                    }
-                    _ => {}
+            let held_item = held_items.get(0).unwrap().clone();
+            held_items.remove(0);
+            let temp_item = inventory.slots[row_index][row_item].clone();
+            inventory.slots[row_index][row_item] = Some(held_item.0.clone());
+            match held_item.1 {
+                "inventory" => {
+                    inventory.slots[held_item.2][held_item.3] = temp_item;
                 }
+                "bar" => {
+                    inventory.hotbar[held_item.2][held_item.3] = temp_item;
+                }
+                _ => {}
             }
         }
         **holding = false;
@@ -204,15 +199,15 @@ pub fn grab_stack(
 }
 
 // TODO: Actually make this work
-pub fn grab_half_stack(
-    held_items: &mut CurrentItemsHeld,
-    inventory: &mut Inventory,
-    holding: &mut Holding,
-    row_index: usize,
-    row_item: usize,
-    bar: bool,
-) {
-}
+// pub fn grab_half_stack(
+//     held_items: &mut CurrentItemsHeld,
+//     inventory: &mut Inventory,
+//     holding: &mut Holding,
+//     row_index: usize,
+//     row_item: usize,
+//     bar: bool,
+// ) {
+// }
 
 pub fn inventory(
     mut player_query: Query<&mut Inventory, With<ControlledPlayer>>,
@@ -287,23 +282,20 @@ pub fn inventory(
                                                     false,
                                                 );
                                             }
-                                        } else {
-                                            if ui
-                                                .add(egui::Label::new("None").sense(Sense::click()))
-                                                .clicked()
-                                            {
-                                                inventory.current_inv_item =
-                                                    CurrentInvItem(item_num);
-                                                inventory.current_inv_bar = CurrentInvBar(row_num);
-                                                grab_stack(
-                                                    &mut held_items,
-                                                    &mut inventory,
-                                                    &mut holding,
-                                                    row_num,
-                                                    item_num,
-                                                    false,
-                                                );
-                                            }
+                                        } else if ui
+                                            .add(egui::Label::new("None").sense(Sense::click()))
+                                            .clicked()
+                                        {
+                                            inventory.current_inv_item = CurrentInvItem(item_num);
+                                            inventory.current_inv_bar = CurrentInvBar(row_num);
+                                            grab_stack(
+                                                &mut held_items,
+                                                &mut inventory,
+                                                &mut holding,
+                                                row_num,
+                                                item_num,
+                                                false,
+                                            );
                                         }
                                         ui.separator();
                                     });
