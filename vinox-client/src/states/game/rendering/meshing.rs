@@ -271,6 +271,196 @@ impl<'a> Face<'a> {
         [start, start + 2, start + 1, start + 1, start + 2, start + 3]
     }
 
+    pub fn stair_ind_vert(
+        &self,
+        start: u32,
+        voxel_size: f32,
+        top: bool,
+        direction: Option<storage::Direction>,
+        neighbors: [bool; 4], // 4 neighbors whether they are a stair or not. 0 north 1 south, 2 east, 3 wess
+        neighbors_geometry: [storage::Direction; 4], // 4 neighbors whether they are a stair or not. 0 north 1 south, 2 east, 3 wess
+        neighbors_top: [bool; 4], // 4 neighbors whether they are a stair or not. 0 north 1 south, 2 east, 3 wess
+    ) -> Vec<([[f32; 3]; 4], [u32; 6])> {
+        let mut combo = Vec::new();
+        let (min_x, max_x, min_z, max_z) = if let Some(direction) = direction.clone() {
+            match direction {
+                storage::Direction::North => (0.0, 1.0, 0.0, 1.0),
+                storage::Direction::South => (0.0, 1.0, 0.0, 1.0),
+                storage::Direction::West => (0.0, 1.0, 0.0, 1.0),
+                storage::Direction::East => (0.0, 1.0, 0.0, 1.0),
+            }
+        } else {
+            (0.0, 1.0, 0.0, 1.0)
+        };
+        let (min_y, max_y) = if top { (0.5, 1.0) } else { (0.0, 0.5) };
+        let positions = match (&self.side.axis, &self.side.positive) {
+            (Axis::X, false) => [
+                [min_x, min_y, max_z],
+                [min_x, min_y, min_z],
+                [min_x, max_y, max_z],
+                [min_x, max_y, min_z],
+            ],
+            (Axis::X, true) => [
+                [max_x, min_y, min_z],
+                [max_x, min_y, max_z],
+                [max_x, max_y, min_z],
+                [max_x, max_y, max_z],
+            ],
+            (Axis::Y, false) => [
+                [min_x, min_y, max_z],
+                [max_x, min_y, max_z],
+                [min_x, min_y, min_z],
+                [max_x, min_y, min_z],
+            ],
+            (Axis::Y, true) => [
+                [min_x, max_y, max_z],
+                [min_x, max_y, min_z],
+                [max_x, max_y, max_z],
+                [max_x, max_y, min_z],
+            ],
+            (Axis::Z, false) => [
+                [min_x, min_y, min_z],
+                [max_x, min_y, min_z],
+                [min_x, max_y, min_z],
+                [max_x, max_y, min_z],
+            ],
+            (Axis::Z, true) => [
+                [max_x, min_y, max_z],
+                [min_x, min_y, max_z],
+                [max_x, max_y, max_z],
+                [min_x, max_y, max_z],
+            ],
+        };
+
+        let (x, y, z) = (
+            (self.quad.voxel[0] - 1) as f32,
+            (self.quad.voxel[1] - 1) as f32,
+            (self.quad.voxel[2] - 1) as f32,
+        );
+
+        let face_vert = [
+            [
+                x * voxel_size + positions[0][0] * voxel_size,
+                y * voxel_size + positions[0][1] * voxel_size,
+                z * voxel_size + positions[0][2] * voxel_size,
+            ],
+            [
+                x * voxel_size + positions[1][0] * voxel_size,
+                y * voxel_size + positions[1][1] * voxel_size,
+                z * voxel_size + positions[1][2] * voxel_size,
+            ],
+            [
+                x * voxel_size + positions[2][0] * voxel_size,
+                y * voxel_size + positions[2][1] * voxel_size,
+                z * voxel_size + positions[2][2] * voxel_size,
+            ],
+            [
+                x * voxel_size + positions[3][0] * voxel_size,
+                y * voxel_size + positions[3][1] * voxel_size,
+                z * voxel_size + positions[3][2] * voxel_size,
+            ],
+        ];
+
+        combo.push((
+            face_vert,
+            [start, start + 2, start + 1, start + 1, start + 2, start + 3],
+        ));
+        // There is ever only 2 faces per side on any given stair so we don't need to loop or anything.
+        // This is the hardest part this is the part of the stair that changes based off of neighbors
+        // There is probably way better ways to do this using bitmask or something but instead you have me lmao
+        let (min_x, max_x, min_z, max_z) = if let Some(direction) = direction {
+            match direction {
+                storage::Direction::North => (0.0, 1.0, 0.0, 0.5),
+                storage::Direction::South => (0.0, 1.0, 0.5, 1.0),
+                storage::Direction::West => (0.5, 1.0, 0.0, 1.0),
+                storage::Direction::East => (0.0, 0.5, 0.0, 1.0),
+            }
+        } else {
+            (0.0, 1.0, 0.0, 1.0)
+        };
+        let (min_y, max_y) = if top { (0.0, 0.5) } else { (0.5, 1.0) };
+        let positions = match (&self.side.axis, &self.side.positive) {
+            (Axis::X, false) => [
+                [min_x, min_y, max_z],
+                [min_x, min_y, min_z],
+                [min_x, max_y, max_z],
+                [min_x, max_y, min_z],
+            ],
+            (Axis::X, true) => [
+                [max_x, min_y, min_z],
+                [max_x, min_y, max_z],
+                [max_x, max_y, min_z],
+                [max_x, max_y, max_z],
+            ],
+            (Axis::Y, false) => [
+                [min_x, min_y, max_z],
+                [max_x, min_y, max_z],
+                [min_x, min_y, min_z],
+                [max_x, min_y, min_z],
+            ],
+            (Axis::Y, true) => [
+                [min_x, max_y, max_z],
+                [min_x, max_y, min_z],
+                [max_x, max_y, max_z],
+                [max_x, max_y, min_z],
+            ],
+            (Axis::Z, false) => [
+                [min_x, min_y, min_z],
+                [max_x, min_y, min_z],
+                [min_x, max_y, min_z],
+                [max_x, max_y, min_z],
+            ],
+            (Axis::Z, true) => [
+                [max_x, min_y, max_z],
+                [min_x, min_y, max_z],
+                [max_x, max_y, max_z],
+                [min_x, max_y, max_z],
+            ],
+        };
+
+        let (x, y, z) = (
+            (self.quad.voxel[0] - 1) as f32,
+            (self.quad.voxel[1] - 1) as f32,
+            (self.quad.voxel[2] - 1) as f32,
+        );
+
+        let face_vert = [
+            [
+                x * voxel_size + positions[0][0] * voxel_size,
+                y * voxel_size + positions[0][1] * voxel_size,
+                z * voxel_size + positions[0][2] * voxel_size,
+            ],
+            [
+                x * voxel_size + positions[1][0] * voxel_size,
+                y * voxel_size + positions[1][1] * voxel_size,
+                z * voxel_size + positions[1][2] * voxel_size,
+            ],
+            [
+                x * voxel_size + positions[2][0] * voxel_size,
+                y * voxel_size + positions[2][1] * voxel_size,
+                z * voxel_size + positions[2][2] * voxel_size,
+            ],
+            [
+                x * voxel_size + positions[3][0] * voxel_size,
+                y * voxel_size + positions[3][1] * voxel_size,
+                z * voxel_size + positions[3][2] * voxel_size,
+            ],
+        ];
+        combo.push((
+            face_vert,
+            [
+                start + 4,
+                start + 6,
+                start + 5,
+                start + 5,
+                start + 6,
+                start + 7,
+            ],
+        ));
+
+        combo
+    }
+
     pub fn positions(&self, voxel_size: f32) -> [[f32; 3]; 4] {
         let positions = match (&self.side.axis, &self.side.positive) {
             (Axis::X, false) => [
@@ -868,7 +1058,48 @@ where
                                     }
                                 }
                             }
-                            BlockGeometry::Stairs => {}
+                            BlockGeometry::Stairs => {
+                                for (i, neighbor) in neighbors.into_iter().enumerate() {
+                                    let other = neighbor.visibility();
+                                    //TODO: Actually determine what faces to cull based off of neighbors geometry. This is just temporary
+                                    let generate =
+                                        if neighbor_block[i].geometry.clone().unwrap_or_default()
+                                            == BlockGeometry::Block
+                                        {
+                                            if solid_pass {
+                                                match (visibility, other) {
+                                                    (OPAQUE, EMPTY) | (OPAQUE, TRANSPARENT) => true,
+
+                                                    (TRANSPARENT, TRANSPARENT) => voxel != neighbor,
+
+                                                    (_, _) => false,
+                                                }
+                                            } else {
+                                                match (visibility, other) {
+                                                    (TRANSPARENT, EMPTY) => true,
+
+                                                    (TRANSPARENT, TRANSPARENT) => voxel != neighbor,
+
+                                                    (_, _) => false,
+                                                }
+                                            }
+                                        } else if (visibility == OPAQUE && solid_pass)
+                                            || (visibility == TRANSPARENT && !solid_pass)
+                                        {
+                                            true
+                                        } else {
+                                            false
+                                        };
+
+                                    if generate {
+                                        buffer.groups[i].push(Quad {
+                                            voxel: [x as usize, y as usize, z as usize],
+                                            width: 1,
+                                            height: 1,
+                                        });
+                                    }
+                                }
+                            }
                             BlockGeometry::Cross => {
                                 for i in vec![0, 1, 4, 5].into_iter() {
                                     let generate = if (visibility == OPAQUE && solid_pass)
@@ -1163,6 +1394,184 @@ fn full_mesh(
                     uvs.push(face_coords[3]);
                 } else {
                     uvs.extend_from_slice(&face.uvs(false, false));
+                }
+            }
+            BlockGeometry::Stairs => {
+                let neighbors = [
+                    raw_chunk
+                        .get_data(
+                            ChunkBoundary::linearize(UVec3::new(
+                                face.voxel()[0] as u32,
+                                face.voxel()[1] as u32,
+                                face.voxel()[2] as u32 + 1,
+                            )),
+                            block_table,
+                        )
+                        .geometry
+                        .unwrap_or_default()
+                        == BlockGeometry::Stairs,
+                    raw_chunk
+                        .get_data(
+                            ChunkBoundary::linearize(UVec3::new(
+                                face.voxel()[0] as u32,
+                                face.voxel()[1] as u32,
+                                face.voxel()[2] as u32 - 1,
+                            )),
+                            block_table,
+                        )
+                        .geometry
+                        .unwrap_or_default()
+                        == BlockGeometry::Stairs,
+                    raw_chunk
+                        .get_data(
+                            ChunkBoundary::linearize(UVec3::new(
+                                face.voxel()[0] as u32 + 1,
+                                face.voxel()[1] as u32,
+                                face.voxel()[2] as u32,
+                            )),
+                            block_table,
+                        )
+                        .geometry
+                        .unwrap_or_default()
+                        == BlockGeometry::Stairs,
+                    raw_chunk
+                        .get_data(
+                            ChunkBoundary::linearize(UVec3::new(
+                                face.voxel()[0] as u32 - 1,
+                                face.voxel()[1] as u32,
+                                face.voxel()[2] as u32,
+                            )),
+                            block_table,
+                        )
+                        .geometry
+                        .unwrap_or_default()
+                        == BlockGeometry::Stairs,
+                ];
+                let neighbors_geometry = [
+                    raw_chunk
+                        .get_block(UVec3::new(
+                            face.voxel()[0] as u32,
+                            face.voxel()[1] as u32,
+                            face.voxel()[2] as u32 + 1,
+                        ))
+                        .unwrap_or_default()
+                        .direction
+                        .unwrap_or_default(),
+                    raw_chunk
+                        .get_block(UVec3::new(
+                            face.voxel()[0] as u32,
+                            face.voxel()[1] as u32,
+                            face.voxel()[2] as u32 - 1,
+                        ))
+                        .unwrap_or_default()
+                        .direction
+                        .unwrap_or_default(),
+                    raw_chunk
+                        .get_block(UVec3::new(
+                            face.voxel()[0] as u32 + 1,
+                            face.voxel()[1] as u32,
+                            face.voxel()[2] as u32,
+                        ))
+                        .unwrap_or_default()
+                        .direction
+                        .unwrap_or_default(),
+                    raw_chunk
+                        .get_block(UVec3::new(
+                            face.voxel()[0] as u32 - 1,
+                            face.voxel()[1] as u32,
+                            face.voxel()[2] as u32,
+                        ))
+                        .unwrap_or_default()
+                        .direction
+                        .unwrap_or_default(),
+                ];
+                let neighbors_top = [
+                    raw_chunk
+                        .get_block(UVec3::new(
+                            face.voxel()[0] as u32,
+                            face.voxel()[1] as u32,
+                            face.voxel()[2] as u32 + 1,
+                        ))
+                        .unwrap_or_default()
+                        .top
+                        .unwrap_or_default(),
+                    raw_chunk
+                        .get_block(UVec3::new(
+                            face.voxel()[0] as u32,
+                            face.voxel()[1] as u32,
+                            face.voxel()[2] as u32 - 1,
+                        ))
+                        .unwrap_or_default()
+                        .top
+                        .unwrap_or_default(),
+                    raw_chunk
+                        .get_block(UVec3::new(
+                            face.voxel()[0] as u32 + 1,
+                            face.voxel()[1] as u32,
+                            face.voxel()[2] as u32,
+                        ))
+                        .unwrap_or_default()
+                        .top
+                        .unwrap_or_default(),
+                    raw_chunk
+                        .get_block(UVec3::new(
+                            face.voxel()[0] as u32 - 1,
+                            face.voxel()[1] as u32,
+                            face.voxel()[2] as u32,
+                        ))
+                        .unwrap_or_default()
+                        .top
+                        .unwrap_or_default(),
+                ];
+                for (pos, ind) in &face.stair_ind_vert(
+                    positions.len() as u32,
+                    1.0,
+                    voxel.top.unwrap_or_default(),
+                    voxel.direction.clone(),
+                    neighbors,
+                    neighbors_geometry,
+                    neighbors_top,
+                ) {
+                    indices.extend_from_slice(ind);
+                    positions.extend_from_slice(pos);
+                    normals.extend_from_slice(&face.normals());
+                    ao.extend_from_slice(&face.aos());
+
+                    let matched_index = match (face.side.axis, face.side.positive) {
+                        (Axis::X, false) => 2,
+                        (Axis::X, true) => 3,
+                        (Axis::Y, false) => 1,
+                        (Axis::Y, true) => 0,
+                        (Axis::Z, false) => 5,
+                        (Axis::Z, true) => 4,
+                    };
+
+                    let block = &raw_chunk
+                        .get_block(UVec3::new(
+                            face.voxel()[0] as u32,
+                            face.voxel()[1] as u32,
+                            face.voxel()[2] as u32,
+                        ))
+                        .unwrap();
+
+                    if let Some(texture_index) = texture_atlas.get_texture_index(
+                        &loadable_assets
+                            .block_textures
+                            .get(&block.identifier)
+                            .unwrap()[matched_index],
+                    ) {
+                        let face_coords = calculate_coords(
+                            texture_index,
+                            Vec2::new(16.0, 16.0),
+                            texture_atlas.size,
+                        );
+                        uvs.push(face_coords[0]);
+                        uvs.push(face_coords[1]);
+                        uvs.push(face_coords[2]);
+                        uvs.push(face_coords[3]);
+                    } else {
+                        uvs.extend_from_slice(&face.uvs(false, false));
+                    }
                 }
             }
             BlockGeometry::BorderedBlock => {

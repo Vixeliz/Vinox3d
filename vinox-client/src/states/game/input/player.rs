@@ -18,7 +18,10 @@ use vinox_common::{
     storage::items::descriptor::ItemData,
     world::chunks::{
         ecs::{ChunkComp, CurrentChunks},
-        positions::{relative_voxel_to_world, voxel_to_world, world_to_chunk, world_to_voxel},
+        positions::{
+            relative_voxel_to_world, voxel_to_world, world_to_chunk, world_to_global_voxel,
+            world_to_voxel,
+        },
         storage::{self, BlockData, BlockTable, ItemTable, CHUNK_SIZE_ARR},
     },
 };
@@ -463,7 +466,10 @@ pub fn interact(
                                                 1 => {
                                                     modified_item.top = Some(false);
                                                 }
-                                                _ => {}
+                                                _ => {
+                                                    modified_item.top = Some(false);
+                                                    // Stairs need tops and bottoms
+                                                }
                                             }
                                             match normal.z {
                                                 -1 => {
@@ -476,6 +482,29 @@ pub fn interact(
                                                 }
                                                 _ => {}
                                             }
+
+                                            if modified_item.direction.is_none() {
+                                                let difference =
+                                                    player_transform.translation - point;
+                                                if difference.x > difference.z {
+                                                    if difference.x < 0.0 {
+                                                        modified_item.direction =
+                                                            Some(storage::Direction::West)
+                                                    } else {
+                                                        modified_item.direction =
+                                                            Some(storage::Direction::East)
+                                                    }
+                                                } else {
+                                                    if difference.z < 0.0 {
+                                                        modified_item.direction =
+                                                            Some(storage::Direction::South)
+                                                    } else {
+                                                        modified_item.direction =
+                                                            Some(storage::Direction::North)
+                                                    }
+                                                }
+                                            }
+
                                             chunk
                                                 .chunk_data
                                                 .add_block_state(&modified_item.clone());
