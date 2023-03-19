@@ -1,3 +1,5 @@
+use fuzzy_matcher::skim::SkimMatcherV2;
+use fuzzy_matcher::FuzzyMatcher;
 use std::collections::{BTreeMap, HashMap};
 
 use bevy::prelude::*;
@@ -156,17 +158,24 @@ pub fn crafting_ui(
                         },
                         ..Default::default()
                     });
-
+                    let mut sorted_recipe_table = Vec::new();
                     ui.horizontal(|ui| {
                         ui.label("Search: ");
                         ui.text_edit_singleline(&mut *current_search);
                     });
+                    let matcher = SkimMatcherV2::default();
+
+                    for recipe in recipe_table.values() {
+                        let score = matcher.fuzzy_match(&recipe.name, &current_search);
+                        sorted_recipe_table.push((score, recipe));
+                    }
+                    sorted_recipe_table.sort_unstable_by_key(|k| k.0);
 
                     egui::ScrollArea::vertical()
                         .auto_shrink([false; 2])
                         .max_width(2000.0)
                         .show(ui, |ui| {
-                            for recipe in recipe_table.values() {
+                            for (_, recipe) in sorted_recipe_table.iter().rev() {
                                 ui.horizontal(|ui| {
                                     ui.label(format!("{}: x{}", recipe.name, recipe.output_item.1));
                                     if ui.button("Craft").clicked() {
