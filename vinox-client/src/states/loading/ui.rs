@@ -23,14 +23,16 @@ pub struct AssetsLoading(pub Vec<HandleUntyped>);
 //TODO: Right now we are building the client only as a multiplayer client. This is fine but eventually we need to have singleplayer.
 // To achieve this we will just have the client start up a server. But for now I am just going to use a dedicated one for testing
 pub fn new_client(ip_res: Res<NetworkIP>, mut client: ResMut<Client>) {
+    let ip = if ip_res.0 == "localhost" {
+        "127.0.0.1".to_string()
+    } else {
+        ip_res.0.clone()
+    }
+    .parse()
+    .unwrap();
     client
         .open_connection(
-            ConnectionConfiguration::from_ips(
-                ip_res.clone().parse().unwrap(),
-                25565,
-                "0.0.0.0".to_string().parse().unwrap(),
-                0,
-            ),
+            ConnectionConfiguration::from_ips(ip, 25565, "0.0.0.0".to_string().parse().unwrap(), 0),
             CertificateVerificationMode::SkipVerification,
         )
         .unwrap();

@@ -18,12 +18,12 @@ impl Plugin for MenuPlugin {
         let args: Vec<String> = env::args().collect();
 
         let mut ip = "127.0.0.1".to_string();
-        match args.len() {
-            1 => {}
-            2 => {
-                ip = args[1].to_string();
+        if let Some(idx) = args.iter().position(|i| i == "--address") {
+            if idx + 1 < args.len() && !args[idx + 1].starts_with("--") {
+                ip = args[idx + 1].to_string();
+                app.world
+                    .insert_resource(NextState(Some(GameState::Loading)));
             }
-            _ => {}
         }
 
         app.add_plugin(EguiPlugin)
