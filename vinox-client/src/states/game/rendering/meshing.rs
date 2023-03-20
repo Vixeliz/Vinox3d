@@ -428,6 +428,7 @@ impl Default for MeshChannel {
     }
 }
 
+// Possibly have this just fully generate the mesh
 pub fn generate_mesh<C, T>(
     chunk: &C,
     block_table: &BlockTable,
@@ -482,7 +483,6 @@ where
                                     for cube in element.cubes.clone() {
                                         let not_culled = !cube.cull[i] || !cube.discard[i];
                                         let other = neighbor.visibility();
-                                        //TODO: Actually determine what faces to cull based off of neighbors geometry. This is just temporary
                                         let generate = if not_culled {
                                             if solid_pass {
                                                 match (visibility, other) {
