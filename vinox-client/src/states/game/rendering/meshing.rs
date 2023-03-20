@@ -1820,11 +1820,12 @@ fn full_mesh(
 
     //Transparent Mesh
     let mesh_result = generate_mesh(raw_chunk, block_table, false);
+    let mut ao = Vec::new();
     let mut positions = Vec::new();
     let mut indices = Vec::new();
     let mut normals = Vec::new();
     let mut uvs = Vec::new();
-    for face in mesh_result.iter() {
+    for face in mesh_result.iter_with_ao(raw_chunk, block_table) {
         let voxel = raw_chunk
             .get_block(UVec3::new(
                 face.voxel()[0] as u32,
@@ -1848,7 +1849,7 @@ fn full_mesh(
                 indices.extend_from_slice(&face.indices(positions.len() as u32));
                 positions.extend_from_slice(&face.positions(1.0)); // Voxel size is 1m
                 normals.extend_from_slice(&face.normals());
-
+                ao.extend_from_slice(&face.aos());
                 let matched_index = match (face.side.axis, face.side.positive) {
                     (Axis::X, false) => 2,
                     (Axis::X, true) => 3,
@@ -1890,6 +1891,368 @@ fn full_mesh(
                     voxel.direction,
                 )); // Voxel size is 1m
                 normals.extend_from_slice(&face.normals());
+                ao.extend_from_slice(&face.aos());
+
+                let matched_index = match (face.side.axis, face.side.positive) {
+                    (Axis::X, false) => 2,
+                    (Axis::X, true) => 3,
+                    (Axis::Y, false) => 1,
+                    (Axis::Y, true) => 0,
+                    (Axis::Z, false) => 5,
+                    (Axis::Z, true) => 4,
+                };
+
+                let block = &raw_chunk
+                    .get_block(UVec3::new(
+                        face.voxel()[0] as u32,
+                        face.voxel()[1] as u32,
+                        face.voxel()[2] as u32,
+                    ))
+                    .unwrap();
+
+                if let Some(texture_index) = texture_atlas.get_texture_index(
+                    &loadable_assets
+                        .block_textures
+                        .get(&block.identifier)
+                        .unwrap()[matched_index],
+                ) {
+                    let face_coords =
+                        calculate_coords(texture_index, Vec2::new(16.0, 16.0), texture_atlas.size);
+                    uvs.push(face_coords[0]);
+                    uvs.push(face_coords[1]);
+                    uvs.push(face_coords[2]);
+                    uvs.push(face_coords[3]);
+                } else {
+                    uvs.extend_from_slice(&face.uvs(false, false));
+                }
+            }
+            BlockGeometry::Stairs => {
+                let neighbors = [
+                    raw_chunk
+                        .get_data(
+                            ChunkBoundary::linearize(UVec3::new(
+                                face.voxel()[0] as u32,
+                                face.voxel()[1] as u32,
+                                face.voxel()[2] as u32 + 1,
+                            )),
+                            block_table,
+                        )
+                        .geometry
+                        .unwrap_or_default()
+                        == BlockGeometry::Stairs,
+                    raw_chunk
+                        .get_data(
+                            ChunkBoundary::linearize(UVec3::new(
+                                face.voxel()[0] as u32,
+                                face.voxel()[1] as u32,
+                                face.voxel()[2] as u32 - 1,
+                            )),
+                            block_table,
+                        )
+                        .geometry
+                        .unwrap_or_default()
+                        == BlockGeometry::Stairs,
+                    raw_chunk
+                        .get_data(
+                            ChunkBoundary::linearize(UVec3::new(
+                                face.voxel()[0] as u32 + 1,
+                                face.voxel()[1] as u32,
+                                face.voxel()[2] as u32,
+                            )),
+                            block_table,
+                        )
+                        .geometry
+                        .unwrap_or_default()
+                        == BlockGeometry::Stairs,
+                    raw_chunk
+                        .get_data(
+                            ChunkBoundary::linearize(UVec3::new(
+                                face.voxel()[0] as u32 - 1,
+                                face.voxel()[1] as u32,
+                                face.voxel()[2] as u32,
+                            )),
+                            block_table,
+                        )
+                        .geometry
+                        .unwrap_or_default()
+                        == BlockGeometry::Stairs,
+                ];
+                let neighbors_geometry = [
+                    raw_chunk
+                        .get_block(UVec3::new(
+                            face.voxel()[0] as u32,
+                            face.voxel()[1] as u32,
+                            face.voxel()[2] as u32 + 1,
+                        ))
+                        .unwrap_or_default()
+                        .direction
+                        .unwrap_or_default(),
+                    raw_chunk
+                        .get_block(UVec3::new(
+                            face.voxel()[0] as u32,
+                            face.voxel()[1] as u32,
+                            face.voxel()[2] as u32 - 1,
+                        ))
+                        .unwrap_or_default()
+                        .direction
+                        .unwrap_or_default(),
+                    raw_chunk
+                        .get_block(UVec3::new(
+                            face.voxel()[0] as u32 + 1,
+                            face.voxel()[1] as u32,
+                            face.voxel()[2] as u32,
+                        ))
+                        .unwrap_or_default()
+                        .direction
+                        .unwrap_or_default(),
+                    raw_chunk
+                        .get_block(UVec3::new(
+                            face.voxel()[0] as u32 - 1,
+                            face.voxel()[1] as u32,
+                            face.voxel()[2] as u32,
+                        ))
+                        .unwrap_or_default()
+                        .direction
+                        .unwrap_or_default(),
+                ];
+                let neighbors_top = [
+                    raw_chunk
+                        .get_block(UVec3::new(
+                            face.voxel()[0] as u32,
+                            face.voxel()[1] as u32,
+                            face.voxel()[2] as u32 + 1,
+                        ))
+                        .unwrap_or_default()
+                        .top
+                        .unwrap_or_default(),
+                    raw_chunk
+                        .get_block(UVec3::new(
+                            face.voxel()[0] as u32,
+                            face.voxel()[1] as u32,
+                            face.voxel()[2] as u32 - 1,
+                        ))
+                        .unwrap_or_default()
+                        .top
+                        .unwrap_or_default(),
+                    raw_chunk
+                        .get_block(UVec3::new(
+                            face.voxel()[0] as u32 + 1,
+                            face.voxel()[1] as u32,
+                            face.voxel()[2] as u32,
+                        ))
+                        .unwrap_or_default()
+                        .top
+                        .unwrap_or_default(),
+                    raw_chunk
+                        .get_block(UVec3::new(
+                            face.voxel()[0] as u32 - 1,
+                            face.voxel()[1] as u32,
+                            face.voxel()[2] as u32,
+                        ))
+                        .unwrap_or_default()
+                        .top
+                        .unwrap_or_default(),
+                ];
+                for (pos, ind, norm, aos) in &face.stair_ind_vert(
+                    positions.len() as u32,
+                    1.0,
+                    voxel.top.unwrap_or_default(),
+                    voxel.direction.clone(),
+                    neighbors,
+                    neighbors_geometry,
+                    neighbors_top,
+                ) {
+                    // assert_eq!(indices.len() / 6, positions.len() / 4);
+                    indices.extend_from_slice(ind);
+                    positions.extend_from_slice(pos);
+                    normals.extend_from_slice(norm);
+                    ao.extend_from_slice(aos);
+                    // normals.extend_from_slice(&face.normals());
+                    // ao.extend_from_slice(&face.aos());
+
+                    let matched_index = match (face.side.axis, face.side.positive) {
+                        (Axis::X, false) => 2,
+                        (Axis::X, true) => 3,
+                        (Axis::Y, false) => 1,
+                        (Axis::Y, true) => 0,
+                        (Axis::Z, false) => 5,
+                        (Axis::Z, true) => 4,
+                    };
+
+                    let block = &raw_chunk
+                        .get_block(UVec3::new(
+                            face.voxel()[0] as u32,
+                            face.voxel()[1] as u32,
+                            face.voxel()[2] as u32,
+                        ))
+                        .unwrap();
+
+                    if let Some(texture_index) = texture_atlas.get_texture_index(
+                        &loadable_assets
+                            .block_textures
+                            .get(&block.identifier)
+                            .unwrap()[matched_index],
+                    ) {
+                        let face_coords = calculate_coords(
+                            texture_index,
+                            Vec2::new(16.0, 16.0),
+                            texture_atlas.size,
+                        );
+                        if face.side.axis == Axis::Y {
+                            uvs.push(face_coords[0]);
+                            uvs.push(face_coords[1]);
+                            uvs.push(face_coords[2]);
+                            uvs.push(face_coords[3]);
+                        } else {
+                            uvs.push(face_coords[0]);
+                            uvs.push(face_coords[1]);
+                            uvs.push(face_coords[2]);
+                            uvs.push(face_coords[3]);
+                            uvs.push(face_coords[3]);
+                            uvs.push(face_coords[3]);
+                            uvs.push(face_coords[3]);
+                        }
+                    } else {
+                        let calculated_uv = face.uvs(false, false);
+                        if face.side.axis == Axis::Y {
+                            uvs.push(calculated_uv[0]);
+                            uvs.push(calculated_uv[1]);
+                            uvs.push(calculated_uv[2]);
+                            uvs.push(calculated_uv[3]);
+                        } else {
+                            uvs.push(calculated_uv[0]);
+                            uvs.push(calculated_uv[1]);
+                            uvs.push(calculated_uv[2]);
+                            uvs.push(calculated_uv[3]);
+                            uvs.push(calculated_uv[3]);
+                            uvs.push(calculated_uv[3]);
+                            uvs.push(calculated_uv[3]);
+                        }
+                    }
+                }
+            }
+            BlockGeometry::BorderedBlock => {
+                indices.extend_from_slice(&face.indices(positions.len() as u32));
+                positions.extend_from_slice(&face.border_positions(1.0)); // Voxel size is 1m
+                normals.extend_from_slice(&face.normals());
+                ao.extend_from_slice(&face.aos());
+
+                let matched_index = match (face.side.axis, face.side.positive) {
+                    (Axis::X, false) => 2,
+                    (Axis::X, true) => 3,
+                    (Axis::Y, false) => 1,
+                    (Axis::Y, true) => 0,
+                    (Axis::Z, false) => 5,
+                    (Axis::Z, true) => 4,
+                };
+
+                let block = &raw_chunk
+                    .get_block(UVec3::new(
+                        face.voxel()[0] as u32,
+                        face.voxel()[1] as u32,
+                        face.voxel()[2] as u32,
+                    ))
+                    .unwrap();
+
+                if let Some(texture_index) = texture_atlas.get_texture_index(
+                    &loadable_assets
+                        .block_textures
+                        .get(&block.identifier)
+                        .unwrap()[matched_index],
+                ) {
+                    let face_coords =
+                        calculate_coords(texture_index, Vec2::new(16.0, 16.0), texture_atlas.size);
+                    uvs.push(face_coords[0]);
+                    uvs.push(face_coords[1]);
+                    uvs.push(face_coords[2]);
+                    uvs.push(face_coords[3]);
+                } else {
+                    uvs.extend_from_slice(&face.uvs(false, false));
+                }
+            }
+            BlockGeometry::Fence => {
+                indices.extend_from_slice(&face.indices(positions.len() as u32));
+                positions.extend_from_slice(&face.fence_positions(1.0)); // Voxel size is 1m
+                normals.extend_from_slice(&face.normals());
+                ao.extend_from_slice(&face.aos());
+
+                let matched_index = match (face.side.axis, face.side.positive) {
+                    (Axis::X, false) => 2,
+                    (Axis::X, true) => 3,
+                    (Axis::Y, false) => 1,
+                    (Axis::Y, true) => 0,
+                    (Axis::Z, false) => 5,
+                    (Axis::Z, true) => 4,
+                };
+
+                let block = &raw_chunk
+                    .get_block(UVec3::new(
+                        face.voxel()[0] as u32,
+                        face.voxel()[1] as u32,
+                        face.voxel()[2] as u32,
+                    ))
+                    .unwrap();
+
+                if let Some(texture_index) = texture_atlas.get_texture_index(
+                    &loadable_assets
+                        .block_textures
+                        .get(&block.identifier)
+                        .unwrap()[matched_index],
+                ) {
+                    let face_coords =
+                        calculate_coords(texture_index, Vec2::new(16.0, 16.0), texture_atlas.size);
+                    uvs.push(face_coords[0]);
+                    uvs.push(face_coords[1]);
+                    uvs.push(face_coords[2]);
+                    uvs.push(face_coords[3]);
+                } else {
+                    uvs.extend_from_slice(&face.uvs(false, false));
+                }
+            }
+            BlockGeometry::Cross => {
+                indices.extend_from_slice(&face.indices(positions.len() as u32));
+                positions.extend_from_slice(&face.cross_positions(1.0)); // Voxel size is 1m
+                normals.extend_from_slice(&face.normals());
+                ao.extend_from_slice(&face.aos());
+
+                let matched_index = match (face.side.axis, face.side.positive) {
+                    (Axis::X, false) => 2,
+                    (Axis::X, true) => 3,
+                    (Axis::Y, false) => 1,
+                    (Axis::Y, true) => 0,
+                    (Axis::Z, false) => 5,
+                    (Axis::Z, true) => 4,
+                };
+
+                let block = &raw_chunk
+                    .get_block(UVec3::new(
+                        face.voxel()[0] as u32,
+                        face.voxel()[1] as u32,
+                        face.voxel()[2] as u32,
+                    ))
+                    .unwrap();
+
+                if let Some(texture_index) = texture_atlas.get_texture_index(
+                    &loadable_assets
+                        .block_textures
+                        .get(&block.identifier)
+                        .unwrap()[matched_index],
+                ) {
+                    let face_coords =
+                        calculate_coords(texture_index, Vec2::new(16.0, 16.0), texture_atlas.size);
+                    uvs.push(face_coords[0]);
+                    uvs.push(face_coords[1]);
+                    uvs.push(face_coords[2]);
+                    uvs.push(face_coords[3]);
+                } else {
+                    uvs.extend_from_slice(&face.uvs(false, false));
+                }
+            }
+            BlockGeometry::Flat => {
+                indices.extend_from_slice(&face.indices(positions.len() as u32));
+                positions.extend_from_slice(&face.flat_positions(1.0)); // Voxel size is 1m
+                normals.extend_from_slice(&face.normals());
+                ao.extend_from_slice(&face.aos());
 
                 let matched_index = match (face.side.axis, face.side.positive) {
                     (Axis::X, false) => 2,
@@ -1927,6 +2290,7 @@ fn full_mesh(
             _ => {}
         }
     }
+
     let mut transparent_mesh = Mesh::new(PrimitiveTopology::TriangleList);
     transparent_mesh.set_indices(Some(Indices::U32(indices)));
     transparent_mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions.clone());
