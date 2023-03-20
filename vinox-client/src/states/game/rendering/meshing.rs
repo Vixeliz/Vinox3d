@@ -228,6 +228,9 @@ impl<'a> FaceWithAO<'a> {
         }
     }
 
+    // TODO: Rewrite. I realized since there is only 3 different actual meshes we can just make those and flip as needed based off of the neighbors.
+    // So we can do that just per face instead of per stair. We could also have the whole 3 different stair states made and just choose the vertices based off of
+    // What face we are generating
     pub fn stair_ind_vert(
         &self,
         start: u32,
