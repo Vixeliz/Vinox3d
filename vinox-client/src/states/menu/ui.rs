@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use vinox_server::create_server;
 
 use bevy::{
     input::{keyboard::KeyboardInput, mouse::MouseButtonInput, ButtonState},
@@ -204,6 +205,13 @@ pub fn create_ui(
                 ui.allocate_space(egui::Vec2::new(1.0, 26.0));
 
                 if ui.button("Start").clicked() {
+                    commands.insert_resource(NextState(Some(GameState::Loading)));
+                }
+
+                if ui.button("Singeplayer").clicked() {
+                    std::thread::spawn(|| {
+                        create_server();
+                    });
                     commands.insert_resource(NextState(Some(GameState::Loading)));
                 }
 
