@@ -340,36 +340,36 @@ impl<'a> FaceWithAO<'a> {
                     [min_x, min_y, min_z],
                     [min_x, max_y, max_z],
                     [min_x, max_y, min_z],
-                    [min_x, max_y, min_z],
-                    [min_x, max_y, min_z],
-                    [min_x, max_y, min_z],
+                    [min_x, max_y, max_z / 2.0],
+                    [min_x, max_y * 2.0, min_z],
+                    [min_x, max_y * 2.0, min_z],
                 ],
                 (Axis::X, true) => [
                     [max_x, min_y, min_z],
                     [max_x, min_y, max_z],
                     [max_x, max_y, min_z],
                     [max_x, max_y, max_z],
-                    [max_x, max_y, max_z],
-                    [max_x, max_y, max_z],
-                    [max_x, max_y, max_z],
+                    [max_x, max_y, max_z / 2.0],
+                    [max_x, max_y * 2.0, max_z],
+                    [max_x, max_y * 2.0, max_z],
                 ],
                 (Axis::Z, false) => [
                     [min_x, min_y, min_z],
                     [max_x, min_y, min_z],
                     [min_x, max_y, min_z],
                     [max_x, max_y, min_z],
-                    [max_x, max_y, min_z],
-                    [max_x, max_y, min_z],
-                    [max_x, max_y, min_z],
+                    [max_x / 2.0, max_y, min_z],
+                    [max_x, max_y * 2.0, min_z],
+                    [max_x, max_y * 2.0, min_z],
                 ],
                 (Axis::Z, true) => [
                     [max_x, min_y, max_z],
                     [min_x, min_y, max_z],
                     [max_x, max_y, max_z],
                     [min_x, max_y, max_z],
-                    [min_x, max_y, max_z],
-                    [min_x, max_y, max_z],
-                    [min_x, max_y, max_z],
+                    [min_x / 2.0, max_y, max_z],
+                    [min_x, max_y * 2.0, max_z],
+                    [min_x, max_y * 2.0, max_z],
                 ],
                 _ => [
                     [0.0, 0.0, 0.0],
@@ -410,19 +410,19 @@ impl<'a> FaceWithAO<'a> {
                 z * voxel_size + positions[3][2] * voxel_size,
             ]);
             face_vert.push([
-                x * voxel_size + positions[3][0] * voxel_size,
-                y * voxel_size + positions[3][1] * voxel_size * 2.0,
-                z * voxel_size + positions[3][2] * voxel_size,
+                x * voxel_size + positions[4][0] * voxel_size,
+                y * voxel_size + positions[4][1] * voxel_size,
+                z * voxel_size + positions[4][2] * voxel_size,
             ]);
             face_vert.push([
-                x * voxel_size + positions[3][0] * voxel_size,
-                y * voxel_size + positions[3][1] * voxel_size * 2.0,
-                z * voxel_size + positions[3][2] * voxel_size,
+                x * voxel_size + positions[5][0] * voxel_size,
+                y * voxel_size + positions[5][1] * voxel_size,
+                z * voxel_size + positions[5][2] * voxel_size,
             ]);
             face_vert.push([
-                x * voxel_size + positions[3][0] * voxel_size,
-                y * voxel_size + positions[3][1] * voxel_size * 2.0,
-                z * voxel_size + positions[3][2] * voxel_size,
+                x * voxel_size + positions[6][0] * voxel_size,
+                y * voxel_size + positions[6][1] * voxel_size,
+                z * voxel_size + positions[6][2] * voxel_size,
             ]);
 
             let mut face_ind = Vec::new();
