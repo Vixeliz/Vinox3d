@@ -15,7 +15,9 @@ pub enum CullDirection {
 }
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Default, Clone)]
 pub struct FaceDescript {
-    uv: HashMap<String, [i32; 2]>,
+    uv: HashMap<String, HashMap<String, (i32, i32)>>,
+    discard: HashMap<String, bool>, // Should we completely ignore this face regardless
+    cull: HashMap<String, bool>,    // Should this face be culled if there is a block next to it
     origin: (i32, i32, i32),
     size: (i32, i32, i32),
     rotation: (i32, i32, i32),
@@ -26,7 +28,7 @@ pub struct FaceDescript {
 pub struct BlockGeo {
     pivot: (i32, i32, i32),
     rotation: (i32, i32, i32),
-    cubes: HashMap<String, FaceDescript>,
+    cubes: Vec<FaceDescript>,
 }
 
 // Anything optional here that is necessary for the game to function but we have a default value for ie texture or geometry

@@ -10,12 +10,14 @@ use vinox_common::{
     networking::protocol::NetworkIP,
     storage::{
         blocks::load::load_all_blocks, crafting::load::load_all_recipes,
-        items::load::item_from_block,
+        geometry::load::load_all_geo, items::load::item_from_block,
     },
     world::chunks::storage::{BlockTable, ItemTable, RecipeTable},
 };
 
-use crate::states::{assets::load::LoadableAssets, components::GameState};
+use crate::states::{
+    assets::load::LoadableAssets, components::GameState, game::rendering::meshing::GeometryTable,
+};
 
 #[derive(Resource, Default, Deref, DerefMut)]
 pub struct AssetsLoading(pub Vec<HandleUntyped>);
@@ -103,6 +105,7 @@ pub fn setup_resources(
     mut block_table: ResMut<BlockTable>,
     mut item_table: ResMut<ItemTable>,
     mut recipe_table: ResMut<RecipeTable>,
+    mut geo_table: ResMut<GeometryTable>,
 ) {
     let player_handle = asset_server.load("base_player.gltf#Scene0");
     loading.push(player_handle.clone_untyped());
@@ -130,6 +133,12 @@ pub fn setup_resources(
         name.push(':');
         name.push_str(&recipe.name);
         recipe_table.insert(name, recipe);
+    }
+    for geo in load_all_geo() {
+        let mut name = geo.clone().namespace;
+        name.push(':');
+        name.push_str(&geo.name);
+        geo_table.insert(name, geo);
     }
 }
 

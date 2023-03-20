@@ -77,7 +77,7 @@ pub fn name_to_identifier(namespace: String, name: String) -> String {
 }
 
 pub fn identifier_to_name(identifier: String) -> Option<(String, String)> {
-    for (namespace, name) in identifier.splitn(2, ':').tuples() {
+    if let Some((namespace, name)) = identifier.splitn(2, ':').tuples().next() {
         return Some((namespace.to_string(), name.to_string()));
     }
     None

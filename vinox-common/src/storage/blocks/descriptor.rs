@@ -14,8 +14,9 @@ pub enum BlockGeometry {
     Slab,          // Both vertical and horizontal --DONE
     BorderedBlock, //Basically the bottom still touchs the normal bottom of a block but has a border around all the others --DONE
     Fence,
-    Flat,  // Flat texture that can go on top of a block --DONE
-    Cross, // Crossed textures think like flowers from a popular block game --DONE
+    Flat,           // Flat texture that can go on top of a block --DONE
+    Cross,          // Crossed textures think like flowers from a popular block game --DONE
+    Custom(String), // Custom models defined by the geometry file type
 }
 
 // Anything optional here that is necessary for the game to function but we have a default value for ie texture or geometry

@@ -5,7 +5,7 @@ use walkdir::WalkDir;
 
 use super::descriptor::GeometryDescriptor;
 
-pub fn load_all_recipes() -> Vec<GeometryDescriptor> {
+pub fn load_all_geo() -> Vec<GeometryDescriptor> {
     let mut result = Vec::new();
     if let Some(proj_dirs) = ProjectDirs::from("com", "vinox", "vinox") {
         for entry in WalkDir::new(proj_dirs.data_dir().join("assets/geometry"))

@@ -15,10 +15,10 @@ use bevy_tweening::{lens::TransformPositionLens, *};
 use itertools::Itertools;
 // use rand::seq::IteratorRandom;
 use serde_big_array::Array;
-use std::{ops::Deref, time::Duration};
+use std::{collections::HashMap, ops::Deref, time::Duration};
 use tokio::sync::mpsc::{Receiver, Sender};
 use vinox_common::{
-    storage::blocks::descriptor::BlockGeometry,
+    storage::{blocks::descriptor::BlockGeometry, geometry::descriptor::GeometryDescriptor},
     world::chunks::{
         ecs::{ChunkComp, CurrentChunks},
         positions::voxel_to_world,
@@ -32,6 +32,9 @@ use crate::states::{
 };
 
 use super::chunk::ChunkBoundary;
+
+#[derive(Resource, Clone, Default, Deref, DerefMut)]
+pub struct GeometryTable(pub HashMap<String, GeometryDescriptor>);
 
 pub const EMPTY: VoxelVisibility = VoxelVisibility::Empty;
 pub const OPAQUE: VoxelVisibility = VoxelVisibility::Opaque;
@@ -1401,6 +1404,7 @@ where
                                     }
                                 }
                             }
+                            _ => {}
                         }
                     }
                 }
