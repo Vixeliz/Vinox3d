@@ -323,6 +323,7 @@ impl<'a> FaceWithAO<'a> {
             combo.push((face_vert, face_ind, face_normal, face_ao));
             combo
         } else {
+            // All these mins and maxes are for the bottom slab
             let (min_x, max_x, min_z, max_z) = if let Some(direction) = direction.clone() {
                 match direction {
                     storage::Direction::North => (0.0, 1.0, 0.0, 1.0),
@@ -334,42 +335,44 @@ impl<'a> FaceWithAO<'a> {
                 (0.0, 1.0, 0.0, 1.0)
             };
             let (min_y, max_y) = if top { (0.5, 1.0) } else { (0.0, 0.5) };
+            let bump_height = if top { 0.0 } else { 1.0 };
             let positions = match (&self.side.axis, &self.side.positive) {
+                // The first 4 are for the slab face. 5 is the point of the bump that touches the slab in the middle
                 (Axis::X, false) => [
                     [min_x, min_y, max_z],
                     [min_x, min_y, min_z],
                     [min_x, max_y, max_z],
                     [min_x, max_y, min_z],
-                    [min_x, max_y, max_z / 2.0],
-                    [min_x, max_y * 2.0, min_z],
-                    [min_x, max_y * 2.0, min_z],
+                    [min_x, 0.5, 0.5],
+                    [min_x, bump_height, min_z],
+                    [min_x, bump_height, max_z], // Maxed out z?
                 ],
                 (Axis::X, true) => [
                     [max_x, min_y, min_z],
                     [max_x, min_y, max_z],
                     [max_x, max_y, min_z],
                     [max_x, max_y, max_z],
-                    [max_x, max_y, max_z / 2.0],
-                    [max_x, max_y * 2.0, max_z],
-                    [max_x, max_y * 2.0, max_z],
+                    [max_x, 0.5, 0.5],
+                    [max_x, bump_height, min_z],
+                    [max_x, bump_height, max_z],
                 ],
                 (Axis::Z, false) => [
                     [min_x, min_y, min_z],
                     [max_x, min_y, min_z],
                     [min_x, max_y, min_z],
                     [max_x, max_y, min_z],
-                    [max_x / 2.0, max_y, min_z],
-                    [max_x, max_y * 2.0, min_z],
-                    [max_x, max_y * 2.0, min_z],
+                    [0.5, 0.5, min_z],
+                    [min_x, bump_height, min_z],
+                    [max_x, bump_height, min_z],
                 ],
                 (Axis::Z, true) => [
                     [max_x, min_y, max_z],
                     [min_x, min_y, max_z],
                     [max_x, max_y, max_z],
                     [min_x, max_y, max_z],
-                    [min_x / 2.0, max_y, max_z],
-                    [min_x, max_y * 2.0, max_z],
-                    [min_x, max_y * 2.0, max_z],
+                    [0.5, 0.5, max_z],
+                    [min_x, bump_height, max_z],
+                    [max_x, bump_height, max_z],
                 ],
                 _ => [
                     [0.0, 0.0, 0.0],
@@ -436,8 +439,8 @@ impl<'a> FaceWithAO<'a> {
             face_ind.push(start + 3);
             // Tri 3
             face_ind.push(start + 3);
-            face_ind.push(start + 5);
             face_ind.push(start + 4);
+            face_ind.push(start + 5);
             // Tri 4
             face_ind.push(start + 4);
             face_ind.push(start + 5);
