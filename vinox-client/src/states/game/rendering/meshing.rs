@@ -274,7 +274,7 @@ impl<'a> Face<'a> {
         [start, start + 2, start + 1, start + 1, start + 2, start + 3]
     }
 
-    pub fn positions(&self, voxel_size: f32) -> [[f32; 3]; 4] {
+    pub fn positions(&self, voxel_size: f32, geometry_table: &GeometryTable) -> [[f32; 3]; 4] {
         let positions = match (&self.side.axis, &self.side.positive) {
             (Axis::X, false) => [
                 [0.0, 0.0, 1.0],
@@ -428,7 +428,12 @@ impl Default for MeshChannel {
     }
 }
 
-pub fn generate_mesh<C, T>(chunk: &C, block_table: &BlockTable, solid_pass: bool) -> QuadGroups
+pub fn generate_mesh<C, T>(
+    chunk: &C,
+    block_table: &BlockTable,
+    solid_pass: bool,
+    geometry_table: &GeometryTable,
+) -> QuadGroups
 where
     C: Chunk<Output = T>,
     T: Voxel,
@@ -455,53 +460,64 @@ where
                             chunk.get(x, y, z - 1, block_table),
                             chunk.get(x, y, z + 1, block_table),
                         ];
-                        let neighbor_block = [
-                            chunk.get_descriptor(x - 1, y, z, block_table),
-                            chunk.get_descriptor(x + 1, y, z, block_table),
-                            chunk.get_descriptor(x, y - 1, z, block_table),
-                            chunk.get_descriptor(x, y + 1, z, block_table),
-                            chunk.get_descriptor(x, y, z - 1, block_table),
-                            chunk.get_descriptor(x, y, z + 1, block_table),
-                        ];
+                        // let neighbor_block = [
+                        //     chunk.get_descriptor(x - 1, y, z, block_table),
+                        //     chunk.get_descriptor(x + 1, y, z, block_table),
+                        //     chunk.get_descriptor(x, y - 1, z, block_table),
+                        //     chunk.get_descriptor(x, y + 1, z, block_table),
+                        //     chunk.get_descriptor(x, y, z - 1, block_table),
+                        //     chunk.get_descriptor(x, y, z + 1, block_table),
+                        // ];
                         let voxel_descriptor = chunk.get_descriptor(x, y, z, block_table);
                         let voxel_data = chunk.get_data(x, y, z);
                         for (i, neighbor) in neighbors.into_iter().enumerate() {
-                            let other = neighbor.visibility();
-                            //TODO: Actually determine what faces to cull based off of neighbors geometry. This is just temporary
-                            let generate = if neighbor_block[i].geometry.clone().unwrap_or_default()
-                                == BlockGeometry::Block
-                            {
-                                if solid_pass {
-                                    match (visibility, other) {
-                                        (OPAQUE, EMPTY) | (OPAQUE, TRANSPARENT) => true,
+                            if let Some(geometry) = geometry_table.get(
+                                &voxel_descriptor
+                                    .clone()
+                                    .geometry
+                                    .unwrap_or_default()
+                                    .get_geo_namespace(),
+                            ) {
+                                for element in geometry.elements.clone() {
+                                    for cube in element.cubes.clone() {
+                                        let not_culled = !cube.cull[i] || !cube.discard[i];
+                                        let other = neighbor.visibility();
+                                        //TODO: Actually determine what faces to cull based off of neighbors geometry. This is just temporary
+                                        let generate = if not_culled {
+                                            if solid_pass {
+                                                match (visibility, other) {
+                                                    (OPAQUE, EMPTY) | (OPAQUE, TRANSPARENT) => true,
 
-                                        (TRANSPARENT, TRANSPARENT) => voxel != neighbor,
+                                                    (TRANSPARENT, TRANSPARENT) => voxel != neighbor,
 
-                                        (_, _) => false,
-                                    }
-                                } else {
-                                    match (visibility, other) {
-                                        (TRANSPARENT, EMPTY) => true,
+                                                    (_, _) => false,
+                                                }
+                                            } else {
+                                                match (visibility, other) {
+                                                    (TRANSPARENT, EMPTY) => true,
 
-                                        (TRANSPARENT, TRANSPARENT) => voxel != neighbor,
+                                                    (TRANSPARENT, TRANSPARENT) => voxel != neighbor,
 
-                                        (_, _) => false,
+                                                    (_, _) => false,
+                                                }
+                                            }
+                                        } else if (visibility == OPAQUE && solid_pass)
+                                            || (visibility == TRANSPARENT && !solid_pass)
+                                        {
+                                            true
+                                        } else {
+                                            false
+                                        };
+
+                                        if generate {
+                                            buffer.groups[i].push(Quad {
+                                                voxel: [x as usize, y as usize, z as usize],
+                                                width: 1,
+                                                height: 1,
+                                            });
+                                        }
                                     }
                                 }
-                            } else if (visibility == OPAQUE && solid_pass)
-                                || (visibility == TRANSPARENT && !solid_pass)
-                            {
-                                true
-                            } else {
-                                false
-                            };
-
-                            if generate {
-                                buffer.groups[i].push(Quad {
-                                    voxel: [x as usize, y as usize, z as usize],
-                                    width: 1,
-                                    height: 1,
-                                });
                             }
                         }
                     }
@@ -515,11 +531,12 @@ where
 fn full_mesh(
     raw_chunk: &ChunkBoundary,
     block_table: &BlockTable,
+    geo_table: &GeometryTable,
     loadable_assets: &LoadableAssets,
     texture_atlas: &TextureAtlas,
     chunk_pos: IVec3,
 ) -> MeshedChunk {
-    let mesh_result = generate_mesh(raw_chunk, block_table, true);
+    let mesh_result = generate_mesh(raw_chunk, block_table, true, geo_table);
     let mut positions = Vec::new();
     let mut indices = Vec::new();
     let mut normals = Vec::new();
@@ -527,7 +544,7 @@ fn full_mesh(
     let mut ao = Vec::new();
     for face in mesh_result.iter_with_ao(raw_chunk, block_table) {
         indices.extend_from_slice(&face.indices(positions.len() as u32));
-        positions.extend_from_slice(&face.positions(1.0)); // Voxel size is 1m
+        positions.extend_from_slice(&face.positions(1.0, geo_table)); // Voxel size is 1m
         normals.extend_from_slice(&face.normals());
         ao.extend_from_slice(&face.aos());
         let matched_index = match (face.side.axis, face.side.positive) {
@@ -573,7 +590,7 @@ fn full_mesh(
     mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, final_ao);
 
     //Transparent Mesh
-    let mesh_result = generate_mesh(raw_chunk, block_table, false);
+    let mesh_result = generate_mesh(raw_chunk, block_table, false, geo_table);
     let mut ao = Vec::new();
     let mut positions = Vec::new();
     let mut indices = Vec::new();
@@ -581,7 +598,7 @@ fn full_mesh(
     let mut uvs = Vec::new();
     for face in mesh_result.iter_with_ao(raw_chunk, block_table) {
         indices.extend_from_slice(&face.indices(positions.len() as u32));
-        positions.extend_from_slice(&face.positions(1.0)); // Voxel size is 1m
+        positions.extend_from_slice(&face.positions(1.0, geo_table)); // Voxel size is 1m
         normals.extend_from_slice(&face.normals());
         ao.extend_from_slice(&face.aos());
         let matched_index = match (face.side.axis, face.side.positive) {
@@ -636,6 +653,7 @@ pub fn process_priority_queue(
     mut commands: Commands,
     loadable_assets: ResMut<LoadableAssets>,
     block_table: Res<BlockTable>,
+    geo_table: Res<GeometryTable>,
     texture_atlas: Res<Assets<TextureAtlas>>,
     mut priority_channel: ResMut<PriorityMeshChannel>,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -649,6 +667,7 @@ pub fn process_priority_queue(
         .clone();
     for (chunk_pos, center_chunk, neighbors) in chunk_queue.priority.drain(..) {
         let cloned_table: BlockTable = block_table.clone();
+        let cloned_geo_table: GeometryTable = geo_table.clone();
         let cloned_assets: LoadableAssets = loadable_assets.clone();
         let clone_atlas: TextureAtlas = block_atlas.clone();
         let cloned_sender = priority_channel.tx.clone();
@@ -660,6 +679,7 @@ pub fn process_priority_queue(
                     .send(full_mesh(
                         &raw_chunk,
                         &cloned_table,
+                        &cloned_geo_table,
                         &cloned_assets,
                         &clone_atlas,
                         chunk_pos,
@@ -847,6 +867,7 @@ pub fn process_queue(
     mut commands: Commands,
     loadable_assets: ResMut<LoadableAssets>,
     block_table: Res<BlockTable>,
+    geo_table: Res<GeometryTable>,
     texture_atlas: Res<Assets<TextureAtlas>>,
     mut mesh_channel: ResMut<MeshChannel>,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -862,6 +883,7 @@ pub fn process_queue(
         .clone();
     for (chunk_pos, center_chunk, neighbors) in chunk_queue.mesh.drain(..).rev() {
         let cloned_table: BlockTable = block_table.clone();
+        let cloned_geo_table: GeometryTable = geo_table.clone();
         let cloned_assets: LoadableAssets = loadable_assets.clone();
         let clone_atlas: TextureAtlas = block_atlas.clone();
         let cloned_sender = mesh_channel.tx.clone();
@@ -873,6 +895,7 @@ pub fn process_queue(
                     .send(full_mesh(
                         &raw_chunk,
                         &cloned_table,
+                        &cloned_geo_table,
                         &cloned_assets,
                         &clone_atlas,
                         chunk_pos,

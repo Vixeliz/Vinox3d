@@ -19,6 +19,21 @@ pub enum BlockGeometry {
     Custom(String), // Custom models defined by the geometry file type
 }
 
+impl BlockGeometry {
+    pub fn get_geo_namespace(&self) -> String {
+        match self {
+            BlockGeometry::Block => "vinox:block".to_string(),
+            BlockGeometry::Stairs => "vinox:block".to_string(),
+            BlockGeometry::Slab => "vinox:block".to_string(),
+            BlockGeometry::BorderedBlock => "vinox:block".to_string(),
+            BlockGeometry::Fence => "vinox:block".to_string(),
+            BlockGeometry::Flat => "vinox:block".to_string(),
+            BlockGeometry::Cross => "vinox:block".to_string(),
+            BlockGeometry::Custom(identifier) => identifier.clone(),
+        }
+    }
+}
+
 // Anything optional here that is necessary for the game to function but we have a default value for ie texture or geometry
 // NOTE: We will also take in any children blocks this block may have. ie any slab, fence, stair variant etc
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Default, Clone)]

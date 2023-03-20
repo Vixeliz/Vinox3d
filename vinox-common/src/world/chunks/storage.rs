@@ -45,6 +45,17 @@ pub enum Direction {
     South,
 }
 
+impl Direction {
+    pub fn get_as_string(&self) -> String {
+        match self {
+            Direction::North => "north".to_string(),
+            Direction::West => "west".to_string(),
+            Direction::East => "east".to_string(),
+            Direction::South => "south".to_string(),
+        }
+    }
+}
+
 #[derive(EnumString, Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Default, Clone)]
 pub enum GrowthState {
     #[default]

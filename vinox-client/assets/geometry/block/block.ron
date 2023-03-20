@@ -7,48 +7,30 @@ GeometryDescriptor(
         rotation: (0, 0, 0),
         cubes: [
             FaceDescript(
-                uv: {
-            	    "north": {
-                        "uv": (0, 0), 
-                        "uv_size": (16, 16)
-                    },
-				    "east": {
-                        "uv": (0, 0),
-                        "uv_size": (16, 16)
-                    },
-				    "south": {
-                        "uv": (0, 0),
-                        "uv_size": (16, 16)
-                    },
-				    "west": {
-                        "uv": (0, 0),
-                        "uv_size": (16, 16)
-                    },
-				    "up": {
-                        "uv": (16, 16),
-                        "uv_size": (-16, -16)
-                    },
-				    "down": {
-                        "uv": (16, 16),
-                        "uv_size": (-16, -16)
-                    }
-                },
-                cull: {
-            	    "north": true,
-				    "east": true,
-				    "south": true,
-				    "west": true,
-				    "up": true,
-				    "down": true,
-                },
-                discard: {
-            	    "north": false,
-				    "east": false,
-				    "south": false,
-				    "west": false,
-				    "up": false,
-				    "down": false,
-                },
+                uv:(
+                    ((0, 0), (16, 16)), // West
+                    ((0, 0), (16, 16)), // East
+                    ((16, 16), (-16, -16)), // Down
+                    ((16, 16), (-16, -16)), // Up
+                    ((0, 0), (16, 16)), // South
+                    ((0, 0), (16, 16)), // North
+                ),
+                cull: (
+            	     true,
+				     true,
+				     true,
+				     true,
+			         true,
+				     true,
+                ),
+                discard: (
+            	     false,
+				     false,
+				     false,
+				     false,
+			         false,
+				     false,
+                ),
                 origin: (0, 0, 0),
                 size: (16, 16, 16),
                 rotation: (0, 0, 0),
