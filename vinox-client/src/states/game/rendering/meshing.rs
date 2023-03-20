@@ -336,6 +336,83 @@ impl<'a> FaceWithAO<'a> {
             };
             let (min_y, max_y) = if top { (0.5, 1.0) } else { (0.0, 0.5) };
             let bump_height = if top { 0.0 } else { 1.0 };
+            let mut should_have_side = [false, false, false, false]; // If a certain corner should be built
+                                                                     // 0 is the south west corner
+                                                                     // 1 is the south east corner
+                                                                     // 2 is the north west corner
+                                                                     // 3 is the north east corner
+            match direction.unwrap_or_default() {
+                storage::Direction::North => {
+                    if neighbors[0] && (neighbors_top[0] == top) {
+                        if neighbors_direction[0] == storage::Direction::West {
+                            should_have_side[2] = true;
+                            should_have_side[1] = true;
+                            should_have_side[3] = false;
+                            should_have_side[0] = true;
+                        }
+                        if neighbors_direction[0] == storage::Direction::East {
+                            should_have_side[2] = false;
+                            should_have_side[1] = true;
+                            should_have_side[3] = true;
+                            should_have_side[0] = true;
+                        }
+                    }
+                    if neighbors[1] && (neighbors_top[1] == top) {
+                        if neighbors_direction[1] == storage::Direction::West {
+                            should_have_side[0] = true;
+                            should_have_side[1] = false;
+                            should_have_side[2] = false;
+                            should_have_side[3] = false;
+                        }
+                        if neighbors_direction[1] == storage::Direction::East {
+                            should_have_side[1] = true;
+                            should_have_side[0] = false;
+                            should_have_side[2] = false;
+                            should_have_side[3] = false;
+                        }
+                    }
+                    if neighbors[2] && (neighbors_top[2] == top) {
+                        if neighbors_direction[2] == storage::Direction::North {
+                            should_have_side[3] = true;
+                        }
+                        if neighbors_direction[2] == storage::Direction::South {
+                            should_have_side[1] = true;
+                        }
+                    }
+                    if neighbors[3] && (neighbors_top[3] == top) {
+                        if neighbors_direction[3] == storage::Direction::North {
+                            should_have_side[2] = true;
+                        }
+                        if neighbors_direction[3] == storage::Direction::South {
+                            should_have_side[0] = true;
+                        }
+                    }
+                }
+                storage::Direction::South => {
+                    if neighbors_direction[1] == storage::Direction::West {
+                        should_have_side[0] = true;
+                    }
+                    if neighbors_direction[1] == storage::Direction::East {
+                        should_have_side[1] = true;
+                    }
+                }
+                storage::Direction::West => {
+                    if neighbors_direction[3] == storage::Direction::South {
+                        should_have_side[0] = true;
+                    }
+                    if neighbors_direction[3] == storage::Direction::North {
+                        should_have_side[2] = true;
+                    }
+                }
+                storage::Direction::East => {
+                    if neighbors_direction[2] == storage::Direction::South {
+                        should_have_side[1] = true;
+                    }
+                    if neighbors_direction[2] == storage::Direction::North {
+                        should_have_side[3] = true;
+                    }
+                }
+            }
             let positions = match (&self.side.axis, &self.side.positive) {
                 // The first 4 are for the slab face. 5 is the point of the bump that touches the slab in the middle
                 (Axis::X, false) => [

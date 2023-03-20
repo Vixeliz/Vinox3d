@@ -19,6 +19,7 @@ pub enum BlockGeometry {
 }
 
 // Anything optional here that is necessary for the game to function but we have a default value for ie texture or geometry
+// NOTE: We will also take in any children blocks this block may have. ie any slab, fence, stair variant etc
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Default, Clone)]
 pub struct BlockDescriptor {
     pub namespace: String, // TODO: Make sure that we only allow one namespace:name pair
