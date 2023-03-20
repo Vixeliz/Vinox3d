@@ -40,7 +40,6 @@ pub fn raycast_world(
     loop {
         // Infinite loop shouldve been prevented by tmax but it isn't for some reason all the time. This just breaks the loop after 4 x the radius which should be plenty of time to find the voxel
         // It could be due to chunks or neighbors not existing?
-        counter += 1;
         if counter > (radius * 4.0) as u32 {
             break;
         }
@@ -106,6 +105,7 @@ pub fn raycast_world(
             face.y = 0.0;
             face.z = -step.z;
         }
+        counter += 1;
     }
     None
 }
