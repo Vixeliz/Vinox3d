@@ -83,7 +83,6 @@ pub fn create_ui(
                                 let input_send = response.lost_focus()
                                     && ui.input(|input| input.key_pressed(egui::Key::Enter));
                                 if input_send {
-                                    response.request_focus();
                                     if let Ok((result, _)) = parser.parse((), &current_message) {
                                         messages.push(("Console".to_string(), result.to_string()));
                                         wireframe_config.global = !wireframe_config.global;
@@ -96,8 +95,7 @@ pub fn create_ui(
                                         current_message.clear();
                                     }
                                 }
-                                response.request_focus();
-                            })
+                            });
                         });
 
                     egui::ScrollArea::vertical()

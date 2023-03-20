@@ -439,8 +439,8 @@ impl<'a> FaceWithAO<'a> {
             face_ind.push(start + 3);
             // Tri 3
             face_ind.push(start + 3);
-            face_ind.push(start + 4);
             face_ind.push(start + 5);
+            face_ind.push(start + 6);
             // Tri 4
             face_ind.push(start + 4);
             face_ind.push(start + 5);
