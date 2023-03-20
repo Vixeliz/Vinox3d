@@ -1,0 +1,8 @@
+RecipeDescriptor(
+    namespace: "vinox",
+    name: "xoniv",
+    required_items: Some({
+        "vinox:glass": 2,
+    }),
+    output_item: ("vinox:xoniv", 1)
+)

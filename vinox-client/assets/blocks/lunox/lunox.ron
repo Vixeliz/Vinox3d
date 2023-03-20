@@ -1,0 +1,10 @@
+BlockDescriptor(
+    namespace: "vinox",
+    name: "lunox",
+    textures: Some({
+    Some("front"): Some("lunox.png"),
+    }),
+    visibility: Some(Transparent), 
+    has_item: Some(true),
+    geometry: Some(Cross)
+)

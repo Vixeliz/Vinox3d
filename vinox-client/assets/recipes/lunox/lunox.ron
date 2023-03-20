@@ -1,0 +1,8 @@
+RecipeDescriptor(
+    namespace: "vinox",
+    name: "lunox",
+    required_items: Some({
+        "vinox:cobblestone": 4,
+    }),
+    output_item: ("vinox:lunox", 1)
+)
