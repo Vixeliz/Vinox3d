@@ -240,18 +240,18 @@ impl<'a> FaceWithAO<'a> {
     ) -> Vec<(Vec<[f32; 3]>, Vec<u32>, Vec<[f32; 3]>, Vec<u32>)> {
         // 3 vertices per vertex 3 indices per triangle
         let mut combo = Vec::new();
-        let (min_x, max_x, min_z, max_z) = if let Some(direction) = direction.clone() {
-            match direction {
-                storage::Direction::North => (0.0, 1.0, 0.0, 1.0),
-                storage::Direction::South => (0.0, 1.0, 0.0, 1.0),
-                storage::Direction::West => (0.0, 1.0, 0.0, 1.0),
-                storage::Direction::East => (0.0, 1.0, 0.0, 1.0),
-            }
-        } else {
-            (0.0, 1.0, 0.0, 1.0)
-        };
-        let (min_y, max_y) = if top { (0.5, 1.0) } else { (0.0, 0.5) };
         if self.side.axis == Axis::Y {
+            let (min_x, max_x, min_z, max_z) = if let Some(direction) = direction.clone() {
+                match direction {
+                    storage::Direction::North => (0.0, 1.0, 0.0, 1.0),
+                    storage::Direction::South => (0.0, 1.0, 0.0, 1.0),
+                    storage::Direction::West => (0.0, 1.0, 0.0, 1.0),
+                    storage::Direction::East => (0.0, 1.0, 0.0, 1.0),
+                }
+            } else {
+                (0.0, 1.0, 0.0, 1.0)
+            };
+            let (min_y, max_y) = if top { (0.5, 1.0) } else { (0.0, 0.5) };
             let positions = match (&self.side.axis, &self.side.positive) {
                 (Axis::Y, false) => [
                     [min_x, min_y, max_z],
@@ -323,11 +323,23 @@ impl<'a> FaceWithAO<'a> {
             combo.push((face_vert, face_ind, face_normal, face_ao));
             combo
         } else {
+            let (min_x, max_x, min_z, max_z) = if let Some(direction) = direction.clone() {
+                match direction {
+                    storage::Direction::North => (0.0, 1.0, 0.0, 1.0),
+                    storage::Direction::South => (0.0, 1.0, 0.0, 1.0),
+                    storage::Direction::West => (0.0, 1.0, 0.0, 1.0),
+                    storage::Direction::East => (0.0, 1.0, 0.0, 1.0),
+                }
+            } else {
+                (0.0, 1.0, 0.0, 1.0)
+            };
+            let (min_y, max_y) = if top { (0.5, 1.0) } else { (0.0, 0.5) };
             let positions = match (&self.side.axis, &self.side.positive) {
                 (Axis::X, false) => [
                     [min_x, min_y, max_z],
                     [min_x, min_y, min_z],
                     [min_x, max_y, max_z],
+                    [min_x, max_y, min_z],
                     [min_x, max_y, min_z],
                     [min_x, max_y, min_z],
                     [min_x, max_y, min_z],
@@ -339,11 +351,13 @@ impl<'a> FaceWithAO<'a> {
                     [max_x, max_y, max_z],
                     [max_x, max_y, max_z],
                     [max_x, max_y, max_z],
+                    [max_x, max_y, max_z],
                 ],
                 (Axis::Z, false) => [
                     [min_x, min_y, min_z],
                     [max_x, min_y, min_z],
                     [min_x, max_y, min_z],
+                    [max_x, max_y, min_z],
                     [max_x, max_y, min_z],
                     [max_x, max_y, min_z],
                     [max_x, max_y, min_z],
@@ -355,8 +369,10 @@ impl<'a> FaceWithAO<'a> {
                     [min_x, max_y, max_z],
                     [min_x, max_y, max_z],
                     [min_x, max_y, max_z],
+                    [min_x, max_y, max_z],
                 ],
                 _ => [
+                    [0.0, 0.0, 0.0],
                     [0.0, 0.0, 0.0],
                     [0.0, 0.0, 0.0],
                     [0.0, 0.0, 0.0],
@@ -395,12 +411,17 @@ impl<'a> FaceWithAO<'a> {
             ]);
             face_vert.push([
                 x * voxel_size + positions[3][0] * voxel_size,
-                y * voxel_size + positions[3][1] * voxel_size,
+                y * voxel_size + positions[3][1] * voxel_size * 2.0,
                 z * voxel_size + positions[3][2] * voxel_size,
             ]);
             face_vert.push([
                 x * voxel_size + positions[3][0] * voxel_size,
-                y * voxel_size + positions[3][1] * voxel_size,
+                y * voxel_size + positions[3][1] * voxel_size * 2.0,
+                z * voxel_size + positions[3][2] * voxel_size,
+            ]);
+            face_vert.push([
+                x * voxel_size + positions[3][0] * voxel_size,
+                y * voxel_size + positions[3][1] * voxel_size * 2.0,
                 z * voxel_size + positions[3][2] * voxel_size,
             ]);
 
@@ -414,15 +435,16 @@ impl<'a> FaceWithAO<'a> {
             face_ind.push(start + 2);
             face_ind.push(start + 3);
             // Tri 3
-            face_ind.push(start + 1);
-            face_ind.push(start + 2);
             face_ind.push(start + 3);
+            face_ind.push(start + 5);
+            face_ind.push(start + 4);
             // Tri 4
-            face_ind.push(start + 1);
-            face_ind.push(start + 2);
-            face_ind.push(start + 3);
+            face_ind.push(start + 4);
+            face_ind.push(start + 5);
+            face_ind.push(start + 6);
 
             let mut face_normal = Vec::new();
+            face_normal.push(self.side.normal());
             face_normal.push(self.side.normal());
             face_normal.push(self.side.normal());
             face_normal.push(self.side.normal());
@@ -435,6 +457,7 @@ impl<'a> FaceWithAO<'a> {
             face_ao.push(self.aos()[2]);
             face_ao.push(self.aos()[3]);
             face_ao.push(self.aos()[2]);
+            face_ao.push(self.aos()[3]);
             face_ao.push(self.aos()[3]);
             combo.push((face_vert, face_ind, face_normal, face_ao));
             combo
@@ -1603,6 +1626,7 @@ fn full_mesh(
                             uvs.push(face_coords[3]);
                             uvs.push(face_coords[3]);
                             uvs.push(face_coords[3]);
+                            uvs.push(face_coords[3]);
                         }
                     } else {
                         let calculated_uv = face.uvs(false, false);
@@ -1615,6 +1639,7 @@ fn full_mesh(
                             uvs.push(calculated_uv[0]);
                             uvs.push(calculated_uv[1]);
                             uvs.push(calculated_uv[2]);
+                            uvs.push(calculated_uv[3]);
                             uvs.push(calculated_uv[3]);
                             uvs.push(calculated_uv[3]);
                             uvs.push(calculated_uv[3]);

@@ -4,7 +4,7 @@ use egui_notify::Toasts;
 use std::{collections::BTreeMap, convert::Infallible};
 use vinox_common::networking::protocol::ClientMessage;
 
-use bevy::prelude::*;
+use bevy::{pbr::wireframe::WireframeConfig, prelude::*};
 use bevy_egui::{
     egui::{Align2, FontId},
     *,
@@ -27,15 +27,16 @@ pub fn create_ui(
     mut contexts: EguiContexts,
     mut toast: ResMut<Toast>,
     options: Res<GameOptions>,
+    mut wireframe_config: ResMut<WireframeConfig>,
 ) {
     if !options.dark_theme {
         catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
     }
     toast.show(contexts.ctx_mut());
     if **is_open {
-        let parser = literal("/add")
-            .then(integer_i32("integer").build_exec(|_ctx: (), bar| {
-                println!("Integer is {bar}");
+        let parser = literal("/wireframe")
+            .then(boolean("bool").build_exec(|_ctx: (), bar| {
+                println!("Toggled wireframe to {bar}");
                 Ok::<(), Infallible>(())
             }))
             .build_exec(|_ctx: ()| {
@@ -84,6 +85,7 @@ pub fn create_ui(
                                 if input_send {
                                     if let Ok((result, _)) = parser.parse((), &current_message) {
                                         messages.push(("Console".to_string(), result.to_string()));
+                                        wireframe_config.global = !wireframe_config.global;
                                     } else {
                                         client.connection_mut().try_send_message(
                                             ClientMessage::ChatMessage {

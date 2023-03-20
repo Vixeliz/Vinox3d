@@ -1,7 +1,12 @@
 pub mod states;
 use bevy::{
+    pbr::wireframe::WireframePlugin,
     // diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
     prelude::*,
+    render::{
+        settings::{WgpuFeatures, WgpuSettings},
+        RenderPlugin,
+    },
     window::PresentMode,
 };
 use bevy_quinnet::client::QuinnetClientPlugin;
@@ -64,8 +69,15 @@ fn main() {
                         ..default()
                     }),
                     ..default()
+                })
+                .set(RenderPlugin {
+                    wgpu_settings: WgpuSettings {
+                        features: WgpuFeatures::POLYGON_MODE_LINE,
+                        ..default()
+                    },
                 }),
         )
+        .add_plugin(WireframePlugin)
         // .add_plugin(LogDiagnosticsPlugin::default())
         // .add_plugin(FrameTimeDiagnosticsPlugin::default())
         .insert_resource(ProjectPath(asset_path))
