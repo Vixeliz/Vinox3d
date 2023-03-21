@@ -48,6 +48,7 @@ pub struct GameOptions {
     pub dark_theme: bool,
     pub user_name: String,
     pub standard_bar: bool,
+    pub meshes_frame: usize,
 }
 
 impl Default for GameOptions {
@@ -72,6 +73,7 @@ impl Default for GameOptions {
             dark_theme: true,
             user_name: "User".to_string(),
             standard_bar: true,
+            meshes_frame: 256,
         }
     }
 }

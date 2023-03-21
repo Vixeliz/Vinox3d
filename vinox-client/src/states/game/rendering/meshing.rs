@@ -35,6 +35,7 @@ use vinox_common::{
 
 use crate::states::{
     assets::load::LoadableAssets,
+    components::GameOptions,
     game::world::chunks::{ChunkManager, PlayerBlock, PlayerChunk},
 };
 
@@ -1149,6 +1150,7 @@ pub fn build_mesh(
     chunks: Query<&ChunkComp, With<NeedsMesh>>,
     chunk_manager: ChunkManager,
     player_chunk: Res<PlayerChunk>,
+    options: Res<GameOptions>,
 ) {
     // let mut rng = rand::thread_rng();
     for (count, chunk) in chunks
@@ -1158,7 +1160,7 @@ pub fn build_mesh(
         })
         .enumerate()
     {
-        if count > 256 {
+        if count > options.meshes_frame {
             return;
         }
         // for chunk in chunks.iter().choose_multiple(&mut rng, 256) {

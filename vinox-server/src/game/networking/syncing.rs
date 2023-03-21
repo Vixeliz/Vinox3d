@@ -20,7 +20,7 @@ use crate::game::world::{
     storage::ChunksToSave,
 };
 
-use super::components::{SentChunks, ServerLobby};
+use super::components::{ChunkLimit, SentChunks, ServerLobby};
 
 pub fn connections(
     mut server: ResMut<Server>,
@@ -191,6 +191,7 @@ pub fn send_chunks(
     lobby: ResMut<ServerLobby>,
     mut players: Query<(&Transform, &mut SentChunks), With<Player>>,
     mut chunk_manager: ChunkManager,
+    chunk_limit: Res<ChunkLimit>,
 ) {
     let mut rng = rand::thread_rng();
     let endpoint = server.endpoint_mut();
@@ -202,7 +203,7 @@ pub fn send_chunks(
                 commands.entity(*player_entity).insert(load_point.clone());
                 for chunk in chunk_manager
                     .get_chunks_around_chunk(chunk_pos, &sent_chunks)
-                    .choose_multiple(&mut rng, 16)
+                    .choose_multiple(&mut rng, **chunk_limit)
                 {
                     let raw_chunk = chunk.chunk_data.clone();
                     if let Ok(raw_chunk_bin) = bincode::serialize(&raw_chunk) {

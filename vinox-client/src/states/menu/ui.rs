@@ -147,6 +147,11 @@ pub fn options(
                                 ui.label("FOV: ");
                                 ui.add(egui::Slider::new(&mut options.fov, 30.0..=120.0));
                             });
+                            ui.separator();
+                            ui.horizontal(|ui| {
+                                ui.label("Max meshes per frame: ");
+                                ui.add(egui::Slider::new(&mut options.meshes_frame, 64..=2048));
+                            });
                         });
                 });
             });

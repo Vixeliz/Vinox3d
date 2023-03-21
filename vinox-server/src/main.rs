@@ -5,6 +5,7 @@ use bevy::{
 use bevy_quinnet::server::QuinnetServerPlugin;
 use directories::*;
 use game::{
+    networking::components::ChunkLimit,
     plugin::GamePlugin,
     world::storage::{create_database, WorldDatabase, WorldInfo},
 };
@@ -91,6 +92,7 @@ fn main() {
         )))
         .insert_resource(final_world_info)
         .insert_resource(WorldDatabase { connection: pool })
+        .insert_resource(ChunkLimit(16))
         .insert_resource(NetworkIP(ip))
         .add_plugins(MinimalPlugins)
         .add_plugin(DiagnosticsPlugin)
