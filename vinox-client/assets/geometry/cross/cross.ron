@@ -8,12 +8,12 @@ GeometryDescriptor(
         cubes: [
             FaceDescript(
                 uv:(
-                    ((0, 0), (16, 8)), // West
-                    ((0, 0), (16, 8)), // East
+                    ((0, 0), (16, 16)), // West
+                    ((0, 0), (16, 16)), // East
                     ((16, 16), (-16, -16)), // Down
                     ((16, 16), (-16, -16)), // Up
-                    ((0, 0), (16, 8)), // South
-                    ((0, 0), (16, 8)), // North
+                    ((0, 0), (16, 16)), // South
+                    ((0, 0), (16, 16)), // North
                 ),
                 cull: (
             	     false,
@@ -26,24 +26,24 @@ GeometryDescriptor(
                 discard: (
             	     false,
 				     false,
-				     false,
-				     false,
+				     true,
+				     true,
 			         false,
 				     false,
                 ),
                 origin: (8, 0, 0),
-                size: (16, 16, 0),
+                end: (8, 16, 16),
                 rotation: (0, -45, 0),
                 pivot: (8, 8, 8)
         ),
             FaceDescript(
                 uv:(
-                    ((0, 0), (16, 8)), // West
-                    ((0, 0), (16, 8)), // East
+                    ((0, 0), (16, 16)), // West
+                    ((0, 0), (16, 16)), // East
                     ((16, 16), (-16, -16)), // Down
                     ((16, 16), (-16, -16)), // Up
-                    ((0, 0), (16, 8)), // South
-                    ((0, 0), (16, 8)), // North
+                    ((0, 0), (16, 16)), // South
+                    ((0, 0), (16, 16)), // North
                 ),
                 cull: (
             	     false,
@@ -56,13 +56,13 @@ GeometryDescriptor(
                 discard: (
             	     false,
 				     false,
-				     false,
-				     false,
+				     true,
+				     true,
 			         false,
 				     false,
                 ),
                 origin: (0, 0, 8),
-                size: (0, 16, 16),
+                end: (16, 16, 8),
                 rotation: (0, 45, 0),
                 pivot: (8, 8, 8)
         )

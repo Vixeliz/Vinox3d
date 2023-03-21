@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use serde::{Deserialize, Serialize};
 use strum::EnumString;
 
@@ -19,7 +17,7 @@ pub struct FaceDescript {
     pub discard: [bool; 6], // Should we completely ignore this face regardless
     pub cull: [bool; 6],    // Should this face be culled if there is a block next to it
     pub origin: (i32, i32, i32),
-    pub size: (i32, i32, i32),
+    pub end: (i32, i32, i32),
     pub rotation: (i32, i32, i32),
     pub pivot: (i32, i32, i32), //CULLING CAN BE DONE BY CHECKING IF ANY GIVEN FACE IS TOUCHING THE SIDES OF THE NEIGHBORS FACE?
 }

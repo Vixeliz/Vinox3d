@@ -536,13 +536,13 @@ where
                                             5 => cube.origin.0,
                                             _ => 0,
                                         };
-                                        let size_one = match i {
-                                            0 => cube.size.1,
-                                            1 => cube.size.1,
-                                            2 => cube.size.2,
-                                            3 => cube.size.2,
-                                            4 => cube.size.0,
-                                            5 => cube.size.0,
+                                        let end_one = match i {
+                                            0 => cube.end.1,
+                                            1 => cube.end.1,
+                                            2 => cube.end.2,
+                                            3 => cube.end.2,
+                                            4 => cube.end.0,
+                                            5 => cube.end.0,
                                             _ => 0,
                                         };
                                         let origin_two = match i {
@@ -554,13 +554,13 @@ where
                                             5 => cube.origin.1,
                                             _ => 0,
                                         };
-                                        let size_two = match i {
-                                            0 => cube.size.2,
-                                            1 => cube.size.2,
-                                            2 => cube.size.0,
-                                            3 => cube.size.0,
-                                            4 => cube.size.1,
-                                            5 => cube.size.1,
+                                        let end_two = match i {
+                                            0 => cube.end.2,
+                                            1 => cube.end.2,
+                                            2 => cube.end.0,
+                                            3 => cube.end.0,
+                                            4 => cube.end.1,
+                                            5 => cube.end.1,
                                             _ => 0,
                                         };
                                         let self_start = match i {
@@ -573,12 +573,12 @@ where
                                             _ => 0,
                                         };
                                         let self_end = match i {
-                                            0 => cube.size.0,
-                                            1 => cube.size.0,
-                                            2 => cube.size.1,
-                                            3 => cube.size.1,
-                                            4 => cube.size.2,
-                                            5 => cube.size.2,
+                                            0 => cube.end.0,
+                                            1 => cube.end.0,
+                                            2 => cube.end.1,
+                                            3 => cube.end.1,
+                                            4 => cube.end.2,
+                                            5 => cube.end.2,
                                             _ => 0,
                                         };
 
@@ -586,7 +586,7 @@ where
                                             buffer.groups[i].push(Quad {
                                                 voxel: [x as usize, y as usize, z as usize],
                                                 start: (origin_one, origin_two),
-                                                end: (size_one, size_two),
+                                                end: (end_one, end_two),
                                                 self_start,
                                                 self_end,
                                             });

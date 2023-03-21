@@ -32,7 +32,7 @@ GeometryDescriptor(
 				     false,
                 ),
                 origin: (0, 0, 0),
-                size: (16, 16, 16),
+                end: (16, 16, 16),
                 rotation: (0, 0, 0),
                 pivot: (0, 0, 0)
         )
