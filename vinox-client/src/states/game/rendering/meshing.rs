@@ -23,8 +23,8 @@ use vinox_common::{
         ecs::{ChunkComp, CurrentChunks},
         positions::voxel_to_world,
         storage::{
-            self, name_to_identifier, BlockTable, Chunk, RawChunk, Voxel, VoxelVisibility,
-            CHUNK_SIZE,
+            self, name_to_identifier, BlockTable, Chunk, RawChunk, RenderedBlockData, Voxel,
+            VoxelVisibility, CHUNK_SIZE,
         },
     },
 };
@@ -444,7 +444,94 @@ impl<'a> Face<'a> {
         self.side.normals()
     }
 
-    pub fn uvs(&self, flip_u: bool, flip_v: bool) -> [[f32; 2]; 4] {
+    pub fn uvs(
+        &self,
+        flip_u: bool,
+        flip_v: bool,
+        geo: &GeometryDescriptor,
+        texture_atlas: &TextureAtlas,
+        matched_ind: usize,
+        loadable_assets: &LoadableAssets,
+        block: &RenderedBlockData,
+    ) -> [[f32; 2]; 4] {
+        if let Some(texture_index) = texture_atlas.get_texture_index(
+            &loadable_assets
+                .block_textures
+                .get(&block.identifier)
+                .unwrap()[matched_ind],
+        ) {
+            let uv = geo.element.cubes.get(self.quad.cube).unwrap().uv;
+            let mut face_tex = [[0.0; 2]; 4];
+            let min_x = texture_atlas.textures.get(texture_index).unwrap().min.x;
+            let min_y = texture_atlas.textures.get(texture_index).unwrap().min.y;
+            let (min_x, min_y) = match (&self.side.axis, &self.side.positive) {
+                (Axis::X, false) => (
+                    min_x + uv.get(0).unwrap().0 .0 as f32,
+                    min_y + uv.get(0).unwrap().0 .1 as f32,
+                ),
+                (Axis::X, true) => (
+                    min_x + uv.get(1).unwrap().0 .0 as f32,
+                    min_y + uv.get(1).unwrap().0 .1 as f32,
+                ),
+                (Axis::Y, false) => (
+                    min_x + uv.get(2).unwrap().0 .0 as f32,
+                    min_y + uv.get(2).unwrap().0 .1 as f32,
+                ),
+                (Axis::Y, true) => (
+                    min_x + uv.get(3).unwrap().0 .0 as f32,
+                    min_y + uv.get(3).unwrap().0 .1 as f32,
+                ),
+                (Axis::Z, false) => (
+                    min_x + uv.get(4).unwrap().0 .0 as f32,
+                    min_y + uv.get(4).unwrap().0 .1 as f32,
+                ),
+                (Axis::Z, true) => (
+                    min_x + uv.get(5).unwrap().0 .0 as f32,
+                    min_y + uv.get(5).unwrap().0 .1 as f32,
+                ),
+            };
+            let (max_x, max_y) = match (&self.side.axis, &self.side.positive) {
+                (Axis::X, false) => (
+                    min_x + uv.get(0).unwrap().1 .0 as f32,
+                    min_y + uv.get(0).unwrap().1 .1 as f32,
+                ),
+                (Axis::X, true) => (
+                    min_x + uv.get(1).unwrap().1 .0 as f32,
+                    min_y + uv.get(1).unwrap().1 .1 as f32,
+                ),
+                (Axis::Y, false) => (
+                    min_x + uv.get(2).unwrap().1 .0 as f32,
+                    min_y + uv.get(2).unwrap().1 .1 as f32,
+                ),
+                (Axis::Y, true) => (
+                    min_x + uv.get(3).unwrap().1 .0 as f32,
+                    min_y + uv.get(3).unwrap().1 .1 as f32,
+                ),
+                (Axis::Z, false) => (
+                    min_x + uv.get(4).unwrap().1 .0 as f32,
+                    min_y + uv.get(4).unwrap().1 .1 as f32,
+                ),
+                (Axis::Z, true) => (
+                    min_x + uv.get(5).unwrap().1 .0 as f32,
+                    min_y + uv.get(5).unwrap().1 .1 as f32,
+                ),
+            };
+            let (min_x, min_y, max_x, max_y) = (
+                min_x / texture_atlas.size.x,
+                min_y / texture_atlas.size.y,
+                max_x / texture_atlas.size.x,
+                max_y / texture_atlas.size.y,
+            );
+            face_tex[2][0] = min_x;
+            face_tex[2][1] = min_y;
+            face_tex[3][0] = max_x;
+            face_tex[3][1] = min_y;
+            face_tex[0][0] = min_x;
+            face_tex[0][1] = max_y;
+            face_tex[1][0] = max_x;
+            face_tex[1][1] = max_y;
+            return face_tex;
+        }
         match (flip_u, flip_v) {
             (true, true) => [[1.0, 1.0], [0.0, 1.0], [1.0, 0.0], [0.0, 0.0]],
             (true, false) => [[1.0, 0.0], [0.0, 0.0], [1.0, 1.0], [0.0, 1.0]],
@@ -757,7 +844,6 @@ fn full_mesh(
             (Axis::Z, false) => 5,
             (Axis::Z, true) => 4,
         };
-
         let block = &raw_chunk
             .get_block(UVec3::new(
                 face.voxel()[0] as u32,
@@ -766,23 +852,16 @@ fn full_mesh(
             ))
             .unwrap();
 
-        if let Some(texture_index) = texture_atlas.get_texture_index(
-            &loadable_assets
-                .block_textures
-                .get(&block.identifier)
-                .unwrap()[matched_index],
-        ) {
-            let face_coords =
-                calculate_coords(texture_index, Vec2::new(16.0, 16.0), texture_atlas.size);
-            uvs.push(face_coords[0]);
-            uvs.push(face_coords[1]);
-            uvs.push(face_coords[2]);
-            uvs.push(face_coords[3]);
-        } else {
-            uvs.extend_from_slice(&face.uvs(false, false));
-        }
+        uvs.extend_from_slice(&face.uvs(
+            false,
+            false,
+            geo,
+            texture_atlas,
+            matched_index,
+            loadable_assets,
+            block,
+        ));
     }
-
     let final_ao = ao_convert(ao);
     let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
     mesh.set_indices(Some(Indices::U32(indices)));
@@ -843,21 +922,15 @@ fn full_mesh(
             ))
             .unwrap();
 
-        if let Some(texture_index) = texture_atlas.get_texture_index(
-            &loadable_assets
-                .block_textures
-                .get(&block.identifier)
-                .unwrap()[matched_index],
-        ) {
-            let face_coords =
-                calculate_coords(texture_index, Vec2::new(16.0, 16.0), texture_atlas.size);
-            uvs.push(face_coords[0]);
-            uvs.push(face_coords[1]);
-            uvs.push(face_coords[2]);
-            uvs.push(face_coords[3]);
-        } else {
-            uvs.extend_from_slice(&face.uvs(false, false));
-        }
+        uvs.extend_from_slice(&face.uvs(
+            false,
+            false,
+            geo,
+            texture_atlas,
+            matched_index,
+            loadable_assets,
+            block,
+        ));
     }
 
     let mut transparent_mesh = Mesh::new(PrimitiveTopology::TriangleList);
@@ -1231,29 +1304,6 @@ pub fn process_queue(
         } else {
         }
     }
-}
-
-// TODO: Change this to actually use the values the texture atlas provides for the start and end of a texture.
-// Would allow for different texture sizes
-pub fn calculate_coords(index: usize, tile_size: Vec2, tilesheet_size: Vec2) -> [[f32; 2]; 4] {
-    let mut face_tex = [[0.0; 2]; 4];
-    let mut index = index as f32;
-    // We need to start at 1.0 for calculations
-    index += 1.0;
-    let max_y = (tile_size.y) / tilesheet_size.y;
-    face_tex[2][0] = ((index - 1.0) * tile_size.x) / tilesheet_size.x;
-    // face_tex[0][1] = ((index - 1.0) * tile_size.x) / tilesheet_size.x;
-    face_tex[2][1] = 0.0;
-    face_tex[3][0] = (index * tile_size.x) / tilesheet_size.x;
-    // face_tex[1][1] = ((index - 1.0) * tile_size.x) / tilesheet_size.x;
-    face_tex[3][1] = 0.0;
-    face_tex[0][0] = ((index - 1.0) * tile_size.x) / tilesheet_size.x;
-    // face_tex[2][1] = (index * tile_size.x) / tilesheet_size.x;
-    face_tex[0][1] = max_y;
-    face_tex[1][0] = (index * tile_size.x) / tilesheet_size.x;
-    // face_tex[3][1] = (index * tile_size.x) / tilesheet_size.x;
-    face_tex[1][1] = max_y;
-    face_tex
 }
 
 fn ao_convert(ao: Vec<u32>) -> Vec<[f32; 4]> {
