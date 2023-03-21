@@ -1,0 +1,59 @@
+GeometryDescriptor(
+    namespace: "vinox",
+    name: "flat",
+    blocks: (
+         false,
+	     false,
+	     false,
+	     false,
+	     false,
+	     false,
+    ),
+    elements: [
+    BlockGeo(
+        pivot: (0, 0, 0),
+        rotation: (0, 0, 0),
+        blocks: (
+            false,
+			false,
+			false,
+			false,
+			false,
+			false,
+        ),
+        cubes: [
+            FaceDescript(
+                uv:(
+                    ((0, 0), (16, 8)), // West
+                    ((0, 0), (16, 8)), // East
+                    ((16, 16), (-16, -16)), // Down
+                    ((16, 16), (-16, -16)), // Up
+                    ((0, 0), (16, 8)), // South
+                    ((0, 0), (16, 8)), // North
+                ),
+                cull: (
+            	     false,
+				     false,
+				     false,
+				     false,
+			         false,
+				     false,
+                ),
+                discard: (
+            	     false,
+				     false,
+				     false,
+				     false,
+			         false,
+				     false,
+                ),
+
+                origin: (0, 0, 0),
+                end: (16, 1, 16),
+                rotation: (0, 0, 0),
+                pivot: (8, 8, 8)
+        )
+    ]
+    )
+]
+)

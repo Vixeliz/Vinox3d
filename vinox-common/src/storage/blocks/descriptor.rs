@@ -14,8 +14,24 @@ pub enum BlockGeometry {
     Slab,          // Both vertical and horizontal --DONE
     BorderedBlock, //Basically the bottom still touchs the normal bottom of a block but has a border around all the others --DONE
     Fence,
-    Flat,  // Flat texture that can go on top of a block --DONE
-    Cross, // Crossed textures think like flowers from a popular block game --DONE
+    Flat,           // Flat texture that can go on top of a block --DONE
+    Cross,          // Crossed textures think like flowers from a popular block game --DONE
+    Custom(String), // Custom models defined by the geometry file type
+}
+
+impl BlockGeometry {
+    pub fn get_geo_namespace(&self) -> String {
+        match self {
+            BlockGeometry::Block => "vinox:block".to_string(),
+            BlockGeometry::Stairs => "vinox:stair".to_string(),
+            BlockGeometry::Slab => "vinox:slab".to_string(),
+            BlockGeometry::BorderedBlock => "vinox:border_block".to_string(),
+            BlockGeometry::Fence => "vinox:fence".to_string(),
+            BlockGeometry::Flat => "vinox:flat".to_string(),
+            BlockGeometry::Cross => "vinox:cross".to_string(),
+            BlockGeometry::Custom(identifier) => identifier.clone(),
+        }
+    }
 }
 
 // Anything optional here that is necessary for the game to function but we have a default value for ie texture or geometry
