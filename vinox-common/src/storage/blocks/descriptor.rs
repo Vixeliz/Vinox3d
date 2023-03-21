@@ -64,6 +64,7 @@ pub struct BlockDescriptor {
     pub textures: Option<HashMap<Option<String>, Option<String>>>,
     pub geometry: Option<BlockGeometry>,
     pub auto_geo: Option<Vec<BlockGeometry>>, // Contains strings of geometry we wan't to auto generate
+    pub tex_variance: Option<[Option<bool>; 6]>,
     pub durability: Option<u32>,
     pub tool_type: Option<ToolType>,
     pub friction: Option<u32>,

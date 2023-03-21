@@ -8,5 +8,8 @@ BlockDescriptor(
     }),
     break_tool: "shovel",
     visibility: Some(Opaque), 
-    has_item: Some(true)
+    has_item: Some(true),
+    tex_variance: Some(
+        (Some(false), Some(false), Some(true), Some(true), Some(false), Some(false))
+    )
 )

@@ -13,15 +13,19 @@ use bevy::{
 };
 use bevy_tweening::{lens::TransformPositionLens, *};
 use itertools::Itertools;
+use rand::{rngs::StdRng, Rng, SeedableRng};
 // use rand::seq::IteratorRandom;
 use serde_big_array::Array;
 use std::{collections::HashMap, ops::Deref, time::Duration};
 use tokio::sync::mpsc::{Receiver, Sender};
 use vinox_common::{
-    storage::{blocks::descriptor::BlockGeometry, geometry::descriptor::GeometryDescriptor},
+    storage::{
+        blocks::descriptor::{BlockDescriptor, BlockGeometry},
+        geometry::descriptor::GeometryDescriptor,
+    },
     world::chunks::{
         ecs::{ChunkComp, CurrentChunks},
-        positions::voxel_to_world,
+        positions::{voxel_to_world, world_to_global_voxel},
         storage::{
             self, name_to_identifier, BlockTable, Chunk, RawChunk, RenderedBlockData, Voxel,
             VoxelVisibility, CHUNK_SIZE,
@@ -453,6 +457,8 @@ impl<'a> Face<'a> {
         matched_ind: usize,
         loadable_assets: &LoadableAssets,
         block: &RenderedBlockData,
+        descriptor: &BlockDescriptor,
+        world_pos: IVec3,
     ) -> [[f32; 2]; 4] {
         if let Some(texture_index) = texture_atlas.get_texture_index(
             &loadable_assets
@@ -464,72 +470,101 @@ impl<'a> Face<'a> {
             let mut face_tex = [[0.0; 2]; 4];
             let min_x = texture_atlas.textures.get(texture_index).unwrap().min.x;
             let min_y = texture_atlas.textures.get(texture_index).unwrap().min.y;
-            let (min_x, min_y) = match (&self.side.axis, &self.side.positive) {
-                (Axis::X, false) => (
-                    min_x + uv.get(0).unwrap().0 .0 as f32,
-                    min_y + uv.get(0).unwrap().0 .1 as f32,
-                ),
-                (Axis::X, true) => (
-                    min_x + uv.get(1).unwrap().0 .0 as f32,
-                    min_y + uv.get(1).unwrap().0 .1 as f32,
-                ),
-                (Axis::Y, false) => (
-                    min_x + uv.get(2).unwrap().0 .0 as f32,
-                    min_y + uv.get(2).unwrap().0 .1 as f32,
-                ),
-                (Axis::Y, true) => (
-                    min_x + uv.get(3).unwrap().0 .0 as f32,
-                    min_y + uv.get(3).unwrap().0 .1 as f32,
-                ),
-                (Axis::Z, false) => (
-                    min_x + uv.get(4).unwrap().0 .0 as f32,
-                    min_y + uv.get(4).unwrap().0 .1 as f32,
-                ),
-                (Axis::Z, true) => (
-                    min_x + uv.get(5).unwrap().0 .0 as f32,
-                    min_y + uv.get(5).unwrap().0 .1 as f32,
-                ),
+            let face_index = match (&self.side.axis, &self.side.positive) {
+                (Axis::X, false) => 0,
+                (Axis::X, true) => 1,
+                (Axis::Y, false) => 2,
+                (Axis::Y, true) => 3,
+                (Axis::Z, false) => 4,
+                (Axis::Z, true) => 5,
             };
-            let (max_x, max_y) = match (&self.side.axis, &self.side.positive) {
-                (Axis::X, false) => (
-                    min_x + uv.get(0).unwrap().1 .0 as f32,
-                    min_y + uv.get(0).unwrap().1 .1 as f32,
-                ),
-                (Axis::X, true) => (
-                    min_x + uv.get(1).unwrap().1 .0 as f32,
-                    min_y + uv.get(1).unwrap().1 .1 as f32,
-                ),
-                (Axis::Y, false) => (
-                    min_x + uv.get(2).unwrap().1 .0 as f32,
-                    min_y + uv.get(2).unwrap().1 .1 as f32,
-                ),
-                (Axis::Y, true) => (
-                    min_x + uv.get(3).unwrap().1 .0 as f32,
-                    min_y + uv.get(3).unwrap().1 .1 as f32,
-                ),
-                (Axis::Z, false) => (
-                    min_x + uv.get(4).unwrap().1 .0 as f32,
-                    min_y + uv.get(4).unwrap().1 .1 as f32,
-                ),
-                (Axis::Z, true) => (
-                    min_x + uv.get(5).unwrap().1 .0 as f32,
-                    min_y + uv.get(5).unwrap().1 .1 as f32,
-                ),
-            };
+            let (min_x, min_y) = (
+                min_x + uv.get(face_index).unwrap().0 .0 as f32,
+                min_y + uv.get(face_index).unwrap().0 .1 as f32,
+            );
+            let (max_x, max_y) = (
+                min_x + uv.get(face_index).unwrap().1 .0 as f32,
+                min_y + uv.get(face_index).unwrap().1 .1 as f32,
+            );
             let (min_x, min_y, max_x, max_y) = (
                 min_x / texture_atlas.size.x,
                 min_y / texture_atlas.size.y,
                 max_x / texture_atlas.size.x,
                 max_y / texture_atlas.size.y,
             );
-            face_tex[2][0] = min_x;
-            face_tex[2][1] = min_y;
-            face_tex[3][0] = max_x;
-            face_tex[3][1] = min_y;
-            face_tex[0][0] = min_x;
-            face_tex[0][1] = max_y;
-            face_tex[1][0] = max_x;
-            face_tex[1][1] = max_y;
+            let flip_num = if let Some(tex_variance) = descriptor.tex_variance {
+                let mut rng: StdRng = SeedableRng::seed_from_u64(world_pos.reflect_hash().unwrap());
+                if tex_variance[face_index].unwrap_or(false) {
+                    rng.gen_range(0..6)
+                } else {
+                    0
+                }
+            } else {
+                0
+            };
+            match flip_num {
+                0 => {
+                    face_tex[2][0] = min_x;
+                    face_tex[2][1] = min_y;
+                    face_tex[3][0] = max_x;
+                    face_tex[3][1] = min_y;
+                    face_tex[0][0] = min_x;
+                    face_tex[0][1] = max_y;
+                    face_tex[1][0] = max_x;
+                    face_tex[1][1] = max_y;
+                }
+                1 => {
+                    face_tex[2][0] = max_x;
+                    face_tex[2][1] = max_y;
+                    face_tex[3][0] = min_x;
+                    face_tex[3][1] = max_y;
+                    face_tex[0][0] = max_x;
+                    face_tex[0][1] = min_y;
+                    face_tex[1][0] = min_x;
+                    face_tex[1][1] = min_y;
+                }
+                2 => {
+                    face_tex[2][0] = max_x;
+                    face_tex[2][1] = min_y;
+                    face_tex[3][0] = min_x;
+                    face_tex[3][1] = min_y;
+                    face_tex[0][0] = max_x;
+                    face_tex[0][1] = max_y;
+                    face_tex[1][0] = min_x;
+                    face_tex[1][1] = max_y;
+                }
+                3 => {
+                    face_tex[2][0] = min_x;
+                    face_tex[2][1] = max_y;
+                    face_tex[3][0] = max_x;
+                    face_tex[3][1] = max_y;
+                    face_tex[0][0] = min_x;
+                    face_tex[0][1] = min_y;
+                    face_tex[1][0] = max_x;
+                    face_tex[1][1] = min_y;
+                }
+                4 => {
+                    face_tex[2][0] = max_x;
+                    face_tex[2][1] = max_y;
+                    face_tex[3][0] = max_x;
+                    face_tex[3][1] = min_y;
+                    face_tex[0][0] = min_x;
+                    face_tex[0][1] = max_y;
+                    face_tex[1][0] = min_x;
+                    face_tex[1][1] = min_y;
+                }
+                5 => {
+                    face_tex[2][0] = min_x;
+                    face_tex[2][1] = min_y;
+                    face_tex[3][0] = min_x;
+                    face_tex[3][1] = max_y;
+                    face_tex[0][0] = max_x;
+                    face_tex[0][1] = min_y;
+                    face_tex[1][0] = max_x;
+                    face_tex[1][1] = max_y;
+                }
+                _ => {}
+            }
             return face_tex;
         }
         match (flip_u, flip_v) {
@@ -833,7 +868,12 @@ fn full_mesh(
             ))
             .unwrap();
 
-        positions.extend_from_slice(&face.positions(1.0, geo, vox_data.direction, vox_data.top)); // Voxel size is 1m
+        positions.extend_from_slice(&face.positions(
+            1.0,
+            geo,
+            vox_data.direction.clone(),
+            vox_data.top,
+        )); // Voxel size is 1m
         normals.extend_from_slice(&face.normals());
         ao.extend_from_slice(&face.aos());
         let matched_index = match (face.side.axis, face.side.positive) {
@@ -844,13 +884,15 @@ fn full_mesh(
             (Axis::Z, false) => 5,
             (Axis::Z, true) => 4,
         };
-        let block = &raw_chunk
-            .get_block(UVec3::new(
+
+        let vox_desc = raw_chunk.get_data(
+            ChunkBoundary::linearize(UVec3::new(
                 face.voxel()[0] as u32,
                 face.voxel()[1] as u32,
                 face.voxel()[2] as u32,
-            ))
-            .unwrap();
+            )),
+            block_table,
+        );
 
         uvs.extend_from_slice(&face.uvs(
             false,
@@ -859,7 +901,16 @@ fn full_mesh(
             texture_atlas,
             matched_index,
             loadable_assets,
-            block,
+            &vox_data,
+            &vox_desc,
+            world_to_global_voxel(voxel_to_world(
+                UVec3::new(
+                    face.voxel()[0] as u32,
+                    face.voxel()[1] as u32,
+                    face.voxel()[2] as u32,
+                ),
+                chunk_pos,
+            )),
         ));
     }
     let final_ao = ao_convert(ao);
@@ -902,7 +953,12 @@ fn full_mesh(
             ))
             .unwrap();
 
-        positions.extend_from_slice(&face.positions(1.0, geo, vox_data.direction, vox_data.top)); // Voxel size is 1m
+        positions.extend_from_slice(&face.positions(
+            1.0,
+            geo,
+            vox_data.direction.clone(),
+            vox_data.top,
+        )); // Voxel size is 1m
         normals.extend_from_slice(&face.normals());
         ao.extend_from_slice(&face.aos());
         let matched_index = match (face.side.axis, face.side.positive) {
@@ -914,13 +970,14 @@ fn full_mesh(
             (Axis::Z, true) => 4,
         };
 
-        let block = &raw_chunk
-            .get_block(UVec3::new(
+        let vox_desc = raw_chunk.get_data(
+            ChunkBoundary::linearize(UVec3::new(
                 face.voxel()[0] as u32,
                 face.voxel()[1] as u32,
                 face.voxel()[2] as u32,
-            ))
-            .unwrap();
+            )),
+            block_table,
+        );
 
         uvs.extend_from_slice(&face.uvs(
             false,
@@ -929,7 +986,16 @@ fn full_mesh(
             texture_atlas,
             matched_index,
             loadable_assets,
-            block,
+            &vox_data,
+            &vox_desc,
+            world_to_global_voxel(voxel_to_world(
+                UVec3::new(
+                    face.voxel()[0] as u32,
+                    face.voxel()[1] as u32,
+                    face.voxel()[2] as u32,
+                ),
+                chunk_pos,
+            )),
         ));
     }
 
