@@ -50,6 +50,7 @@ pub struct BlockDescriptor {
     pub script: Option<String>,
     pub container_size: Option<u8>,
     pub visibility: Option<VoxelVisibility>,
+    pub has_direction: Option<bool>, // Also affects up and down
     pub light: Option<u8>,
     pub interactable: Option<bool>,
     pub gui: Option<String>,

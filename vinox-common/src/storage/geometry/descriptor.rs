@@ -35,5 +35,5 @@ pub struct GeometryDescriptor {
     pub namespace: String, // TODO: Make sure that we only allow one namespace:name pair
     pub name: String,      // Name of the recipe
     pub blocks: [bool; 6], // Does this block face block the face next to it so its culled
-    pub elements: Vec<BlockGeo>,
+    pub element: BlockGeo,
 }

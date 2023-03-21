@@ -9,7 +9,7 @@ GeometryDescriptor(
 	     false,
 	     false,
     ),
-    elements: [
+    element:
     BlockGeo(
         pivot: (0, 0, 0),
         rotation: (0, 0, 0),
@@ -47,5 +47,4 @@ GeometryDescriptor(
         )
     ]
     )
-]
 )

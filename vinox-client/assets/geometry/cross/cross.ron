@@ -9,10 +9,10 @@ GeometryDescriptor(
 	     false,
 	     false,
     ),
-    elements: [
+    element:
     BlockGeo(
-        pivot: (0, 0, 0),
-        rotation: (0, 0, 0),
+        pivot: (8, 8, 8),
+        rotation: (0, 90, 0),
         cubes: [
             FaceDescript(
                 uv:(
@@ -41,7 +41,7 @@ GeometryDescriptor(
                 ),
                 origin: (8, 0, 0),
                 end: (8, 16, 16),
-                rotation: (0, -45, 0),
+                rotation: (0, 0, 0),
                 pivot: (8, 8, 8)
         ),
             FaceDescript(
@@ -72,10 +72,9 @@ GeometryDescriptor(
 
                 origin: (0, 0, 8),
                 end: (16, 16, 8),
-                rotation: (0, 45, 0),
+                rotation: (0, 0, 0),
                 pivot: (8, 8, 8)
         )
     ]
     )
-]
 )

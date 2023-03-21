@@ -7,5 +7,6 @@ BlockDescriptor(
     break_tool: "pickaxe",
     visibility: Some(Opaque), 
     has_item: Some(true),
-    geometry: Some(BorderedBlock)
+    geometry: Some(Slab),
+    has_direction: Some(true)
 )

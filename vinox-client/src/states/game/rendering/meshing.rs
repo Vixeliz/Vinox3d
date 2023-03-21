@@ -50,6 +50,7 @@ pub struct Quad {
     pub end: (i32, i32),
     pub self_start: i32,
     pub self_end: i32,
+    pub cube: usize,
 }
 
 #[derive(Default)]
@@ -279,7 +280,13 @@ impl<'a> Face<'a> {
         [start, start + 2, start + 1, start + 1, start + 2, start + 3]
     }
 
-    pub fn positions(&self, voxel_size: f32, geometry_table: &GeometryTable) -> [[f32; 3]; 4] {
+    pub fn positions(
+        &self,
+        voxel_size: f32,
+        geo: &GeometryDescriptor,
+        direction: Option<storage::Direction>,
+        top: Option<bool>,
+    ) -> [[f32; 3]; 4] {
         let (min_one, min_two, max_one, max_two, min_self, max_self) = (
             (self.quad.start.0 as f32 / 16.0),
             (self.quad.start.1 as f32 / 16.0),
@@ -332,29 +339,54 @@ impl<'a> Face<'a> {
             (self.quad.voxel[1] - 1) as f32,
             (self.quad.voxel[2] - 1) as f32,
         );
+        let mut temp_vec = Vec::new();
+        temp_vec.push(Vec3::new(
+            x * voxel_size + positions[0][0] * voxel_size,
+            y * voxel_size + positions[0][1] * voxel_size,
+            z * voxel_size + positions[0][2] * voxel_size,
+        ));
+        temp_vec.push(Vec3::new(
+            x * voxel_size + positions[1][0] * voxel_size,
+            y * voxel_size + positions[1][1] * voxel_size,
+            z * voxel_size + positions[1][2] * voxel_size,
+        ));
+        temp_vec.push(Vec3::new(
+            x * voxel_size + positions[2][0] * voxel_size,
+            y * voxel_size + positions[2][1] * voxel_size,
+            z * voxel_size + positions[2][2] * voxel_size,
+        ));
+        temp_vec.push(Vec3::new(
+            x * voxel_size + positions[3][0] * voxel_size,
+            y * voxel_size + positions[3][1] * voxel_size,
+            z * voxel_size + positions[3][2] * voxel_size,
+        ));
+        let cube_pivot = geo.element.cubes.get(self.quad.cube).unwrap().pivot;
+        let cube_rotation = geo.element.cubes.get(self.quad.cube).unwrap().rotation;
+        let block_pivot = geo.element.pivot;
+        let block_rotation = geo.element.rotation;
+        let pivot = Vec3::new(
+            block_pivot.0 as f32 / 16.0,
+            block_pivot.1 as f32 / 16.0,
+            block_pivot.2 as f32 / 16.0,
+        ); // TO emulate how itll be getting from geometry
+        let rotation = Quat::from_euler(
+            EulerRot::XYZ,
+            (block_rotation.0 as f32).to_radians(),
+            (block_rotation.1 as f32).to_radians(),
+            (block_rotation.2 as f32).to_radians(),
+        );
+        for point in temp_vec.iter_mut() {
+            let mut temp_transform = Transform::from_translation(*point);
+            temp_transform.rotate_around(pivot, rotation);
+            *point = temp_transform.translation;
+            // *point = pivot + rotation * (*point - pivot);
+        }
+        let mut final_vec: Vec<[f32; 3]> = Vec::new();
+        for point in temp_vec.iter_mut() {
+            final_vec.push(Into::<[f32; 3]>::into(*point));
+        }
 
-        [
-            [
-                x * voxel_size + positions[0][0] * voxel_size,
-                y * voxel_size + positions[0][1] * voxel_size,
-                z * voxel_size + positions[0][2] * voxel_size,
-            ],
-            [
-                x * voxel_size + positions[1][0] * voxel_size,
-                y * voxel_size + positions[1][1] * voxel_size,
-                z * voxel_size + positions[1][2] * voxel_size,
-            ],
-            [
-                x * voxel_size + positions[2][0] * voxel_size,
-                y * voxel_size + positions[2][1] * voxel_size,
-                z * voxel_size + positions[2][2] * voxel_size,
-            ],
-            [
-                x * voxel_size + positions[3][0] * voxel_size,
-                y * voxel_size + positions[3][1] * voxel_size,
-                z * voxel_size + positions[3][2] * voxel_size,
-            ],
-        ]
+        [final_vec[0], final_vec[1], final_vec[2], final_vec[3]]
     }
 
     pub fn normals(&self) -> [[f32; 3]; 4] {
@@ -493,117 +525,113 @@ where
                                 .unwrap_or_default()
                                 .get_geo_namespace(),
                         ) {
-                            for element in geometry.elements.clone() {
-                                for cube in element.cubes.clone() {
-                                    for (i, neighbor) in neighbors.iter().enumerate() {
-                                        let neighbor_geometry = geometry_table
-                                            .get(
-                                                &neighbor_block[i]
-                                                    .clone()
-                                                    .geometry
-                                                    .unwrap_or_default()
-                                                    .get_geo_namespace(),
-                                            )
-                                            .unwrap_or(geometry_table.get("vinox:block").unwrap());
-                                        let culled = cube.cull[i];
-                                        if cube.discard[i] {
-                                            continue;
-                                        }
-                                        let other = neighbor.visibility();
-                                        let generate = if culled && neighbor_geometry.blocks[i] {
-                                            if solid_pass {
-                                                match (visibility, other) {
-                                                    (OPAQUE, EMPTY) | (OPAQUE, TRANSPARENT) => true,
+                            let element = geometry.element.clone();
+                            for (cube_num, cube) in element.cubes.clone().iter().enumerate() {
+                                for (i, neighbor) in neighbors.iter().enumerate() {
+                                    let neighbor_geometry = geometry_table
+                                        .get(
+                                            &neighbor_block[i]
+                                                .clone()
+                                                .geometry
+                                                .unwrap_or_default()
+                                                .get_geo_namespace(),
+                                        )
+                                        .unwrap_or(geometry_table.get("vinox:block").unwrap());
+                                    let culled = cube.cull[i];
+                                    if cube.discard[i] {
+                                        continue;
+                                    }
+                                    let other = neighbor.visibility();
+                                    let generate = if culled && neighbor_geometry.blocks[i] {
+                                        if solid_pass {
+                                            match (visibility, other) {
+                                                (OPAQUE, EMPTY) | (OPAQUE, TRANSPARENT) => true,
 
-                                                    (TRANSPARENT, TRANSPARENT) => {
-                                                        voxel != *neighbor
-                                                    }
+                                                (TRANSPARENT, TRANSPARENT) => voxel != *neighbor,
 
-                                                    (_, _) => false,
-                                                }
-                                            } else {
-                                                match (visibility, other) {
-                                                    (TRANSPARENT, EMPTY) => true,
-
-                                                    (TRANSPARENT, TRANSPARENT) => {
-                                                        voxel != *neighbor
-                                                    }
-
-                                                    (_, _) => false,
-                                                }
+                                                (_, _) => false,
                                             }
-                                        } else if (visibility == OPAQUE && solid_pass)
-                                            || (visibility == TRANSPARENT && !solid_pass)
-                                                && (!culled && neighbor_geometry.blocks[i])
-                                        {
-                                            true
                                         } else {
-                                            false
-                                        };
-                                        let origin_one = match i {
-                                            0 => cube.origin.1,
-                                            1 => cube.origin.1,
-                                            2 => cube.origin.0,
-                                            3 => cube.origin.0,
-                                            4 => cube.origin.0,
-                                            5 => cube.origin.0,
-                                            _ => 0,
-                                        };
-                                        let end_one = match i {
-                                            0 => cube.end.1,
-                                            1 => cube.end.1,
-                                            2 => cube.end.0,
-                                            3 => cube.end.0,
-                                            4 => cube.end.0,
-                                            5 => cube.end.0,
-                                            _ => 0,
-                                        };
-                                        let origin_two = match i {
-                                            0 => cube.origin.2,
-                                            1 => cube.origin.2,
-                                            2 => cube.origin.2,
-                                            3 => cube.origin.2,
-                                            4 => cube.origin.1,
-                                            5 => cube.origin.1,
-                                            _ => 0,
-                                        };
-                                        let end_two = match i {
-                                            0 => cube.end.2,
-                                            1 => cube.end.2,
-                                            2 => cube.end.2,
-                                            3 => cube.end.2,
-                                            4 => cube.end.1,
-                                            5 => cube.end.1,
-                                            _ => 0,
-                                        };
-                                        let self_start = match i {
-                                            0 => cube.origin.0,
-                                            1 => cube.origin.0,
-                                            2 => cube.origin.1,
-                                            3 => cube.origin.1,
-                                            4 => cube.origin.2,
-                                            5 => cube.origin.2,
-                                            _ => 0,
-                                        };
-                                        let self_end = match i {
-                                            0 => cube.end.0,
-                                            1 => cube.end.0,
-                                            2 => cube.end.1,
-                                            3 => cube.end.1,
-                                            4 => cube.end.2,
-                                            5 => cube.end.2,
-                                            _ => 0,
-                                        };
+                                            match (visibility, other) {
+                                                (TRANSPARENT, EMPTY) => true,
 
-                                        if generate {
-                                            buffer.groups[i].push(Quad {
-                                                voxel: [x as usize, y as usize, z as usize],
-                                                start: (origin_one, origin_two),
-                                                end: (end_one, end_two),
-                                                self_start,
-                                                self_end,
-                                            });
+                                                (TRANSPARENT, TRANSPARENT) => voxel != *neighbor,
+
+                                                (_, _) => false,
+                                            }
                                         }
+                                    } else if (visibility == OPAQUE && solid_pass)
+                                        || (visibility == TRANSPARENT && !solid_pass)
+                                            && (!culled && neighbor_geometry.blocks[i])
+                                    {
+                                        true
+                                    } else {
+                                        false
+                                    };
+                                    let origin_one = match i {
+                                        0 => cube.origin.1,
+                                        1 => cube.origin.1,
+                                        2 => cube.origin.0,
+                                        3 => cube.origin.0,
+                                        4 => cube.origin.0,
+                                        5 => cube.origin.0,
+                                        _ => 0,
+                                    };
+                                    let end_one = match i {
+                                        0 => cube.end.1,
+                                        1 => cube.end.1,
+                                        2 => cube.end.0,
+                                        3 => cube.end.0,
+                                        4 => cube.end.0,
+                                        5 => cube.end.0,
+                                        _ => 0,
+                                    };
+                                    let origin_two = match i {
+                                        0 => cube.origin.2,
+                                        1 => cube.origin.2,
+                                        2 => cube.origin.2,
+                                        3 => cube.origin.2,
+                                        4 => cube.origin.1,
+                                        5 => cube.origin.1,
+                                        _ => 0,
+                                    };
+                                    let end_two = match i {
+                                        0 => cube.end.2,
+                                        1 => cube.end.2,
+                                        2 => cube.end.2,
+                                        3 => cube.end.2,
+                                        4 => cube.end.1,
+                                        5 => cube.end.1,
+                                        _ => 0,
+                                    };
+                                    let self_start = match i {
+                                        0 => cube.origin.0,
+                                        1 => cube.origin.0,
+                                        2 => cube.origin.1,
+                                        3 => cube.origin.1,
+                                        4 => cube.origin.2,
+                                        5 => cube.origin.2,
+                                        _ => 0,
+                                    };
+                                    let self_end = match i {
+                                        0 => cube.end.0,
+                                        1 => cube.end.0,
+                                        2 => cube.end.1,
+                                        3 => cube.end.1,
+                                        4 => cube.end.2,
+                                        5 => cube.end.2,
+                                        _ => 0,
+                                    };
+
+                                    if generate {
+                                        buffer.groups[i].push(Quad {
+                                            voxel: [x as usize, y as usize, z as usize],
+                                            start: (origin_one, origin_two),
+                                            end: (end_one, end_two),
+                                            self_start,
+                                            self_end,
+                                            cube: cube_num,
+                                        });
                                     }
                                 }
                             }
@@ -633,7 +661,22 @@ fn full_mesh(
     let mut ao = Vec::new();
     for face in mesh_result.iter_with_ao(raw_chunk, block_table) {
         indices.extend_from_slice(&face.indices(positions.len() as u32));
-        positions.extend_from_slice(&face.positions(1.0, geo_table)); // Voxel size is 1m
+        let geo = geo_table
+            .get(
+                &raw_chunk
+                    .get_descriptor(
+                        face.voxel()[0] as u32,
+                        face.voxel()[1] as u32,
+                        face.voxel()[2] as u32,
+                        block_table,
+                    )
+                    .clone()
+                    .geometry
+                    .unwrap_or_default()
+                    .get_geo_namespace(),
+            )
+            .unwrap_or(geo_table.get("vinox:block").unwrap());
+        positions.extend_from_slice(&face.positions(1.0, geo, None, None)); // Voxel size is 1m
         normals.extend_from_slice(&face.normals());
         ao.extend_from_slice(&face.aos());
         let matched_index = match (face.side.axis, face.side.positive) {
@@ -686,8 +729,23 @@ fn full_mesh(
     let mut normals = Vec::new();
     let mut uvs = Vec::new();
     for face in mesh_result.iter_with_ao(raw_chunk, block_table) {
+        let geo = geo_table
+            .get(
+                &raw_chunk
+                    .get_descriptor(
+                        face.voxel()[0] as u32,
+                        face.voxel()[1] as u32,
+                        face.voxel()[2] as u32,
+                        block_table,
+                    )
+                    .clone()
+                    .geometry
+                    .unwrap_or_default()
+                    .get_geo_namespace(),
+            )
+            .unwrap_or(geo_table.get("vinox:block").unwrap());
         indices.extend_from_slice(&face.indices(positions.len() as u32));
-        positions.extend_from_slice(&face.positions(1.0, geo_table)); // Voxel size is 1m
+        positions.extend_from_slice(&face.positions(1.0, geo, None, None)); // Voxel size is 1m
         normals.extend_from_slice(&face.normals());
         ao.extend_from_slice(&face.aos());
         let matched_index = match (face.side.axis, face.side.positive) {

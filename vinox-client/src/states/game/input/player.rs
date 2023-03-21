@@ -22,7 +22,7 @@ use vinox_common::{
             relative_voxel_to_world, voxel_to_world, world_to_chunk, world_to_global_voxel,
             world_to_voxel,
         },
-        storage::{self, BlockData, BlockTable, ItemTable, CHUNK_SIZE_ARR},
+        storage::{self, name_to_identifier, BlockData, BlockTable, ItemTable, CHUNK_SIZE_ARR},
     },
 };
 
@@ -448,59 +448,69 @@ pub fn interact(
                                         let mut modified_item = place_item.clone().unwrap();
                                         if let Ok(mut chunk) = chunks.get_mut(chunk_entity) {
                                             let normal = normal.as_ivec3();
-                                            match normal.x {
-                                                -1 => {
-                                                    modified_item.direction =
-                                                        Some(storage::Direction::West)
-                                                }
-                                                1 => {
-                                                    modified_item.direction =
-                                                        Some(storage::Direction::East)
-                                                }
-                                                _ => {}
-                                            }
-                                            match normal.y {
-                                                -1 => {
-                                                    modified_item.top = Some(true);
-                                                }
-                                                1 => {
-                                                    modified_item.top = Some(false);
-                                                }
-                                                _ => {
-                                                    modified_item.top = Some(false);
-                                                    // Stairs need tops and bottoms
-                                                }
-                                            }
-                                            match normal.z {
-                                                -1 => {
-                                                    modified_item.direction =
-                                                        Some(storage::Direction::South)
-                                                }
-                                                1 => {
-                                                    modified_item.direction =
-                                                        Some(storage::Direction::North)
-                                                }
-                                                _ => {}
-                                            }
-
-                                            if modified_item.direction.is_none() {
-                                                let difference =
-                                                    player_transform.translation - point;
-                                                if difference.x > difference.z {
-                                                    if difference.x < 0.0 {
+                                            if block_table
+                                                .get(&name_to_identifier(
+                                                    modified_item.namespace.clone(),
+                                                    modified_item.name.clone(),
+                                                ))
+                                                .unwrap()
+                                                .has_direction
+                                                .unwrap_or(false)
+                                            {
+                                                match normal.x {
+                                                    -1 => {
                                                         modified_item.direction =
                                                             Some(storage::Direction::West)
-                                                    } else {
+                                                    }
+                                                    1 => {
                                                         modified_item.direction =
                                                             Some(storage::Direction::East)
                                                     }
-                                                } else {
-                                                    if difference.z < 0.0 {
+                                                    _ => {}
+                                                }
+                                                match normal.y {
+                                                    -1 => {
+                                                        modified_item.top = Some(true);
+                                                    }
+                                                    1 => {
+                                                        modified_item.top = Some(false);
+                                                    }
+                                                    _ => {
+                                                        modified_item.top = Some(false);
+                                                        // Stairs need tops and bottoms
+                                                    }
+                                                }
+                                                match normal.z {
+                                                    -1 => {
                                                         modified_item.direction =
                                                             Some(storage::Direction::South)
-                                                    } else {
+                                                    }
+                                                    1 => {
                                                         modified_item.direction =
                                                             Some(storage::Direction::North)
+                                                    }
+                                                    _ => {}
+                                                }
+
+                                                if modified_item.direction.is_none() {
+                                                    let difference =
+                                                        player_transform.translation - point;
+                                                    if difference.x > difference.z {
+                                                        if difference.x < 0.0 {
+                                                            modified_item.direction =
+                                                                Some(storage::Direction::West)
+                                                        } else {
+                                                            modified_item.direction =
+                                                                Some(storage::Direction::East)
+                                                        }
+                                                    } else {
+                                                        if difference.z < 0.0 {
+                                                            modified_item.direction =
+                                                                Some(storage::Direction::South)
+                                                        } else {
+                                                            modified_item.direction =
+                                                                Some(storage::Direction::North)
+                                                        }
                                                     }
                                                 }
                                             }
