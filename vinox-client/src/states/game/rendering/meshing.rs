@@ -365,8 +365,7 @@ impl<'a> Face<'a> {
         let cube_rotation = geo.element.cubes.get(self.quad.cube).unwrap().rotation;
         let block_pivot = geo.element.pivot;
         let block_rotation = geo.element.rotation;
-        if cube_rotation != (0, 0, 0)
-            && block_rotation != (0, 0, 0)
+        if (cube_rotation != (0, 0, 0) || block_rotation != (0, 0, 0))
             && direction.is_none()
             && top.is_none()
         {
