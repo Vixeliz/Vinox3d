@@ -4,6 +4,6 @@ BlockDescriptor(
     textures: Some({
     Some("front"): Some("oak_log.png"),
     }),
-    visibility: Some(Transparent), 
-    has_item: Some(true)
+    has_item: Some(true),
+    visibility: Some(Opaque)
 )
