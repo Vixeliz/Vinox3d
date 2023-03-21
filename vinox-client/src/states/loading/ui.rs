@@ -12,7 +12,7 @@ use vinox_common::{
         blocks::load::load_all_blocks, crafting::load::load_all_recipes,
         geometry::load::load_all_geo, items::load::item_from_block,
     },
-    world::chunks::storage::{BlockTable, ItemTable, RecipeTable},
+    world::chunks::storage::{trim_geo_identifier, BlockTable, ItemTable, RecipeTable},
 };
 
 use crate::states::{
@@ -128,6 +128,7 @@ pub fn setup_resources(
                 item_table.insert(name.clone(), item_from_block(block.clone()));
             }
         }
+
         block_table.insert(name, block);
     }
     for recipe in load_all_recipes() {
@@ -163,7 +164,8 @@ pub fn load_blocks(
             if let Some(texture_path) = &block.textures {
                 if let Some(front) = texture_path.get(&Some("front".to_string())) {
                     let mut path = "blocks/".to_string();
-                    path.push_str(block.name.as_str());
+                    let name = trim_geo_identifier(block.clone().name);
+                    path.push_str(name.as_str());
                     path.push('/');
                     path.push_str(front.as_ref().unwrap());
                     let texture_handle: Handle<Image> = asset_server.load(path.as_str());
@@ -180,7 +182,8 @@ pub fn load_blocks(
                 for texture_path_and_type in texture_path_and_type.iter() {
                     if let (Some(texture_path), Some(texture_type)) = &texture_path_and_type {
                         let mut path = "blocks/".to_string();
-                        path.push_str(block.name.as_str());
+                        let name = trim_geo_identifier(block.clone().name);
+                        path.push_str(name.as_str());
                         path.push('/');
                         path.push_str(texture_type);
                         let texture_handle: Handle<Image> = asset_server.load(path.as_str());

@@ -1,9 +1,9 @@
 RecipeDescriptor(
     namespace: "vinox",
-    name: "pole_test",
+    name: "pole",
     required_items: Some({
         "vinox:oak_log": 1,
         "vinox:dirt": 2,
     }),
-    output_item: ("vinox:pole_test", 2)
+    output_item: ("vinox:pole", 2)
 )

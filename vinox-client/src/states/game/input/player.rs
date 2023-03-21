@@ -15,14 +15,17 @@ use vinox_common::{
     collision::raycast::raycast_world,
     ecs::bundles::Inventory,
     networking::protocol::ClientMessage,
-    storage::items::descriptor::ItemData,
+    storage::{blocks::descriptor::BlockGeometry, items::descriptor::ItemData},
     world::chunks::{
         ecs::{ChunkComp, CurrentChunks},
         positions::{
             relative_voxel_to_world, voxel_to_world, world_to_chunk, world_to_global_voxel,
             world_to_voxel,
         },
-        storage::{self, name_to_identifier, BlockData, BlockTable, ItemTable, CHUNK_SIZE_ARR},
+        storage::{
+            self, name_to_identifier, trim_geo_identifier, BlockData, BlockTable, ItemTable,
+            CHUNK_SIZE_ARR,
+        },
     },
 };
 
@@ -228,6 +231,7 @@ pub fn interact(
     block_table: Res<BlockTable>,
     item_table: Res<ItemTable>,
     mut temp_bar: Local<Option<usize>>,
+    mut item_type: Local<BlockGeometry>,
     mut norm_item: Local<usize>,
     mut scroll_evr: EventReader<MouseWheel>,
     keys: Res<Input<KeyCode>>,
@@ -279,6 +283,22 @@ pub fn interact(
                     }
                 }
             }
+        }
+        //Temporary
+        if keys.just_pressed(KeyCode::J) {
+            *item_type = BlockGeometry::Block;
+        }
+        if keys.just_pressed(KeyCode::K) {
+            *item_type = BlockGeometry::Stairs;
+        }
+        if keys.just_pressed(KeyCode::F) {
+            *item_type = BlockGeometry::Slab;
+        }
+        if keys.just_pressed(KeyCode::L) {
+            *item_type = BlockGeometry::BorderedBlock;
+        }
+        if keys.just_pressed(KeyCode::O) {
+            *item_type = BlockGeometry::Cross;
         }
         if !options.standard_bar {
             if keys.just_pressed(KeyCode::Key1) {
@@ -446,6 +466,17 @@ pub fn interact(
                                     if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos)
                                     {
                                         let mut modified_item = place_item.clone().unwrap();
+                                        modified_item.name = if block_table
+                                            .get(&name_to_identifier(
+                                                modified_item.namespace.clone(),
+                                                item_type.geo_new_block(modified_item.name.clone()),
+                                            ))
+                                            .is_some()
+                                        {
+                                            item_type.geo_new_block(modified_item.name.clone())
+                                        } else {
+                                            place_item.clone().unwrap().name
+                                        };
                                         if let Ok(mut chunk) = chunks.get_mut(chunk_entity) {
                                             let normal = normal.as_ivec3();
                                             if block_table
@@ -643,9 +674,9 @@ pub fn interact(
                                     }
                                 }
                             } else if mouse_left {
-                                if let Some(item_def) =
-                                    item_table.get(&chunk.chunk_data.get_identifier(voxel_pos))
-                                {
+                                let identifier = chunk.chunk_data.get_identifier(voxel_pos);
+                                let identifier = trim_geo_identifier(identifier);
+                                if let Some(item_def) = item_table.get(&identifier) {
                                     if let Some((section, row_index, item_index, stack_size)) =
                                         inventory.get_first_item(item_def)
                                     {

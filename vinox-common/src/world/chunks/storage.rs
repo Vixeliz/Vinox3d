@@ -93,6 +93,21 @@ pub fn identifier_to_name(identifier: String) -> Option<(String, String)> {
     None
 }
 
+pub fn identifier_to_just_name(identifier: String) -> Option<String> {
+    if let Some((_, name)) = identifier.splitn(2, ':').tuples().next() {
+        return Some(name.to_string());
+    }
+    None
+}
+
+pub fn trim_geo_identifier(identifier: String) -> String {
+    if let Some((prefix, _)) = identifier.split_once('.') {
+        prefix.to_string()
+    } else {
+        identifier
+    }
+}
+
 impl RenderedBlockData {
     pub fn new(
         namespace: String,

@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use crate::{storage::items::descriptor::ToolType, world::chunks::storage::VoxelVisibility};
+use crate::{
+    storage::items::descriptor::ToolType,
+    world::chunks::storage::{identifier_to_just_name, VoxelVisibility},
+};
 use serde::{Deserialize, Serialize};
 use strum::EnumString;
 
@@ -32,6 +35,24 @@ impl BlockGeometry {
             BlockGeometry::Custom(identifier) => identifier.clone(),
         }
     }
+    pub fn get_geo_name(&self) -> String {
+        match self {
+            BlockGeometry::Block => "block".to_string(),
+            BlockGeometry::Stairs => "stair".to_string(),
+            BlockGeometry::Slab => "slab".to_string(),
+            BlockGeometry::BorderedBlock => "border_block".to_string(),
+            BlockGeometry::Fence => "fence".to_string(),
+            BlockGeometry::Flat => "flat".to_string(),
+            BlockGeometry::Cross => "cross".to_string(),
+            BlockGeometry::Custom(identifier) => {
+                identifier_to_just_name(identifier.clone()).unwrap()
+            }
+        }
+    }
+
+    pub fn geo_new_block(&self, name: String) -> String {
+        name + "." + &self.get_geo_name()
+    }
 }
 
 // Anything optional here that is necessary for the game to function but we have a default value for ie texture or geometry
@@ -42,6 +63,7 @@ pub struct BlockDescriptor {
     pub name: String,
     pub textures: Option<HashMap<Option<String>, Option<String>>>,
     pub geometry: Option<BlockGeometry>,
+    pub auto_geo: Option<Vec<BlockGeometry>>, // Contains strings of geometry we wan't to auto generate
     pub durability: Option<u32>,
     pub tool_type: Option<ToolType>,
     pub friction: Option<u32>,

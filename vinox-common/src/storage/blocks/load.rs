@@ -1,7 +1,9 @@
 use directories::ProjectDirs;
-use std::fs;
+use std::{collections::HashMap, fs};
 
 use walkdir::WalkDir;
+
+use crate::world::chunks::storage::identifier_to_name;
 
 use super::descriptor::BlockDescriptor;
 
@@ -14,8 +16,20 @@ pub fn load_all_blocks() -> Vec<BlockDescriptor> {
         {
             if entry.path().extension().unwrap_or_default() == "ron" {
                 if let Ok(ron_string) = fs::read_to_string(entry.path()) {
-                    let ron_result = ron::from_str(ron_string.as_str());
+                    let ron_result = ron::from_str::<BlockDescriptor>(ron_string.as_str());
                     if let Ok(block) = ron_result {
+                        if let Some(auto_geo) = block.clone().auto_geo {
+                            result.push(block.clone());
+                            for geo in auto_geo.iter() {
+                                let mut new_block = block.clone();
+                                new_block.auto_geo = None;
+                                new_block.geometry = Some(geo.clone());
+                                new_block.has_item = Some(false);
+                                new_block.name = block.name.clone() + "." + &geo.get_geo_name();
+                                result.push(new_block);
+                            }
+                        }
+
                         result.push(block);
                     } else {
                         println!("{ron_result:?}");

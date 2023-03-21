@@ -1,6 +1,6 @@
 BlockDescriptor(
     namespace: "vinox",
-    name: "pole_test",
+    name: "pole",
     textures: Some({
     Some("front"): Some("oak_log.png"),
     }),
