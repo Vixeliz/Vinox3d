@@ -1,10 +1,19 @@
 GeometryDescriptor(
     namespace: "vinox",
     name: "border_block",
+    blocks: (
+         false,
+	     false,
+	     false,
+	     false,
+	     false,
+	     false,
+    ),
     elements: [
     BlockGeo(
         pivot: (0, 0, 0),
         rotation: (0, 0, 0),
+
         cubes: [
             FaceDescript(
                 uv:(

@@ -1,6 +1,6 @@
 GeometryDescriptor(
     namespace: "vinox",
-    name: "slab",
+    name: "fence",
     blocks: (
          false,
 	     false,
@@ -13,28 +13,21 @@ GeometryDescriptor(
     BlockGeo(
         pivot: (0, 0, 0),
         rotation: (0, 0, 0),
-        blocks: (
-            false,
-			false,
-			false,
-			false,
-			false,
-			false,
-        ),
+
         cubes: [
             FaceDescript(
                 uv:(
-                    ((0, 0), (16, 8)), // West
-                    ((0, 0), (16, 8)), // East
+                    ((0, 0), (16, 16)), // West
+                    ((0, 0), (16, 16)), // East
                     ((16, 16), (-16, -16)), // Down
                     ((16, 16), (-16, -16)), // Up
-                    ((0, 0), (16, 8)), // South
-                    ((0, 0), (16, 8)), // North
+                    ((0, 0), (16, 16)), // South
+                    ((0, 0), (16, 16)), // North
                 ),
                 cull: (
             	     false,
 				     false,
-				     false,
+				     true,
 				     false,
 			         false,
 				     false,
@@ -47,9 +40,8 @@ GeometryDescriptor(
 			         false,
 				     false,
                 ),
-
-                origin: (0, 0, 0),
-                end: (16, 8, 16),
+                origin: (6, 6, 6),
+                end: (8, 8, 8),
                 rotation: (0, 0, 0),
                 pivot: (8, 8, 8)
         )

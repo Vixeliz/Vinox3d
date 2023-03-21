@@ -22,7 +22,10 @@ use vinox_common::{
     world::chunks::{
         ecs::{ChunkComp, CurrentChunks},
         positions::voxel_to_world,
-        storage::{self, BlockTable, Chunk, RawChunk, Voxel, VoxelVisibility, CHUNK_SIZE},
+        storage::{
+            self, name_to_identifier, BlockTable, Chunk, RawChunk, Voxel, VoxelVisibility,
+            CHUNK_SIZE,
+        },
     },
 };
 
@@ -471,14 +474,14 @@ where
                             chunk.get(x, y, z - 1, block_table),
                             chunk.get(x, y, z + 1, block_table),
                         ];
-                        // let neighbor_block = [
-                        //     chunk.get_descriptor(x - 1, y, z, block_table),
-                        //     chunk.get_descriptor(x + 1, y, z, block_table),
-                        //     chunk.get_descriptor(x, y - 1, z, block_table),
-                        //     chunk.get_descriptor(x, y + 1, z, block_table),
-                        //     chunk.get_descriptor(x, y, z - 1, block_table),
-                        //     chunk.get_descriptor(x, y, z + 1, block_table),
-                        // ];
+                        let neighbor_block = [
+                            chunk.get_descriptor(x - 1, y, z, block_table),
+                            chunk.get_descriptor(x + 1, y, z, block_table),
+                            chunk.get_descriptor(x, y - 1, z, block_table),
+                            chunk.get_descriptor(x, y + 1, z, block_table),
+                            chunk.get_descriptor(x, y, z - 1, block_table),
+                            chunk.get_descriptor(x, y, z + 1, block_table),
+                        ];
                         // let mut element_vertices = Vec::new();
                         // let mut element_indices = Vec::new();
                         let voxel_descriptor = chunk.get_descriptor(x, y, z, block_table);
@@ -493,12 +496,21 @@ where
                             for element in geometry.elements.clone() {
                                 for cube in element.cubes.clone() {
                                     for (i, neighbor) in neighbors.iter().enumerate() {
+                                        let neighbor_geometry = geometry_table
+                                            .get(
+                                                &neighbor_block[i]
+                                                    .clone()
+                                                    .geometry
+                                                    .unwrap_or_default()
+                                                    .get_geo_namespace(),
+                                            )
+                                            .unwrap_or(geometry_table.get("vinox:block").unwrap());
                                         let culled = cube.cull[i];
                                         if cube.discard[i] {
                                             continue;
                                         }
                                         let other = neighbor.visibility();
-                                        let generate = if culled {
+                                        let generate = if culled && neighbor_geometry.blocks[i] {
                                             if solid_pass {
                                                 match (visibility, other) {
                                                     (OPAQUE, EMPTY) | (OPAQUE, TRANSPARENT) => true,
@@ -521,7 +533,8 @@ where
                                                 }
                                             }
                                         } else if (visibility == OPAQUE && solid_pass)
-                                            || (visibility == TRANSPARENT && !solid_pass) && !culled
+                                            || (visibility == TRANSPARENT && !solid_pass)
+                                                && (!culled && neighbor_geometry.blocks[i])
                                         {
                                             true
                                         } else {
@@ -530,8 +543,8 @@ where
                                         let origin_one = match i {
                                             0 => cube.origin.1,
                                             1 => cube.origin.1,
-                                            2 => cube.origin.2,
-                                            3 => cube.origin.2,
+                                            2 => cube.origin.0,
+                                            3 => cube.origin.0,
                                             4 => cube.origin.0,
                                             5 => cube.origin.0,
                                             _ => 0,
@@ -539,8 +552,8 @@ where
                                         let end_one = match i {
                                             0 => cube.end.1,
                                             1 => cube.end.1,
-                                            2 => cube.end.2,
-                                            3 => cube.end.2,
+                                            2 => cube.end.0,
+                                            3 => cube.end.0,
                                             4 => cube.end.0,
                                             5 => cube.end.0,
                                             _ => 0,
@@ -548,8 +561,8 @@ where
                                         let origin_two = match i {
                                             0 => cube.origin.2,
                                             1 => cube.origin.2,
-                                            2 => cube.origin.0,
-                                            3 => cube.origin.0,
+                                            2 => cube.origin.2,
+                                            3 => cube.origin.2,
                                             4 => cube.origin.1,
                                             5 => cube.origin.1,
                                             _ => 0,
@@ -557,8 +570,8 @@ where
                                         let end_two = match i {
                                             0 => cube.end.2,
                                             1 => cube.end.2,
-                                            2 => cube.end.0,
-                                            3 => cube.end.0,
+                                            2 => cube.end.2,
+                                            3 => cube.end.2,
                                             4 => cube.end.1,
                                             5 => cube.end.1,
                                             _ => 0,
