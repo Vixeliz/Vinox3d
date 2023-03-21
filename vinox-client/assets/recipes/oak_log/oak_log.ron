@@ -1,0 +1,8 @@
+RecipeDescriptor(
+    namespace: "vinox",
+    name: "oak_log",
+    required_items: Some({
+        "vinox:dirt": 4,
+    }),
+    output_item: ("vinox:oak_log", 2)
+)

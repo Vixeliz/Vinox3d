@@ -1,0 +1,9 @@
+BlockDescriptor(
+    namespace: "vinox",
+    name: "oak_log",
+    textures: Some({
+    Some("front"): Some("oak_log.png"),
+    }),
+    visibility: Some(Transparent), 
+    has_item: Some(true)
+)

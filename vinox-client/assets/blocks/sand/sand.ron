@@ -1,0 +1,9 @@
+BlockDescriptor(
+    namespace: "vinox",
+    name: "sand",
+    textures: Some({
+    Some("front"): Some("sand.png"),
+    }),
+    visibility: Some(Transparent), 
+    has_item: Some(true)
+)

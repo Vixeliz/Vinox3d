@@ -1,0 +1,8 @@
+RecipeDescriptor(
+    namespace: "vinox",
+    name: "sand",
+    required_items: Some({
+        "vinox:dirt": 6,
+    }),
+    output_item: ("vinox:sand", 4)
+)
