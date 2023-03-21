@@ -1,0 +1,51 @@
+// Just an example for custom geometry
+GeometryDescriptor(
+    namespace: "vinox",
+    name: "pole",
+    blocks: (
+         false,
+	     false,
+	     false,
+	     false,
+	     false,
+	     false,
+    ),
+    element:
+    BlockGeo(
+        pivot: (0, 0, 0),
+        rotation: (0, 0, 0),
+
+        cubes: [
+            FaceDescript(
+                uv:(
+                    ((0, 0), (16, 16)), // West
+                    ((0, 0), (16, 16)), // East
+                    ((16, 16), (-16, -16)), // Down
+                    ((16, 16), (-16, -16)), // Up
+                    ((0, 0), (16, 16)), // South
+                    ((0, 0), (16, 16)), // North
+                ),
+                cull: (
+            	     false,
+				     false,
+				     true,
+				     false,
+			         false,
+				     false,
+                ),
+                discard: (
+            	     false,
+				     false,
+				     false,
+				     false,
+			         false,
+				     false,
+                ),
+                origin: (6, 0, 6),
+                end: (10, 16, 10),
+                rotation: (0, 0, 0),
+                pivot: (8, 8, 8)
+        )
+    ]
+    )
+)

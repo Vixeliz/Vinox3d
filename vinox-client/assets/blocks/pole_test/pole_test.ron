@@ -1,0 +1,10 @@
+BlockDescriptor(
+    namespace: "vinox",
+    name: "pole_test",
+    textures: Some({
+    Some("front"): Some("oak_log.png"),
+    }),
+    has_item: Some(true),
+    visibility: Some(Opaque),
+    geometry: Some(Custom("vinox:pole"))
+)
