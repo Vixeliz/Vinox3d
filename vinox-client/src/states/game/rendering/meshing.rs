@@ -595,8 +595,17 @@ where
                                     if cube.discard[i] {
                                         continue;
                                     }
+                                    let blocked = match i {
+                                        0 => neighbor_geometry.blocks[1],
+                                        1 => neighbor_geometry.blocks[0],
+                                        2 => neighbor_geometry.blocks[3],
+                                        3 => neighbor_geometry.blocks[2],
+                                        4 => neighbor_geometry.blocks[5],
+                                        5 => neighbor_geometry.blocks[4],
+                                        _ => true,
+                                    };
                                     let other = neighbor.visibility();
-                                    let generate = if culled && neighbor_geometry.blocks[i] {
+                                    let generate = if culled && blocked {
                                         if solid_pass {
                                             match (visibility, other) {
                                                 (OPAQUE, EMPTY) | (OPAQUE, TRANSPARENT) => true,
@@ -615,8 +624,7 @@ where
                                             }
                                         }
                                     } else if (visibility == OPAQUE && solid_pass)
-                                        || (visibility == TRANSPARENT && !solid_pass)
-                                            && (!culled && neighbor_geometry.blocks[i])
+                                        || (visibility == TRANSPARENT && !solid_pass) && !blocked
                                     {
                                         true
                                     } else {
