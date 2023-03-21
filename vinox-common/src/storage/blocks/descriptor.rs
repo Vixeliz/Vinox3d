@@ -50,7 +50,8 @@ pub struct BlockDescriptor {
     pub script: Option<String>,
     pub container_size: Option<u8>,
     pub visibility: Option<VoxelVisibility>,
-    pub has_direction: Option<bool>, // Also affects up and down
+    pub has_direction: Option<bool>,       // Also affects up and down
+    pub exclusive_direction: Option<bool>, // If this block needs only either top and bottom or direction. Or if it needs both top and bottom and direction
     pub light: Option<u8>,
     pub interactable: Option<bool>,
     pub gui: Option<String>,

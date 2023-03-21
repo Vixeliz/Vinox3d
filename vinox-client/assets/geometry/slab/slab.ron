@@ -9,6 +9,8 @@ GeometryDescriptor(
 	     false,
 	     false,
     ),
+    has_direction: true,
+    exclusive_direction: true,
     element:
     BlockGeo(
         pivot: (0, 0, 0),

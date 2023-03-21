@@ -476,7 +476,7 @@ pub fn interact(
                                                         modified_item.top = Some(false);
                                                     }
                                                     _ => {
-                                                        modified_item.top = Some(false);
+                                                        // modified_item.top = Some(false);
                                                         // Stairs need tops and bottoms
                                                     }
                                                 }
@@ -492,24 +492,43 @@ pub fn interact(
                                                     _ => {}
                                                 }
 
-                                                if modified_item.direction.is_none() {
-                                                    let difference =
-                                                        player_transform.translation - point;
-                                                    if difference.x > difference.z {
-                                                        if difference.x < 0.0 {
-                                                            modified_item.direction =
-                                                                Some(storage::Direction::West)
+                                                if !block_table
+                                                    .get(&name_to_identifier(
+                                                        modified_item.namespace.clone(),
+                                                        modified_item.name.clone(),
+                                                    ))
+                                                    .unwrap()
+                                                    .exclusive_direction
+                                                    .unwrap_or(false)
+                                                {
+                                                    if modified_item.direction.is_none() {
+                                                        let difference =
+                                                            player_transform.translation - point;
+                                                        if difference.x > difference.z {
+                                                            if difference.x < 0.0 {
+                                                                modified_item.direction =
+                                                                    Some(storage::Direction::West)
+                                                            } else {
+                                                                modified_item.direction =
+                                                                    Some(storage::Direction::East)
+                                                            }
                                                         } else {
-                                                            modified_item.direction =
-                                                                Some(storage::Direction::East)
+                                                            if difference.z < 0.0 {
+                                                                modified_item.direction =
+                                                                    Some(storage::Direction::South)
+                                                            } else {
+                                                                modified_item.direction =
+                                                                    Some(storage::Direction::North)
+                                                            }
                                                         }
-                                                    } else {
-                                                        if difference.z < 0.0 {
-                                                            modified_item.direction =
-                                                                Some(storage::Direction::South)
+                                                    }
+                                                    if modified_item.top.is_none() {
+                                                        let difference =
+                                                            player_transform.translation - point;
+                                                        if difference.y > 0.0 {
+                                                            modified_item.top = Some(true);
                                                         } else {
-                                                            modified_item.direction =
-                                                                Some(storage::Direction::North)
+                                                            modified_item.top = Some(false);
                                                         }
                                                     }
                                                 }

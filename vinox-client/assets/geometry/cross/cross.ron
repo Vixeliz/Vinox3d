@@ -11,8 +11,8 @@ GeometryDescriptor(
     ),
     element:
     BlockGeo(
-        pivot: (8, 8, 8),
-        rotation: (0, 90, 0),
+        pivot: (8, 0, 8),
+        rotation: (0, 45, 0),
         cubes: [
             FaceDescript(
                 uv:(

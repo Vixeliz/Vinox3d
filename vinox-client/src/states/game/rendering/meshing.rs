@@ -365,9 +365,9 @@ impl<'a> Face<'a> {
         let block_pivot = geo.element.pivot;
         let block_rotation = geo.element.rotation;
         let pivot = Vec3::new(
-            block_pivot.0 as f32 / 16.0,
-            block_pivot.1 as f32 / 16.0,
-            block_pivot.2 as f32 / 16.0,
+            block_pivot.0 as f32 / 16.0 + x,
+            block_pivot.1 as f32 / 16.0 + y,
+            block_pivot.2 as f32 / 16.0 + z,
         ); // TO emulate how itll be getting from geometry
         let rotation = Quat::from_euler(
             EulerRot::XYZ,
@@ -375,11 +375,50 @@ impl<'a> Face<'a> {
             (block_rotation.1 as f32).to_radians(),
             (block_rotation.2 as f32).to_radians(),
         );
+        let pivot_cube = Vec3::new(
+            cube_pivot.0 as f32 / 16.0 + x,
+            cube_pivot.1 as f32 / 16.0 + y,
+            cube_pivot.2 as f32 / 16.0 + z,
+        ); // TO emulate how itll be getting from geometry
+        let rotation_cube = Quat::from_euler(
+            EulerRot::XYZ,
+            (cube_rotation.0 as f32).to_radians(),
+            (cube_rotation.1 as f32).to_radians(),
+            (cube_rotation.2 as f32).to_radians(),
+        );
         for point in temp_vec.iter_mut() {
-            let mut temp_transform = Transform::from_translation(*point);
-            temp_transform.rotate_around(pivot, rotation);
-            *point = temp_transform.translation;
-            // *point = pivot + rotation * (*point - pivot);
+            // let mut temp_transform = Transform::from_translation(*point);
+            // temp_transform.rotate_around(pivot, rotation);
+            // *point = temp_transform.translation;
+            *point = pivot + rotation * (*point - pivot);
+            *point = pivot_cube + rotation_cube * (*point - pivot_cube);
+            if let Some(direction) = direction.clone() {
+                let pivot = Vec3::new(0.5 + x, 0.5 + y, 0.5 + z); // TO emulate how itll be getting from geometry
+                let rotation = match direction {
+                    storage::Direction::North => {
+                        Quat::from_euler(EulerRot::XYZ, -90.0_f32.to_radians(), 0.0, 0.0)
+                    }
+                    storage::Direction::South => {
+                        Quat::from_euler(EulerRot::XYZ, 90.0_f32.to_radians(), 0.0, 0.0)
+                    }
+                    storage::Direction::West => {
+                        Quat::from_euler(EulerRot::XYZ, 0.0, 0.0, 90.0_f32.to_radians())
+                    }
+                    storage::Direction::East => {
+                        Quat::from_euler(EulerRot::XYZ, 0.0, 0.0, -90.0_f32.to_radians())
+                    }
+                };
+                *point = pivot + rotation * (*point - pivot);
+            }
+            if let Some(top) = top.clone() {
+                let pivot = Vec3::new(0.5 + x, 0.5 + y, 0.5 + z); // TO emulate how itll be getting from geometry
+                let rotation = if top {
+                    Quat::from_euler(EulerRot::XYZ, 180.0_f32.to_radians(), 0.0, 0.0)
+                } else {
+                    Quat::from_euler(EulerRot::XYZ, 0.0, 0.0, 0.0)
+                };
+                *point = pivot + rotation * (*point - pivot);
+            }
         }
         let mut final_vec: Vec<[f32; 3]> = Vec::new();
         for point in temp_vec.iter_mut() {
@@ -676,7 +715,16 @@ fn full_mesh(
                     .get_geo_namespace(),
             )
             .unwrap_or(geo_table.get("vinox:block").unwrap());
-        positions.extend_from_slice(&face.positions(1.0, geo, None, None)); // Voxel size is 1m
+
+        let vox_data = raw_chunk
+            .get_block(UVec3::new(
+                face.voxel()[0] as u32,
+                face.voxel()[1] as u32,
+                face.voxel()[2] as u32,
+            ))
+            .unwrap();
+
+        positions.extend_from_slice(&face.positions(1.0, geo, vox_data.direction, vox_data.top)); // Voxel size is 1m
         normals.extend_from_slice(&face.normals());
         ao.extend_from_slice(&face.aos());
         let matched_index = match (face.side.axis, face.side.positive) {
@@ -729,6 +777,7 @@ fn full_mesh(
     let mut normals = Vec::new();
     let mut uvs = Vec::new();
     for face in mesh_result.iter_with_ao(raw_chunk, block_table) {
+        indices.extend_from_slice(&face.indices(positions.len() as u32));
         let geo = geo_table
             .get(
                 &raw_chunk
@@ -744,8 +793,15 @@ fn full_mesh(
                     .get_geo_namespace(),
             )
             .unwrap_or(geo_table.get("vinox:block").unwrap());
-        indices.extend_from_slice(&face.indices(positions.len() as u32));
-        positions.extend_from_slice(&face.positions(1.0, geo, None, None)); // Voxel size is 1m
+        let vox_data = raw_chunk
+            .get_block(UVec3::new(
+                face.voxel()[0] as u32,
+                face.voxel()[1] as u32,
+                face.voxel()[2] as u32,
+            ))
+            .unwrap();
+
+        positions.extend_from_slice(&face.positions(1.0, geo, vox_data.direction, vox_data.top)); // Voxel size is 1m
         normals.extend_from_slice(&face.normals());
         ao.extend_from_slice(&face.aos());
         let matched_index = match (face.side.axis, face.side.positive) {
