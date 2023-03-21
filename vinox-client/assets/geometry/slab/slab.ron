@@ -1,0 +1,42 @@
+GeometryDescriptor(
+    namespace: "vinox",
+    name: "slab",
+    elements: [
+    BlockGeo(
+        pivot: (0, 0, 0),
+        rotation: (0, 0, 0),
+        cubes: [
+            FaceDescript(
+                uv:(
+                    ((0, 0), (16, 8)), // West
+                    ((0, 0), (16, 8)), // East
+                    ((16, 16), (-16, -16)), // Down
+                    ((16, 16), (-16, -16)), // Up
+                    ((0, 0), (16, 8)), // South
+                    ((0, 0), (16, 8)), // North
+                ),
+                cull: (
+            	     false,
+				     false,
+				     false,
+				     false,
+			         false,
+				     false,
+                ),
+                discard: (
+            	     false,
+				     false,
+				     false,
+				     false,
+			         false,
+				     false,
+                ),
+                origin: (0, 0, 0),
+                size: (16, 8, 16),
+                rotation: (0, 0, 0),
+                pivot: (8, 8, 8)
+        )
+    ]
+    )
+]
+)

@@ -208,6 +208,8 @@ pub fn create_ui(
                     commands.insert_resource(NextState(Some(GameState::Loading)));
                 }
 
+                ui.allocate_space(egui::Vec2::new(1.0, 26.0));
+
                 if ui.button("Singeplayer").clicked() {
                     std::thread::spawn(|| {
                         create_server();

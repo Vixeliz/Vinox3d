@@ -43,8 +43,10 @@ pub const TRANSPARENT: VoxelVisibility = VoxelVisibility::Transparent;
 #[derive(Copy, Clone, Debug)]
 pub struct Quad {
     pub voxel: [usize; 3],
-    pub width: u32,
-    pub height: u32,
+    pub start: (i32, i32),
+    pub end: (i32, i32),
+    pub self_start: i32,
+    pub self_end: i32,
 }
 
 #[derive(Default)]
@@ -275,42 +277,50 @@ impl<'a> Face<'a> {
     }
 
     pub fn positions(&self, voxel_size: f32, geometry_table: &GeometryTable) -> [[f32; 3]; 4] {
+        let (min_one, min_two, max_one, max_two, min_self, max_self) = (
+            (self.quad.start.0 as f32 / 16.0),
+            (self.quad.start.1 as f32 / 16.0),
+            (self.quad.end.0 as f32 / 16.0),
+            (self.quad.end.1 as f32 / 16.0),
+            (self.quad.self_start as f32 / 16.0),
+            (self.quad.self_end as f32 / 16.0),
+        );
         let positions = match (&self.side.axis, &self.side.positive) {
             (Axis::X, false) => [
-                [0.0, 0.0, 1.0],
-                [0.0, 0.0, 0.0],
-                [0.0, 1.0, 1.0],
-                [0.0, 1.0, 0.0],
+                [min_self, min_one, max_two],
+                [min_self, min_one, min_two],
+                [min_self, max_one, max_two],
+                [min_self, max_one, min_two],
             ],
             (Axis::X, true) => [
-                [1.0, 0.0, 0.0],
-                [1.0, 0.0, 1.0],
-                [1.0, 1.0, 0.0],
-                [1.0, 1.0, 1.0],
+                [max_self, min_one, min_two],
+                [max_self, min_one, max_two],
+                [max_self, max_one, min_two],
+                [max_self, max_one, max_two],
             ],
             (Axis::Y, false) => [
-                [0.0, 0.0, 1.0],
-                [1.0, 0.0, 1.0],
-                [0.0, 0.0, 0.0],
-                [1.0, 0.0, 0.0],
+                [min_one, min_self, max_two],
+                [max_one, min_self, max_two],
+                [min_one, min_self, min_two],
+                [max_one, min_self, min_two],
             ],
             (Axis::Y, true) => [
-                [0.0, 1.0, 1.0],
-                [0.0, 1.0, 0.0],
-                [1.0, 1.0, 1.0],
-                [1.0, 1.0, 0.0],
+                [min_one, max_self, max_two],
+                [min_one, max_self, min_two],
+                [max_one, max_self, max_two],
+                [max_one, max_self, min_two],
             ],
             (Axis::Z, false) => [
-                [0.0, 0.0, 0.0],
-                [1.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0],
-                [1.0, 1.0, 0.0],
+                [min_one, min_two, min_self],
+                [max_one, min_two, min_self],
+                [min_one, max_two, min_self],
+                [max_one, max_two, min_self],
             ],
             (Axis::Z, true) => [
-                [1.0, 0.0, 1.0],
-                [0.0, 0.0, 1.0],
-                [1.0, 1.0, 1.0],
-                [0.0, 1.0, 1.0],
+                [max_one, min_two, max_self],
+                [min_one, min_two, max_self],
+                [max_one, max_two, max_self],
+                [min_one, max_two, max_self],
             ],
         };
 
@@ -469,26 +479,33 @@ where
                         //     chunk.get_descriptor(x, y, z - 1, block_table),
                         //     chunk.get_descriptor(x, y, z + 1, block_table),
                         // ];
+                        // let mut element_vertices = Vec::new();
+                        // let mut element_indices = Vec::new();
                         let voxel_descriptor = chunk.get_descriptor(x, y, z, block_table);
                         let voxel_data = chunk.get_data(x, y, z);
-                        for (i, neighbor) in neighbors.into_iter().enumerate() {
-                            if let Some(geometry) = geometry_table.get(
-                                &voxel_descriptor
-                                    .clone()
-                                    .geometry
-                                    .unwrap_or_default()
-                                    .get_geo_namespace(),
-                            ) {
-                                for element in geometry.elements.clone() {
-                                    for cube in element.cubes.clone() {
-                                        let not_culled = !cube.cull[i] || !cube.discard[i];
+                        if let Some(geometry) = geometry_table.get(
+                            &voxel_descriptor
+                                .clone()
+                                .geometry
+                                .unwrap_or_default()
+                                .get_geo_namespace(),
+                        ) {
+                            for element in geometry.elements.clone() {
+                                for cube in element.cubes.clone() {
+                                    for (i, neighbor) in neighbors.iter().enumerate() {
+                                        let culled = cube.cull[i];
+                                        if cube.discard[i] {
+                                            continue;
+                                        }
                                         let other = neighbor.visibility();
-                                        let generate = if not_culled {
+                                        let generate = if culled {
                                             if solid_pass {
                                                 match (visibility, other) {
                                                     (OPAQUE, EMPTY) | (OPAQUE, TRANSPARENT) => true,
 
-                                                    (TRANSPARENT, TRANSPARENT) => voxel != neighbor,
+                                                    (TRANSPARENT, TRANSPARENT) => {
+                                                        voxel != *neighbor
+                                                    }
 
                                                     (_, _) => false,
                                                 }
@@ -496,29 +513,88 @@ where
                                                 match (visibility, other) {
                                                     (TRANSPARENT, EMPTY) => true,
 
-                                                    (TRANSPARENT, TRANSPARENT) => voxel != neighbor,
+                                                    (TRANSPARENT, TRANSPARENT) => {
+                                                        voxel != *neighbor
+                                                    }
 
                                                     (_, _) => false,
                                                 }
                                             }
                                         } else if (visibility == OPAQUE && solid_pass)
-                                            || (visibility == TRANSPARENT && !solid_pass)
+                                            || (visibility == TRANSPARENT && !solid_pass) && !culled
                                         {
                                             true
                                         } else {
                                             false
                                         };
+                                        let origin_one = match i {
+                                            0 => cube.origin.1,
+                                            1 => cube.origin.1,
+                                            2 => cube.origin.2,
+                                            3 => cube.origin.2,
+                                            4 => cube.origin.0,
+                                            5 => cube.origin.0,
+                                            _ => 0,
+                                        };
+                                        let size_one = match i {
+                                            0 => cube.size.1,
+                                            1 => cube.size.1,
+                                            2 => cube.size.2,
+                                            3 => cube.size.2,
+                                            4 => cube.size.0,
+                                            5 => cube.size.0,
+                                            _ => 0,
+                                        };
+                                        let origin_two = match i {
+                                            0 => cube.origin.2,
+                                            1 => cube.origin.2,
+                                            2 => cube.origin.0,
+                                            3 => cube.origin.0,
+                                            4 => cube.origin.1,
+                                            5 => cube.origin.1,
+                                            _ => 0,
+                                        };
+                                        let size_two = match i {
+                                            0 => cube.size.2,
+                                            1 => cube.size.2,
+                                            2 => cube.size.0,
+                                            3 => cube.size.0,
+                                            4 => cube.size.1,
+                                            5 => cube.size.1,
+                                            _ => 0,
+                                        };
+                                        let self_start = match i {
+                                            0 => cube.origin.0,
+                                            1 => cube.origin.0,
+                                            2 => cube.origin.1,
+                                            3 => cube.origin.1,
+                                            4 => cube.origin.2,
+                                            5 => cube.origin.2,
+                                            _ => 0,
+                                        };
+                                        let self_end = match i {
+                                            0 => cube.size.0,
+                                            1 => cube.size.0,
+                                            2 => cube.size.1,
+                                            3 => cube.size.1,
+                                            4 => cube.size.2,
+                                            5 => cube.size.2,
+                                            _ => 0,
+                                        };
 
                                         if generate {
                                             buffer.groups[i].push(Quad {
                                                 voxel: [x as usize, y as usize, z as usize],
-                                                width: 1,
-                                                height: 1,
+                                                start: (origin_one, origin_two),
+                                                end: (size_one, size_two),
+                                                self_start,
+                                                self_end,
                                             });
                                         }
                                     }
                                 }
                             }
+                            //
                         }
                     }
                 }

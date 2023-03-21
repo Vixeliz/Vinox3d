@@ -24,11 +24,11 @@ impl BlockGeometry {
         match self {
             BlockGeometry::Block => "vinox:block".to_string(),
             BlockGeometry::Stairs => "vinox:block".to_string(),
-            BlockGeometry::Slab => "vinox:block".to_string(),
-            BlockGeometry::BorderedBlock => "vinox:block".to_string(),
+            BlockGeometry::Slab => "vinox:slab".to_string(),
+            BlockGeometry::BorderedBlock => "vinox:border_block".to_string(),
             BlockGeometry::Fence => "vinox:block".to_string(),
             BlockGeometry::Flat => "vinox:block".to_string(),
-            BlockGeometry::Cross => "vinox:block".to_string(),
+            BlockGeometry::Cross => "vinox:cross".to_string(),
             BlockGeometry::Custom(identifier) => identifier.clone(),
         }
     }
