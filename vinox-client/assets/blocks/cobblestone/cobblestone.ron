@@ -12,7 +12,10 @@ BlockDescriptor(
         Stairs,
         Custom("vinox:pole"),
         Slab,
-        BorderedBlock
+        BorderedBlock,
+        Flat,
+        Fence,
+        Cross
     ]),
     has_direction: Some(true)
 )

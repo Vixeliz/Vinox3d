@@ -297,9 +297,19 @@ pub fn interact(
         if keys.just_pressed(KeyCode::L) {
             *item_type = BlockGeometry::BorderedBlock;
         }
-        if keys.just_pressed(KeyCode::O) {
+        if keys.just_pressed(KeyCode::U) {
             *item_type = BlockGeometry::Cross;
         }
+        if keys.just_pressed(KeyCode::I) {
+            *item_type = BlockGeometry::Flat;
+        }
+        if keys.just_pressed(KeyCode::N) {
+            *item_type = BlockGeometry::Fence;
+        }
+        if keys.just_pressed(KeyCode::P) {
+            *item_type = BlockGeometry::Custom("vinox:pole".to_string());
+        }
+
         if !options.standard_bar {
             if keys.just_pressed(KeyCode::Key1) {
                 if temp_bar.is_some() {
