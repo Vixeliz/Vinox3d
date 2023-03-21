@@ -177,7 +177,21 @@ pub fn crafting_ui(
                         .show(ui, |ui| {
                             for (_, recipe) in sorted_recipe_table.iter().rev() {
                                 ui.horizontal(|ui| {
-                                    ui.label(format!("{}: x{}", recipe.name, recipe.output_item.1));
+                                    ui.label(format!("{}: x{}", recipe.name, recipe.output_item.1))
+                                        .on_hover_ui(|ui| {
+                                            for (required_item, item_amount) in recipe
+                                                .required_items
+                                                .clone()
+                                                .unwrap_or(HashMap::new())
+                                                .iter()
+                                            {
+                                                if let Some((_, name)) =
+                                                    identifier_to_name(required_item.clone())
+                                                {
+                                                    ui.label(format!("{}: x{}", name, item_amount));
+                                                }
+                                            }
+                                        });
                                     if ui.button("Craft").clicked() {
                                         if let Some(required_items) = recipe.required_items.clone()
                                         {
