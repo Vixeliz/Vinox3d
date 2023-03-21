@@ -2,8 +2,10 @@
 #import bevy_pbr::pbr_types
 #import bevy_pbr::mesh_bindings
 
+
 struct BasicMaterial {
     color: vec4<f32>,
+    discard_pix: u32,
 };
 
 struct Vertex {
@@ -44,6 +46,9 @@ fn fragment(
 in: FragmentInput,
 ) -> @location(0) vec4<f32> {
     var return_color = material.color * textureSample(base_color_texture, base_color_sampler, in.uv);
+    if material.discard_pix == 1u & return_color.a < 0.5 {
+        discard;
+    }
     #ifdef VERTEX_COLORS
         return_color = return_color * in.color;
     #endif

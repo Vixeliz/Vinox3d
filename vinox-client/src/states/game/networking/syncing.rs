@@ -95,6 +95,7 @@ pub fn get_messages(
                                 color: Color::rgba(1.1, 1.1, 1.1, 1.0),
                                 color_texture: Some(asset_server.load("outline.png")),
                                 alpha_mode: AlphaMode::Blend,
+                                discard_pix: 0,
                             }),
                             transform: Transform::from_translation(
                                 translation + Vec3::new(0.0, 0.0, -5.0),

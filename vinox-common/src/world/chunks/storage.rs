@@ -77,7 +77,6 @@ pub struct RenderedBlockData {
     pub identifier: String,
     pub direction: Option<Direction>,
     pub top: Option<bool>,
-    pub growth_state: Option<GrowthState>,
 }
 
 pub fn name_to_identifier(namespace: String, name: String) -> String {
@@ -99,7 +98,6 @@ impl RenderedBlockData {
         namespace: String,
         name: String,
         direction: Option<Direction>,
-        growth_state: Option<GrowthState>,
         top: Option<bool>,
     ) -> Self {
         let mut identifier = namespace;
@@ -108,7 +106,6 @@ impl RenderedBlockData {
         RenderedBlockData {
             identifier,
             direction,
-            growth_state,
             top,
         }
     }
@@ -322,7 +319,6 @@ impl RawChunk {
             block_state.namespace,
             block_state.name,
             block_state.direction,
-            block_state.growth_state,
             block_state.top,
         )
     }

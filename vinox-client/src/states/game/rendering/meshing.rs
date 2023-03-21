@@ -339,93 +339,106 @@ impl<'a> Face<'a> {
             (self.quad.voxel[1] - 1) as f32,
             (self.quad.voxel[2] - 1) as f32,
         );
-        let mut temp_vec = Vec::new();
-        temp_vec.push(Vec3::new(
-            x * voxel_size + positions[0][0] * voxel_size,
-            y * voxel_size + positions[0][1] * voxel_size,
-            z * voxel_size + positions[0][2] * voxel_size,
-        ));
-        temp_vec.push(Vec3::new(
-            x * voxel_size + positions[1][0] * voxel_size,
-            y * voxel_size + positions[1][1] * voxel_size,
-            z * voxel_size + positions[1][2] * voxel_size,
-        ));
-        temp_vec.push(Vec3::new(
-            x * voxel_size + positions[2][0] * voxel_size,
-            y * voxel_size + positions[2][1] * voxel_size,
-            z * voxel_size + positions[2][2] * voxel_size,
-        ));
-        temp_vec.push(Vec3::new(
-            x * voxel_size + positions[3][0] * voxel_size,
-            y * voxel_size + positions[3][1] * voxel_size,
-            z * voxel_size + positions[3][2] * voxel_size,
-        ));
+        let mut temp_arr = [
+            Vec3::new(
+                x * voxel_size + positions[0][0] * voxel_size,
+                y * voxel_size + positions[0][1] * voxel_size,
+                z * voxel_size + positions[0][2] * voxel_size,
+            ),
+            Vec3::new(
+                x * voxel_size + positions[1][0] * voxel_size,
+                y * voxel_size + positions[1][1] * voxel_size,
+                z * voxel_size + positions[1][2] * voxel_size,
+            ),
+            Vec3::new(
+                x * voxel_size + positions[2][0] * voxel_size,
+                y * voxel_size + positions[2][1] * voxel_size,
+                z * voxel_size + positions[2][2] * voxel_size,
+            ),
+            Vec3::new(
+                x * voxel_size + positions[3][0] * voxel_size,
+                y * voxel_size + positions[3][1] * voxel_size,
+                z * voxel_size + positions[3][2] * voxel_size,
+            ),
+        ];
         let cube_pivot = geo.element.cubes.get(self.quad.cube).unwrap().pivot;
         let cube_rotation = geo.element.cubes.get(self.quad.cube).unwrap().rotation;
         let block_pivot = geo.element.pivot;
         let block_rotation = geo.element.rotation;
-        let pivot = Vec3::new(
-            block_pivot.0 as f32 / 16.0 + x,
-            block_pivot.1 as f32 / 16.0 + y,
-            block_pivot.2 as f32 / 16.0 + z,
-        ); // TO emulate how itll be getting from geometry
-        let rotation = Quat::from_euler(
-            EulerRot::XYZ,
-            (block_rotation.0 as f32).to_radians(),
-            (block_rotation.1 as f32).to_radians(),
-            (block_rotation.2 as f32).to_radians(),
-        );
-        let pivot_cube = Vec3::new(
-            cube_pivot.0 as f32 / 16.0 + x,
-            cube_pivot.1 as f32 / 16.0 + y,
-            cube_pivot.2 as f32 / 16.0 + z,
-        ); // TO emulate how itll be getting from geometry
-        let rotation_cube = Quat::from_euler(
-            EulerRot::XYZ,
-            (cube_rotation.0 as f32).to_radians(),
-            (cube_rotation.1 as f32).to_radians(),
-            (cube_rotation.2 as f32).to_radians(),
-        );
-        for point in temp_vec.iter_mut() {
-            // let mut temp_transform = Transform::from_translation(*point);
-            // temp_transform.rotate_around(pivot, rotation);
-            // *point = temp_transform.translation;
-            *point = pivot + rotation * (*point - pivot);
-            *point = pivot_cube + rotation_cube * (*point - pivot_cube);
-            if let Some(direction) = direction.clone() {
-                let pivot = Vec3::new(0.5 + x, 0.5 + y, 0.5 + z); // TO emulate how itll be getting from geometry
-                let rotation = match direction {
-                    storage::Direction::North => {
-                        Quat::from_euler(EulerRot::XYZ, -90.0_f32.to_radians(), 0.0, 0.0)
-                    }
-                    storage::Direction::South => {
-                        Quat::from_euler(EulerRot::XYZ, 90.0_f32.to_radians(), 0.0, 0.0)
-                    }
-                    storage::Direction::West => {
-                        Quat::from_euler(EulerRot::XYZ, 0.0, 0.0, 90.0_f32.to_radians())
-                    }
-                    storage::Direction::East => {
-                        Quat::from_euler(EulerRot::XYZ, 0.0, 0.0, -90.0_f32.to_radians())
-                    }
-                };
+        if cube_rotation != (0, 0, 0)
+            && block_rotation != (0, 0, 0)
+            && direction.is_none()
+            && top.is_none()
+        {
+            let pivot = Vec3::new(
+                block_pivot.0 as f32 / 16.0 + x,
+                block_pivot.1 as f32 / 16.0 + y,
+                block_pivot.2 as f32 / 16.0 + z,
+            ); // TO emulate how itll be getting from geometry
+            let rotation = Quat::from_euler(
+                EulerRot::XYZ,
+                (block_rotation.0 as f32).to_radians(),
+                (block_rotation.1 as f32).to_radians(),
+                (block_rotation.2 as f32).to_radians(),
+            );
+            let pivot_cube = Vec3::new(
+                cube_pivot.0 as f32 / 16.0 + x,
+                cube_pivot.1 as f32 / 16.0 + y,
+                cube_pivot.2 as f32 / 16.0 + z,
+            ); // TO emulate how itll be getting from geometry
+            let rotation_cube = Quat::from_euler(
+                EulerRot::XYZ,
+                (cube_rotation.0 as f32).to_radians(),
+                (cube_rotation.1 as f32).to_radians(),
+                (cube_rotation.2 as f32).to_radians(),
+            );
+            for point in temp_arr.iter_mut() {
+                // let mut temp_transform = Transform::from_translation(*point);
+                // temp_transform.rotate_around(pivot, rotation);
+                // *point = temp_transform.translation;
                 *point = pivot + rotation * (*point - pivot);
-            }
-            if let Some(top) = top.clone() {
-                let pivot = Vec3::new(0.5 + x, 0.5 + y, 0.5 + z); // TO emulate how itll be getting from geometry
-                let rotation = if top {
-                    Quat::from_euler(EulerRot::XYZ, 180.0_f32.to_radians(), 0.0, 0.0)
-                } else {
-                    Quat::from_euler(EulerRot::XYZ, 0.0, 0.0, 0.0)
-                };
-                *point = pivot + rotation * (*point - pivot);
+                *point = pivot_cube + rotation_cube * (*point - pivot_cube);
+                if let Some(direction) = direction.clone() {
+                    let pivot = Vec3::new(0.5 + x, 0.5 + y, 0.5 + z); // TO emulate how itll be getting from geometry
+                    let rotation = match direction {
+                        storage::Direction::North => {
+                            Quat::from_euler(EulerRot::XYZ, -90.0_f32.to_radians(), 0.0, 0.0)
+                        }
+                        storage::Direction::South => {
+                            Quat::from_euler(EulerRot::XYZ, 90.0_f32.to_radians(), 0.0, 0.0)
+                        }
+                        storage::Direction::West => {
+                            Quat::from_euler(EulerRot::XYZ, 0.0, 0.0, 90.0_f32.to_radians())
+                        }
+                        storage::Direction::East => {
+                            Quat::from_euler(EulerRot::XYZ, 0.0, 0.0, -90.0_f32.to_radians())
+                        }
+                    };
+                    *point = pivot + rotation * (*point - pivot);
+                }
+                if let Some(top) = top.clone() {
+                    let pivot = Vec3::new(0.5 + x, 0.5 + y, 0.5 + z); // TO emulate how itll be getting from geometry
+                    let rotation = if top {
+                        Quat::from_euler(EulerRot::XYZ, 180.0_f32.to_radians(), 0.0, 0.0)
+                    } else {
+                        Quat::from_euler(EulerRot::XYZ, 0.0, 0.0, 0.0)
+                    };
+                    *point = pivot + rotation * (*point - pivot);
+                }
             }
         }
-        let mut final_vec: Vec<[f32; 3]> = Vec::new();
-        for point in temp_vec.iter_mut() {
-            final_vec.push(Into::<[f32; 3]>::into(*point));
+        let mut final_arr = [
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0],
+        ];
+
+        for (point_num, point) in temp_arr.iter_mut().enumerate() {
+            final_arr[point_num] = Into::<[f32; 3]>::into(*point);
         }
 
-        [final_vec[0], final_vec[1], final_vec[2], final_vec[3]]
+        final_arr
     }
 
     pub fn normals(&self) -> [[f32; 3]; 4] {
@@ -451,6 +464,8 @@ impl<'a> Face<'a> {
 pub struct BasicMaterial {
     #[uniform(0)]
     pub color: Color,
+    #[uniform(0)]
+    pub discard_pix: u32,
     #[texture(1)]
     #[sampler(2)]
     pub color_texture: Option<Handle<Image>>,
@@ -556,7 +571,7 @@ where
                         // let mut element_vertices = Vec::new();
                         // let mut element_indices = Vec::new();
                         let voxel_descriptor = chunk.get_descriptor(x, y, z, block_table);
-                        let voxel_data = chunk.get_data(x, y, z);
+                        // let voxel_data = chunk.get_data(x, y, z);
                         if let Some(geometry) = geometry_table.get(
                             &voxel_descriptor
                                 .clone()
@@ -565,7 +580,7 @@ where
                                 .get_geo_namespace(),
                         ) {
                             let element = geometry.element.clone();
-                            for (cube_num, cube) in element.cubes.clone().iter().enumerate() {
+                            for (cube_num, cube) in element.cubes.into_iter().enumerate() {
                                 for (i, neighbor) in neighbors.iter().enumerate() {
                                     let neighbor_geometry = geometry_table
                                         .get(
@@ -1051,6 +1066,7 @@ pub fn create_chunk_material(
                 .clone(),
         ),
         alpha_mode: AlphaMode::Blend,
+        discard_pix: 0,
     });
     chunk_material.opaque = materials.add(BasicMaterial {
         color: Color::WHITE,
@@ -1062,6 +1078,7 @@ pub fn create_chunk_material(
                 .clone(),
         ),
         alpha_mode: AlphaMode::Opaque,
+        discard_pix: 1,
     });
 }
 #[allow(clippy::too_many_arguments)]

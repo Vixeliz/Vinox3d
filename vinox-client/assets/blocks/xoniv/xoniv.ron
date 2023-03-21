@@ -4,7 +4,7 @@ BlockDescriptor(
     textures: Some({
     Some("front"): Some("xoniv.png"),
     }),
-    visibility: Some(Transparent), 
+    visibility: Some(Opaque), 
     has_item: Some(true),
     geometry: Some(Cross)
 )
