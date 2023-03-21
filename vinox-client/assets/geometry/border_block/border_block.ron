@@ -40,8 +40,8 @@ GeometryDescriptor(
 			         false,
 				     false,
                 ),
-                origin: (1, 1, 1),
-                end: (14, 14, 14),
+                origin: (1, 0, 1),
+                end: (15, 15, 15),
                 rotation: (0, 0, 0),
                 pivot: (8, 8, 8)
         )
