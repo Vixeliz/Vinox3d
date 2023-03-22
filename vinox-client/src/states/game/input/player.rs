@@ -18,10 +18,7 @@ use vinox_common::{
     storage::{blocks::descriptor::BlockGeometry, items::descriptor::ItemData},
     world::chunks::{
         ecs::{ChunkComp, CurrentChunks},
-        positions::{
-            relative_voxel_to_world, voxel_to_world, world_to_chunk, world_to_global_voxel,
-            world_to_voxel,
-        },
+        positions::{relative_voxel_to_world, voxel_to_world, world_to_chunk, world_to_voxel},
         storage::{
             self, name_to_identifier, trim_geo_identifier, BlockData, BlockTable, ItemTable,
             CHUNK_SIZE_ARR,
@@ -553,14 +550,12 @@ pub fn interact(
                                                                 modified_item.direction =
                                                                     Some(storage::Direction::East)
                                                             }
+                                                        } else if difference.z < 0.0 {
+                                                            modified_item.direction =
+                                                                Some(storage::Direction::South)
                                                         } else {
-                                                            if difference.z < 0.0 {
-                                                                modified_item.direction =
-                                                                    Some(storage::Direction::South)
-                                                            } else {
-                                                                modified_item.direction =
-                                                                    Some(storage::Direction::North)
-                                                            }
+                                                            modified_item.direction =
+                                                                Some(storage::Direction::North)
                                                         }
                                                     }
                                                     if modified_item.top.is_none() {
@@ -575,12 +570,10 @@ pub fn interact(
                                                 }
                                             }
 
+                                            chunk.chunk_data.add_block_state(&modified_item);
                                             chunk
                                                 .chunk_data
-                                                .add_block_state(&modified_item.clone());
-                                            chunk
-                                                .chunk_data
-                                                .set_block(voxel_pos, &place_item.clone().unwrap());
+                                                .set_block(voxel_pos, &place_item.unwrap());
                                             client.connection_mut().try_send_message(
                                                 ClientMessage::SentBlock {
                                                     chunk_pos,

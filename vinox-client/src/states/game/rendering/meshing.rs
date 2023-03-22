@@ -13,23 +13,20 @@ use bevy::{
 };
 use bevy_tweening::{lens::TransformPositionLens, *};
 use itertools::Itertools;
-use rand::{rngs::StdRng, seq::IteratorRandom, Rng, SeedableRng};
+use rand::{rngs::StdRng, Rng, SeedableRng};
 use rustc_hash::FxHashMap;
 // use rand::seq::IteratorRandom;
 use serde_big_array::Array;
-use std::{collections::HashMap, ops::Deref, time::Duration};
+use std::{ops::Deref, time::Duration};
 use tokio::sync::mpsc::{Receiver, Sender};
 use vinox_common::{
-    storage::{
-        blocks::descriptor::{BlockDescriptor, BlockGeometry},
-        geometry::descriptor::GeometryDescriptor,
-    },
+    storage::{blocks::descriptor::BlockDescriptor, geometry::descriptor::GeometryDescriptor},
     world::chunks::{
         ecs::{ChunkComp, CurrentChunks},
         positions::{voxel_to_world, world_to_global_voxel},
         storage::{
-            self, name_to_identifier, BlockTable, Chunk, RawChunk, RenderedBlockData, Voxel,
-            VoxelVisibility, CHUNK_SIZE,
+            self, BlockTable, Chunk, RawChunk, RenderedBlockData, Voxel, VoxelVisibility,
+            CHUNK_SIZE,
         },
     },
 };
@@ -442,7 +439,7 @@ impl<'a> Face<'a> {
                     };
                     *point = pivot + rotation * (*point - pivot);
                 }
-                if let Some(top) = self.quad.data.top.clone() {
+                if let Some(top) = self.quad.data.top {
                     let pivot = Vec3::new(0.5 + x, 0.5 + y, 0.5 + z); // TO emulate how itll be getting from geometry
                     let rotation = if top {
                         Quat::from_euler(EulerRot::XYZ, 180.0_f32.to_radians(), 0.0, 0.0)
@@ -686,7 +683,7 @@ pub fn generate_mesh<C, T>(
     assert!(C::Y >= 2);
     assert!(C::Z >= 2);
 
-    let my_span = info_span!("full_mesh", name = "full_mesh").entered();
+    // let my_span = info_span!("full_mesh", name = "full_mesh").entered();
 
     for z in 1..C::Z - 1 {
         for y in 1..C::Y - 1 {
@@ -756,12 +753,10 @@ pub fn generate_mesh<C, T>(
                                                 (_, _) => false,
                                             }
                                         }
-                                    } else if (visibility == OPAQUE && solid_pass)
-                                        || (visibility == TRANSPARENT && !solid_pass) && !blocked
-                                    {
-                                        true
                                     } else {
-                                        false
+                                        (visibility == OPAQUE && solid_pass)
+                                            || (visibility == TRANSPARENT && !solid_pass)
+                                                && !blocked
                                     };
                                     let origin_one = match i {
                                         0 => cube.origin.1,

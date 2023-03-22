@@ -1,5 +1,4 @@
 use rustc_hash::FxHashMap;
-use std::collections::HashMap;
 
 use bevy::prelude::*;
 use bimap::BiMap;
@@ -81,7 +80,7 @@ pub struct RenderedBlockData {
 }
 
 pub fn name_to_identifier(namespace: String, name: String) -> String {
-    let mut temp_name = namespace.clone();
+    let mut temp_name = namespace;
     temp_name.push(':');
     temp_name.push_str(&name);
     temp_name

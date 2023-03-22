@@ -1,9 +1,7 @@
 use directories::ProjectDirs;
-use std::{collections::HashMap, fs};
+use std::fs;
 
 use walkdir::WalkDir;
-
-use crate::world::chunks::storage::identifier_to_name;
 
 use super::descriptor::BlockDescriptor;
 

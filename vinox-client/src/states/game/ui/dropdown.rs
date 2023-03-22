@@ -18,6 +18,7 @@ pub struct ConsoleOpen(pub bool);
 #[derive(Resource, Default, Deref, DerefMut)]
 pub struct Toast(pub Toasts);
 
+#[allow(clippy::too_many_arguments)]
 pub fn create_ui(
     // mut commands: Commands,
     mut client: ResMut<Client>,
