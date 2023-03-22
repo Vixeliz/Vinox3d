@@ -693,11 +693,11 @@ pub fn generate_mesh<C, T>(
                     visibility => {
                         let neighbor_block = [
                             chunk.get_descriptor(x - 1, y, z, block_table),
-                            // chunk.get_descriptor(x + 1, y, z, block_table),
+                            chunk.get_descriptor(x + 1, y, z, block_table),
                             chunk.get_descriptor(x, y - 1, z, block_table),
-                            // chunk.get_descriptor(x, y + 1, z, block_table),
+                            chunk.get_descriptor(x, y + 1, z, block_table),
                             chunk.get_descriptor(x, y, z - 1, block_table),
-                            // chunk.get_descriptor(x, y, z + 1, block_table),
+                            chunk.get_descriptor(x, y, z + 1, block_table),
                         ];
                         let voxel_data = chunk.get_data(x, y, z);
                         if let Some(geometry) = geometry_table.get(
