@@ -28,9 +28,16 @@ pub fn aabb_vs_world(
     block_table: &BlockTable,
 ) -> Option<Vec<CollisionInfo>> {
     let mut collisions: Vec<CollisionInfo> = Vec::new();
-    for x in -5..=5 {
-        for y in -5..=5 {
-            for z in -5..=5 {
+    // Extend the area to check for collisions to what can be conceivably reached beased on velocity
+    let area_to_check = (
+        (Vec3::from(-aabb.half_extents) + velocity)
+            .floor()
+            .as_ivec3(),
+        (Vec3::from(aabb.half_extents) + velocity).ceil().as_ivec3(),
+    );
+    for x in area_to_check.0.x..=area_to_check.1.x {
+        for y in area_to_check.0.y..=area_to_check.1.y {
+            for z in area_to_check.0.z..=area_to_check.1.z {
                 let (check_chunk_pos, check_block_cpos) = world_to_voxel(
                     Vec3::from(aabb.center) + Vec3::new(x as f32, y as f32, z as f32),
                 );
@@ -122,10 +129,10 @@ pub fn aabb_vs_world(
                                     || enter.y > 1.0
                                     || enter.z > 1.0
                                 {
-                                    // No collision happens this frame
+                                    // No collision happens here this frame
                                     continue;
                                 } else {
-                                    // There is a collision this frame
+                                    // This might be a collision this frame
                                     if enter_time.0 == enter.x {
                                         normal.x = if inv_enter.x < 0.0 { 1.0 } else { -1.0 }
                                     } else if enter_time.0 == enter.y {
