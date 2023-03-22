@@ -3,6 +3,7 @@ use std::f32::consts::{FRAC_PI_2, PI};
 
 use bevy::{
     input::mouse::{MouseMotion, MouseScrollUnit, MouseWheel},
+    math::Vec3A,
     prelude::*,
     render::{
         camera::CameraProjection,
@@ -12,6 +13,7 @@ use bevy::{
 };
 use bevy_quinnet::client::Client;
 use vinox_common::{
+    collision::aabb::aabb_vs_world,
     collision::raycast::raycast_world,
     ecs::bundles::Inventory,
     networking::protocol::ClientMessage,
@@ -19,7 +21,7 @@ use vinox_common::{
     world::chunks::{
         ecs::{ChunkComp, CurrentChunks},
         positions::{
-            relative_voxel_to_world, voxel_to_world, world_to_chunk, world_to_global_voxel,
+            relative_voxel_to_world, voxel_to_world, world_to_chunk, world_to_offsets,
             world_to_voxel,
         },
         storage::{
@@ -121,13 +123,6 @@ pub fn movement_input(
     current_chunks: Res<CurrentChunks>,
 ) {
     if let Ok((translation, action_state)) = player_position.get_single_mut() {
-        if current_chunks
-            .get_entity(world_to_chunk(translation.translation))
-            .is_none()
-        {
-            return;
-        }
-
         let Ok(window) = windows.get_single() else {
             return
         };
@@ -197,7 +192,6 @@ pub fn movement_input(
             );
 
             transform.look_at(looking_at, Vec3::new(0.0, 1.0, 0.0));
-            fps_camera.velocity.y -= 35.0 * time.delta().as_secs_f32().clamp(0.0, 0.1);
         }
     }
 }
@@ -741,6 +735,7 @@ pub fn interact(
                                     voxel_pos,
                                     &BlockData::new("vinox".to_string(), "air".to_string()),
                                 );
+                                println!("Broke block at {}", point);
                                 client.connection_mut().try_send_message(
                                     ClientMessage::SentBlock {
                                         chunk_pos,
@@ -829,86 +824,75 @@ pub fn interact(
 
 // TODO: Move this to collision
 pub fn collision_movement_system(
+    mut commands: Commands,
     mut camera: Query<(Entity, &mut FPSCamera)>,
-    player: Query<(Entity, &Aabb), With<ControlledPlayer>>,
+    mut player: Query<(Entity, &mut Aabb), With<ControlledPlayer>>,
     mut transforms: Query<&mut Transform>,
     time: Res<Time>,
-    chunks: Query<&mut ChunkComp>,
+    mut chunks: Query<&mut ChunkComp>,
     current_chunks: Res<CurrentChunks>,
     block_table: Res<BlockTable>,
+    key: Res<Input<KeyCode>>,
 ) {
     if let Ok((entity_camera, mut fps_camera)) = camera.get_single_mut() {
-        if let Ok((entity_player, _player_aabb)) = player.get_single() {
+        if let Ok((entity_player, mut player_aabb)) = player.get_single_mut() {
+            if current_chunks
+                .get_entity(world_to_chunk(Vec3::from(player_aabb.center)))
+                .is_none()
+            {
+                return;
+            }
+            let player_transform = transforms.get(entity_player).unwrap().clone();
+            let mut camera_t = transforms.get_mut(entity_camera).unwrap();
             let looking_at = Vec3::new(
                 10.0 * fps_camera.phi.cos() * fps_camera.theta.sin(),
                 10.0 * fps_camera.theta.cos(),
                 10.0 * fps_camera.phi.sin() * fps_camera.theta.sin(),
             );
+            // println!(
+            //     "Player y {} Camera translation {} aabb ymin {} aabb y max {} aabb center {}",
+            //     player_transform.translation.y,
+            //     camera_t.translation,
+            //     player_aabb.min().y,
+            //     player_aabb.max().y,
+            //     player_aabb.center
+            // );
 
-            let mut camera_t = transforms.get_mut(entity_camera).unwrap();
+            // camera_t.translation = Vec3::ZERO;
             camera_t.look_at(looking_at, Vec3::new(0.0, 1.0, 0.0));
+            // camera_t.translation =
+            //     Vec3::new(player_aabb.half_extents.x, 1.8, player_aabb.half_extents.z);
 
+            let mut player_transform = transforms.get_mut(entity_player).unwrap();
+            fps_camera.velocity.y -= 35.0 * time.delta().as_secs_f32().clamp(0.0, 0.1);
             let mut movement_left = fps_camera.velocity * time.delta().as_secs_f32();
-            let leg_height = 0.26;
-            let mut max_iter = 0;
-            loop {
-                max_iter += 1;
-                // TODO: Don't do this hacky solution and actually get the player unstuck instead of continulously running the loop
-                if movement_left.length() <= 0.0 || max_iter > 1000 {
-                    break;
-                }
-                let mut player_transform = transforms.get_mut(entity_player).unwrap();
-                let position = player_transform.translation - Vec3::new(0.0, 0.495, 0.0);
-
-                match raycast_world(
-                    position,
-                    movement_left,
-                    1.0,
-                    &chunks,
-                    &current_chunks,
-                    &block_table,
-                ) {
-                    None => {
-                        player_transform.translation =
-                            position + movement_left + Vec3::new(0.0, 0.495, 0.0);
-                        break;
-                    }
-                    Some((_chunk_pos, _voxel_pos, normal, _toi)) => {
-                        // TODO: We will use aabb to get unstuck instead of this
-                        // if toi < 0.0 {
-                        //     let unstuck_vector = transforms
-                        //         .get(current_chunks.get_entity(chunk_pos).unwrap())
-                        //         .unwrap()
-                        //         .translation
-                        //         - position;
-                        //     transforms.get_mut(entity_player).unwrap().translation -=
-                        //         unstuck_vector.normalize() * 0.01;
-                        //     fps_camera.velocity = Vec3::new(0.0, 0.0, 0.0);
-                        //     break;
-                        // }
-                        movement_left -= movement_left.dot(normal) * normal;
-                        fps_camera.velocity = movement_left / time.delta().as_secs_f32();
+            let debug_key = key.just_pressed(KeyCode::K);
+            let aabb_collisions = aabb_vs_world(
+                player_aabb.clone(),
+                &mut chunks,
+                movement_left,
+                &current_chunks,
+                &block_table,
+                debug_key,
+            );
+            // println!("Player\n\taabb: {player_aabb:?}\n\tmovement_left: {movement_left:?}");
+            match aabb_collisions {
+                Some(collision_list) => {
+                    // println!("{} collisions!", collision_list.len());
+                    for col in collision_list {
+                        movement_left -= movement_left.dot(col.normal) * col.normal;
                     }
                 }
-            }
-
-            if fps_camera.velocity.y <= 0.0 {
-                let position =
-                    transforms.get(entity_player).unwrap().translation - Vec3::new(0.0, 1.19, 0.0);
-
-                if let Some((_chunk_pos, _voxel_pos, _normal, toi)) = raycast_world(
-                    position,
-                    Vec3::new(0.0, -1.0, 0.0),
-                    leg_height,
-                    &chunks,
-                    &current_chunks,
-                    &block_table,
-                ) {
-                    transforms.get_mut(entity_player).unwrap().translation -=
-                        Vec3::new(0.0, toi - leg_height, 0.0);
-                    fps_camera.velocity.y = 0.0;
+                None => {
+                    // println!("No collisions!");
                 }
             }
+            fps_camera.velocity = movement_left / time.delta().as_secs_f32();
+            set_pos(
+                player_transform.translation + movement_left,
+                &mut player_aabb,
+                &mut player_transform,
+            );
         }
     }
 }
@@ -965,9 +949,17 @@ pub fn cursor_grab_system(
     }
 }
 
-pub fn update_aabb(mut player: Query<(&mut Aabb, &Transform), With<FPSCamera>>) {
+pub fn set_pos(position: Vec3, aabb: &mut Aabb, transform: &mut Transform) {
+    aabb.center = Vec3A::from(position) + aabb.half_extents;
+    transform.translation = position;
+}
+
+pub fn update_aabb(mut player: Query<(&mut Aabb, &Transform), With<ControlledPlayer>>) {
     if let Ok((mut aabb, transform)) = player.get_single_mut() {
-        aabb.center = transform.translation.into();
+        if Vec3::from(aabb.center - aabb.half_extents) != transform.translation {
+            debug!("AABB center was not aligned to player position!")
+        }
+        aabb.center = Vec3A::from(transform.translation) + aabb.half_extents;
     }
 }
 

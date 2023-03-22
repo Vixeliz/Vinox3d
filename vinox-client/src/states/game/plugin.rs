@@ -4,6 +4,7 @@ use leafwing_input_manager::prelude::*;
 
 use super::{
     input::plugin::InputPlugin, networking::plugin::NetworkingPlugin,
+    rendering::debugging::collision_boxes::plugin::RenderCollisionBoxPlugin,
     rendering::plugin::RenderingPlugin, ui::plugin::UiPlugin, world::chunks::ChunkPlugin,
 };
 
@@ -17,6 +18,7 @@ impl Plugin for GamePlugin {
             .add_plugin(NetworkingPlugin)
             .add_plugin(InputPlugin)
             .add_plugin(UiPlugin)
+            .add_plugin(RenderCollisionBoxPlugin)
             .add_system(despawn_with::<Game>.in_schedule(OnExit(GameState::Game)));
     }
 }
