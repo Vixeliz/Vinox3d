@@ -822,9 +822,7 @@ pub fn interact(
     }
 }
 
-// TODO: Move this to collision
 pub fn collision_movement_system(
-    mut commands: Commands,
     mut camera: Query<(Entity, &mut FPSCamera)>,
     mut player: Query<(Entity, &mut Aabb), With<ControlledPlayer>>,
     mut transforms: Query<&mut Transform>,
@@ -832,50 +830,42 @@ pub fn collision_movement_system(
     mut chunks: Query<&mut ChunkComp>,
     current_chunks: Res<CurrentChunks>,
     block_table: Res<BlockTable>,
-    key: Res<Input<KeyCode>>,
 ) {
     if let Ok((entity_camera, mut fps_camera)) = camera.get_single_mut() {
         if let Ok((entity_player, mut player_aabb)) = player.get_single_mut() {
-            if current_chunks
-                .get_entity(world_to_chunk(Vec3::from(player_aabb.center)))
-                .is_none()
-            {
-                return;
-            }
-            let player_transform = transforms.get(entity_player).unwrap().clone();
             let mut camera_t = transforms.get_mut(entity_camera).unwrap();
             let looking_at = Vec3::new(
                 10.0 * fps_camera.phi.cos() * fps_camera.theta.sin(),
                 10.0 * fps_camera.theta.cos(),
                 10.0 * fps_camera.phi.sin() * fps_camera.theta.sin(),
             );
-            camera_t.translation = Vec3::ZERO;
             camera_t.look_at(looking_at, Vec3::new(0.0, 1.0, 0.0));
             camera_t.translation = Vec3::new(0.0, 1.8, 0.0);
+
+            if current_chunks
+                .get_entity(world_to_chunk(Vec3::from(player_aabb.center)))
+                .is_none()
+            {
+                return;
+            }
 
             let mut player_transform = transforms.get_mut(entity_player).unwrap();
             fps_camera.velocity.y -= 35.0 * time.delta().as_secs_f32().clamp(0.0, 0.1);
             let mut movement_left = fps_camera.velocity * time.delta().as_secs_f32();
-            let debug_key = key.just_pressed(KeyCode::K);
             let aabb_collisions = aabb_vs_world(
                 player_aabb.clone(),
                 &mut chunks,
                 movement_left,
                 &current_chunks,
                 &block_table,
-                debug_key,
             );
-            // println!("Player\n\taabb: {player_aabb:?}\n\tmovement_left: {movement_left:?}");
             match aabb_collisions {
                 Some(collision_list) => {
-                    // println!("{} collisions!", collision_list.len());
                     for col in collision_list {
                         movement_left -= movement_left.dot(col.normal) * col.normal;
                     }
                 }
-                None => {
-                    // println!("No collisions!");
-                }
+                None => {}
             }
             fps_camera.velocity = movement_left / time.delta().as_secs_f32();
             set_pos(

@@ -31,11 +31,8 @@ pub fn aabb_vs_world(
     velocity: Vec3,
     current_chunks: &CurrentChunks,
     block_table: &BlockTable,
-    turn_to_glass: bool,
 ) -> Option<Vec<CollisionInfo>> {
     let mut collisions: Vec<CollisionInfo> = Vec::new();
-    let mut has_printed_head = false;
-    //println!("Begin aabb_vs_world");
     for x in -5..=5 {
         for y in -5..=5 {
             for z in -5..=5 {
@@ -43,14 +40,11 @@ pub fn aabb_vs_world(
                     Vec3::from(aabb.center) + Vec3::new(x as f32, y as f32, z as f32),
                 );
                 if let Some(chunk_entity) = current_chunks.get_entity(check_chunk_pos) {
-                    if let Ok(mut chunk) = chunks.get_mut(chunk_entity) {
+                    if let Ok(chunk) = chunks.get(chunk_entity) {
                         let block_data: BlockDescriptor = chunk
                             .chunk_data
                             .get_data(RawChunk::linearize(check_block_cpos), block_table);
                         let voxel_pos = voxel_to_global_voxel(check_block_cpos, check_chunk_pos);
-                        if voxel_pos.y == 2 {
-                            //println!("Checking {voxel_pos:?}");
-                        }
                         if let Some(block) = block_data.visibility {
                             if block != VoxelVisibility::Empty {
                                 let block_aabb = Aabb {
@@ -58,8 +52,10 @@ pub fn aabb_vs_world(
                                         + Vec3A::new(0.5, 0.5, 0.5)),
                                     half_extents: Vec3::new(0.5, 0.5, 0.5).into(),
                                 };
+
                                 let mut inv_enter = Vec3::ZERO;
                                 let mut inv_exit = Vec3::ZERO;
+
                                 if velocity.x > 0.0 {
                                     inv_enter.x = block_aabb.min().x - aabb.max().x;
                                     inv_exit.x = block_aabb.max().x - aabb.min().x;
@@ -125,12 +121,6 @@ pub fn aabb_vs_world(
 
                                 let exit_time =
                                     min(min(FloatOrd(exit.x), FloatOrd(exit.y)), FloatOrd(exit.z));
-                                if voxel_pos.y == 2 {
-                                    //println!(
-                                    //"{} @ {}. InvEnter: {inv_enter:?} InvExit: {inv_exit:?} Enter: {:?}, Exit: {:?}. Player cntr: {} v: {velocity}",
-                                    //block_data.name, block_aabb.center, enter, exit, aabb.center,
-                                    //);
-                                }
                                 if enter_time > exit_time
                                     || enter.x < 0.0 && enter.y < 0.0 && enter.z < 0.0
                                     || enter.x > 1.0
@@ -138,9 +128,6 @@ pub fn aabb_vs_world(
                                     || enter.z > 1.0
                                 {
                                     // No collision happens this frame
-                                    if voxel_pos.y == 2 {
-                                        //// println!("Did not collide Enter: {enter}, Exit: {exit}");
-                                    }
                                     continue;
                                 } else {
                                     // There is a collision this frame
@@ -151,10 +138,6 @@ pub fn aabb_vs_world(
                                     } else if enter_time.0 == enter.z {
                                         normal.z = if inv_enter.z < 0.0 { 1.0 } else { -1.0 }
                                     }
-                                    // println!(
-                                    //     "\tCollision Pos: {}, Block: {}, Enter: {enter:?}, Exit: {exit:?}",
-                                    //     block_aabb.center, block_data.name
-                                    // );
                                     collisions.push(CollisionInfo { voxel_pos, normal });
                                 }
                             }
@@ -164,32 +147,22 @@ pub fn aabb_vs_world(
             }
         }
     }
-    if !collisions.is_empty() {
-        collisions.retain(|col| {
-            let (chunk_pos, voxel_cpos) = world_to_voxel(col.voxel_pos.as_vec3() + col.normal);
-            if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos) {
-                if let Ok(chunk) = chunks.get(chunk_entity) {
-                    let block_data: BlockDescriptor = chunk
-                        .chunk_data
-                        .get_data(RawChunk::linearize(voxel_cpos), block_table);
-                    let side_empty = block_data.visibility.unwrap_or(VoxelVisibility::Empty)
-                        == VoxelVisibility::Empty;
-                    return side_empty;
-                }
-            }
-            return true;
-        });
-        for c in collisions.iter() {
-            let (chunk_pos, voxel_cpos) = world_to_voxel(c.voxel_pos.as_vec3() + c.normal);
-            if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos) {
-                if let Ok(mut chunk) = chunks.get_mut(chunk_entity) {
-                    chunk.chunk_data.set_block(
-                        world_to_offsets(c.voxel_pos.as_vec3()),
-                        &BlockData::new("vinox".to_string(), "glass".to_string()),
-                    );
-                }
+    // Remove all detected collisions that are on a face blocked by another block
+    collisions.retain(|col| {
+        let (chunk_pos, voxel_cpos) = world_to_voxel(col.voxel_pos.as_vec3() + col.normal);
+        if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos) {
+            if let Ok(chunk) = chunks.get(chunk_entity) {
+                let block_data: BlockDescriptor = chunk
+                    .chunk_data
+                    .get_data(RawChunk::linearize(voxel_cpos), block_table);
+                let side_empty = block_data.visibility.unwrap_or(VoxelVisibility::Empty)
+                    == VoxelVisibility::Empty;
+                return side_empty;
             }
         }
+        return true;
+    });
+    if !collisions.is_empty() {
         return Some(collisions);
     }
     None
