@@ -514,7 +514,7 @@ impl<'a> Face<'a> {
             );
             let flip_num = if let Some(tex_variance) = self.quad.descriptor.tex_variance {
                 let mut rng: StdRng = SeedableRng::seed_from_u64(world_pos.reflect_hash().unwrap());
-                if tex_variance[face_index].unwrap_or(false) {
+                if tex_variance[face_index].unwrap_or_else(|| false) {
                     rng.gen_range(0..6)
                 } else {
                     0
@@ -720,7 +720,9 @@ pub fn generate_mesh<C, T>(
                                                 .unwrap_or_default()
                                                 .get_geo_namespace(),
                                         )
-                                        .unwrap_or(geometry_table.get("vinox:block").unwrap());
+                                        .unwrap_or_else(|| {
+                                            geometry_table.get("vinox:block").unwrap()
+                                        });
                                     let culled = cube.cull[i];
                                     if cube.discard[i] {
                                         continue;
