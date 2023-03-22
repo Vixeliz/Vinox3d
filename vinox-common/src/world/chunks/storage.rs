@@ -1,3 +1,4 @@
+use rustc_hash::FxHashMap;
 use std::collections::HashMap;
 
 use bevy::prelude::*;
@@ -20,13 +21,13 @@ pub const TOTAL_CHUNK_SIZE: usize =
     (CHUNK_SIZE as usize) * (CHUNK_SIZE as usize) * (CHUNK_SIZE as usize);
 
 #[derive(Resource, Clone, Default, Deref, DerefMut)]
-pub struct RecipeTable(pub HashMap<String, RecipeDescriptor>);
+pub struct RecipeTable(pub FxHashMap<String, RecipeDescriptor>);
 
 #[derive(Resource, Clone, Default, Deref, DerefMut)]
-pub struct BlockTable(pub HashMap<String, BlockDescriptor>);
+pub struct BlockTable(pub FxHashMap<String, BlockDescriptor>);
 
 #[derive(Resource, Clone, Default, Deref, DerefMut)]
-pub struct ItemTable(pub HashMap<String, ItemDescriptor>);
+pub struct ItemTable(pub FxHashMap<String, ItemDescriptor>);
 
 #[derive(EnumString, Serialize, Deserialize, Debug, PartialEq, Eq, Default, Clone, Copy)]
 pub enum VoxelVisibility {

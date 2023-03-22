@@ -14,6 +14,7 @@ use bevy::{
 use bevy_tweening::{lens::TransformPositionLens, *};
 use itertools::Itertools;
 use rand::{rngs::StdRng, Rng, SeedableRng};
+use rustc_hash::FxHashMap;
 // use rand::seq::IteratorRandom;
 use serde_big_array::Array;
 use std::{collections::HashMap, ops::Deref, time::Duration};
@@ -42,13 +43,13 @@ use crate::states::{
 use super::chunk::ChunkBoundary;
 
 #[derive(Resource, Clone, Default, Deref, DerefMut)]
-pub struct GeometryTable(pub HashMap<String, GeometryDescriptor>);
+pub struct GeometryTable(pub FxHashMap<String, GeometryDescriptor>);
 
 pub const EMPTY: VoxelVisibility = VoxelVisibility::Empty;
 pub const OPAQUE: VoxelVisibility = VoxelVisibility::Opaque;
 pub const TRANSPARENT: VoxelVisibility = VoxelVisibility::Transparent;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct Quad {
     pub voxel: [usize; 3],
     pub start: (i32, i32),
@@ -56,6 +57,9 @@ pub struct Quad {
     pub self_start: i32,
     pub self_end: i32,
     pub cube: usize,
+    pub geo: GeometryDescriptor,
+    pub descriptor: BlockDescriptor,
+    pub data: RenderedBlockData,
 }
 
 #[derive(Default)]
@@ -288,9 +292,9 @@ impl<'a> Face<'a> {
     pub fn positions(
         &self,
         voxel_size: f32,
-        geo: &GeometryDescriptor,
-        direction: Option<storage::Direction>,
-        top: Option<bool>,
+        // geo: &GeometryDescriptor,
+        // direction: Option<storage::Direction>,
+        // top: Option<bool>,
     ) -> [[f32; 3]; 4] {
         let (min_one, min_two, max_one, max_two, min_self, max_self) = (
             (self.quad.start.0 as f32 / 16.0),
@@ -366,13 +370,27 @@ impl<'a> Face<'a> {
                 z * voxel_size + positions[3][2] * voxel_size,
             ),
         ];
-        let cube_pivot = geo.element.cubes.get(self.quad.cube).unwrap().pivot;
-        let cube_rotation = geo.element.cubes.get(self.quad.cube).unwrap().rotation;
-        let block_pivot = geo.element.pivot;
-        let block_rotation = geo.element.rotation;
+        let cube_pivot = self
+            .quad
+            .geo
+            .element
+            .cubes
+            .get(self.quad.cube)
+            .unwrap()
+            .pivot;
+        let cube_rotation = self
+            .quad
+            .geo
+            .element
+            .cubes
+            .get(self.quad.cube)
+            .unwrap()
+            .rotation;
+        let block_pivot = self.quad.geo.element.pivot;
+        let block_rotation = self.quad.geo.element.rotation;
         if (cube_rotation != (0, 0, 0) || block_rotation != (0, 0, 0))
-            && direction.is_none()
-            && top.is_none()
+            && self.quad.data.direction.is_none()
+            && self.quad.data.top.is_none()
         {
             let pivot = Vec3::new(
                 block_pivot.0 as f32 / 16.0 + x,
@@ -402,7 +420,7 @@ impl<'a> Face<'a> {
                 // *point = temp_transform.translation;
                 *point = pivot + rotation * (*point - pivot);
                 *point = pivot_cube + rotation_cube * (*point - pivot_cube);
-                if let Some(direction) = direction.clone() {
+                if let Some(direction) = self.quad.data.direction.clone() {
                     let pivot = Vec3::new(0.5 + x, 0.5 + y, 0.5 + z); // TO emulate how itll be getting from geometry
                     let rotation = match direction {
                         storage::Direction::North => {
@@ -420,7 +438,7 @@ impl<'a> Face<'a> {
                     };
                     *point = pivot + rotation * (*point - pivot);
                 }
-                if let Some(top) = top.clone() {
+                if let Some(top) = self.quad.data.top.clone() {
                     let pivot = Vec3::new(0.5 + x, 0.5 + y, 0.5 + z); // TO emulate how itll be getting from geometry
                     let rotation = if top {
                         Quat::from_euler(EulerRot::XYZ, 180.0_f32.to_radians(), 0.0, 0.0)
@@ -453,21 +471,21 @@ impl<'a> Face<'a> {
         &self,
         flip_u: bool,
         flip_v: bool,
-        geo: &GeometryDescriptor,
+        // geo: &GeometryDescriptor,
         texture_atlas: &TextureAtlas,
         matched_ind: usize,
         loadable_assets: &LoadableAssets,
-        block: &RenderedBlockData,
-        descriptor: &BlockDescriptor,
+        // block: &RenderedBlockData,
+        // descriptor: &BlockDescriptor,
         world_pos: IVec3,
     ) -> [[f32; 2]; 4] {
         if let Some(texture_index) = texture_atlas.get_texture_index(
             &loadable_assets
                 .block_textures
-                .get(&block.identifier)
+                .get(&self.quad.data.identifier)
                 .unwrap()[matched_ind],
         ) {
-            let uv = geo.element.cubes.get(self.quad.cube).unwrap().uv;
+            let uv = self.quad.geo.element.cubes.get(self.quad.cube).unwrap().uv;
             let mut face_tex = [[0.0; 2]; 4];
             let min_x = texture_atlas.textures.get(texture_index).unwrap().min.x;
             let min_y = texture_atlas.textures.get(texture_index).unwrap().min.y;
@@ -493,7 +511,7 @@ impl<'a> Face<'a> {
                 max_x / texture_atlas.size.x,
                 max_y / texture_atlas.size.y,
             );
-            let flip_num = if let Some(tex_variance) = descriptor.tex_variance {
+            let flip_num = if let Some(tex_variance) = self.quad.descriptor.tex_variance {
                 let mut rng: StdRng = SeedableRng::seed_from_u64(world_pos.reflect_hash().unwrap());
                 if tex_variance[face_index].unwrap_or(false) {
                     rng.gen_range(0..6)
@@ -664,24 +682,17 @@ where
     assert!(C::Y >= 2);
     assert!(C::Z >= 2);
 
+    let my_span = info_span!("full_mesh", name = "full_mesh").entered();
     let mut buffer = QuadGroups::default();
 
     for z in 1..C::Z - 1 {
         for y in 1..C::Y - 1 {
             for x in 1..C::X - 1 {
                 let (x, y, z) = (x as u32, y as u32, z as u32);
-                let voxel = chunk.get(x, y, z, block_table);
-                match voxel.visibility() {
+                let voxel = chunk.get_descriptor(x, y, z, block_table);
+                match voxel.visibility.unwrap_or_default() {
                     EMPTY => continue,
                     visibility => {
-                        let neighbors = [
-                            chunk.get(x - 1, y, z, block_table),
-                            chunk.get(x + 1, y, z, block_table),
-                            chunk.get(x, y - 1, z, block_table),
-                            chunk.get(x, y + 1, z, block_table),
-                            chunk.get(x, y, z - 1, block_table),
-                            chunk.get(x, y, z + 1, block_table),
-                        ];
                         let neighbor_block = [
                             chunk.get_descriptor(x - 1, y, z, block_table),
                             chunk.get_descriptor(x + 1, y, z, block_table),
@@ -690,12 +701,9 @@ where
                             chunk.get_descriptor(x, y, z - 1, block_table),
                             chunk.get_descriptor(x, y, z + 1, block_table),
                         ];
-                        // let mut element_vertices = Vec::new();
-                        // let mut element_indices = Vec::new();
-                        let voxel_descriptor = chunk.get_descriptor(x, y, z, block_table);
-                        // let voxel_data = chunk.get_data(x, y, z);
+                        let voxel_data = chunk.get_data(x, y, z);
                         if let Some(geometry) = geometry_table.get(
-                            &voxel_descriptor
+                            &voxel
                                 .clone()
                                 .geometry
                                 .unwrap_or_default()
@@ -703,7 +711,7 @@ where
                         ) {
                             let element = geometry.element.clone();
                             for (cube_num, cube) in element.cubes.into_iter().enumerate() {
-                                for (i, neighbor) in neighbors.iter().enumerate() {
+                                for (i, neighbor) in neighbor_block.iter().enumerate() {
                                     let neighbor_geometry = geometry_table
                                         .get(
                                             &neighbor_block[i]
@@ -726,7 +734,7 @@ where
                                         5 => neighbor_geometry.blocks[4],
                                         _ => true,
                                     };
-                                    let other = neighbor.visibility();
+                                    let other = neighbor.visibility.unwrap_or_default();
                                     let generate = if culled && blocked {
                                         if solid_pass {
                                             match (visibility, other) {
@@ -815,6 +823,9 @@ where
                                             self_start,
                                             self_end,
                                             cube: cube_num,
+                                            geo: geometry.clone(),
+                                            data: voxel_data.clone(),
+                                            descriptor: voxel.clone(),
                                         });
                                     }
                                 }
@@ -845,35 +856,35 @@ fn full_mesh(
     let mut ao = Vec::new();
     for face in mesh_result.iter_with_ao(raw_chunk, block_table) {
         indices.extend_from_slice(&face.indices(positions.len() as u32));
-        let geo = geo_table
-            .get(
-                &raw_chunk
-                    .get_descriptor(
-                        face.voxel()[0] as u32,
-                        face.voxel()[1] as u32,
-                        face.voxel()[2] as u32,
-                        block_table,
-                    )
-                    .clone()
-                    .geometry
-                    .unwrap_or_default()
-                    .get_geo_namespace(),
-            )
-            .unwrap_or(geo_table.get("vinox:block").unwrap());
+        // let geo = geo_table
+        //     .get(
+        //         &raw_chunk
+        //             .get_descriptor(
+        //                 face.voxel()[0] as u32,
+        //                 face.voxel()[1] as u32,
+        //                 face.voxel()[2] as u32,
+        //                 block_table,
+        //             )
+        //             .clone()
+        //             .geometry
+        //             .unwrap_or_default()
+        //             .get_geo_namespace(),
+        //     )
+        //     .unwrap_or(geo_table.get("vinox:block").unwrap());
 
-        let vox_data = raw_chunk
-            .get_block(UVec3::new(
-                face.voxel()[0] as u32,
-                face.voxel()[1] as u32,
-                face.voxel()[2] as u32,
-            ))
-            .unwrap();
+        // let vox_data = raw_chunk
+        //     .get_block(UVec3::new(
+        //         face.voxel()[0] as u32,
+        //         face.voxel()[1] as u32,
+        //         face.voxel()[2] as u32,
+        //     ))
+        //     .unwrap();
 
         positions.extend_from_slice(&face.positions(
             1.0,
-            geo,
-            vox_data.direction.clone(),
-            vox_data.top,
+            // geo,
+            // vox_data.direction.clone(),
+            // vox_data.top,
         )); // Voxel size is 1m
         normals.extend_from_slice(&face.normals());
         ao.extend_from_slice(&face.aos());
@@ -898,12 +909,12 @@ fn full_mesh(
         uvs.extend_from_slice(&face.uvs(
             false,
             false,
-            geo,
+            // geo,
             texture_atlas,
             matched_index,
             loadable_assets,
-            &vox_data,
-            &vox_desc,
+            // &vox_data,
+            // &vox_desc,
             world_to_global_voxel(voxel_to_world(
                 UVec3::new(
                     face.voxel()[0] as u32,
@@ -931,34 +942,34 @@ fn full_mesh(
     let mut uvs = Vec::new();
     for face in mesh_result.iter_with_ao(raw_chunk, block_table) {
         indices.extend_from_slice(&face.indices(positions.len() as u32));
-        let geo = geo_table
-            .get(
-                &raw_chunk
-                    .get_descriptor(
-                        face.voxel()[0] as u32,
-                        face.voxel()[1] as u32,
-                        face.voxel()[2] as u32,
-                        block_table,
-                    )
-                    .clone()
-                    .geometry
-                    .unwrap_or_default()
-                    .get_geo_namespace(),
-            )
-            .unwrap_or(geo_table.get("vinox:block").unwrap());
-        let vox_data = raw_chunk
-            .get_block(UVec3::new(
-                face.voxel()[0] as u32,
-                face.voxel()[1] as u32,
-                face.voxel()[2] as u32,
-            ))
-            .unwrap();
+        // let geo = geo_table
+        //     .get(
+        //         &raw_chunk
+        //             .get_descriptor(
+        //                 face.voxel()[0] as u32,
+        //                 face.voxel()[1] as u32,
+        //                 face.voxel()[2] as u32,
+        //                 block_table,
+        //             )
+        //             .clone()
+        //             .geometry
+        //             .unwrap_or_default()
+        //             .get_geo_namespace(),
+        //     )
+        //     .unwrap_or(geo_table.get("vinox:block").unwrap());
+        // let vox_data = raw_chunk
+        //     .get_block(UVec3::new(
+        //         face.voxel()[0] as u32,
+        //         face.voxel()[1] as u32,
+        //         face.voxel()[2] as u32,
+        //     ))
+        //     .unwrap();
 
         positions.extend_from_slice(&face.positions(
             1.0,
-            geo,
-            vox_data.direction.clone(),
-            vox_data.top,
+            // geo,
+            // vox_data.direction.clone(),
+            // vox_data.top,
         )); // Voxel size is 1m
         normals.extend_from_slice(&face.normals());
         ao.extend_from_slice(&face.aos());
@@ -983,12 +994,12 @@ fn full_mesh(
         uvs.extend_from_slice(&face.uvs(
             false,
             false,
-            geo,
+            // geo,
             texture_atlas,
             matched_index,
             loadable_assets,
-            &vox_data,
-            &vox_desc,
+            // &vox_data,
+            // &vox_desc,
             world_to_global_voxel(voxel_to_world(
                 UVec3::new(
                     face.voxel()[0] as u32,

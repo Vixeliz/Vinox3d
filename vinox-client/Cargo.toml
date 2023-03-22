@@ -31,3 +31,4 @@ ron.workspace=true
 fs_extra = "1.3.0"
 bimap.workspace=true
 fuzzy-matcher = "0.3.7"
+rustc-hash = "1.1.0"
