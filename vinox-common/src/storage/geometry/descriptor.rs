@@ -13,19 +13,19 @@ pub enum CullDirection {
 }
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Default, Clone)]
 pub struct FaceDescript {
-    pub uv: [((i32, i32), (i32, i32)); 6],
+    pub uv: [((i8, i8), (i8, i8)); 6],
     pub discard: [bool; 6], // Should we completely ignore this face regardless
     pub cull: [bool; 6],    // Should this face be culled if there is a block next to it
-    pub origin: (i32, i32, i32),
-    pub end: (i32, i32, i32),
-    pub rotation: (i32, i32, i32),
-    pub pivot: (i32, i32, i32), //CULLING CAN BE DONE BY CHECKING IF ANY GIVEN FACE IS TOUCHING THE SIDES OF THE NEIGHBORS FACE?
+    pub origin: (i8, i8, i8),
+    pub end: (i8, i8, i8),
+    pub rotation: (i8, i8, i8),
+    pub pivot: (i8, i8, i8), //CULLING CAN BE DONE BY CHECKING IF ANY GIVEN FACE IS TOUCHING THE SIDES OF THE NEIGHBORS FACE?
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Default, Clone)]
 pub struct BlockGeo {
-    pub pivot: (i32, i32, i32),
-    pub rotation: (i32, i32, i32),
+    pub pivot: (i8, i8, i8),
+    pub rotation: (i8, i8, i8),
     pub cubes: Vec<FaceDescript>,
 }
 

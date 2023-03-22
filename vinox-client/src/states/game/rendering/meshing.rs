@@ -49,10 +49,8 @@ pub const TRANSPARENT: VoxelVisibility = VoxelVisibility::Transparent;
 #[derive(Clone, Debug)]
 pub struct Quad {
     pub voxel: [usize; 3],
-    pub start: (i32, i32),
-    pub end: (i32, i32),
-    pub self_start: i32,
-    pub self_end: i32,
+    pub start: (i8, i8, i8),
+    pub end: (i8, i8, i8),
     pub cube: usize,
     pub geo: GeometryDescriptor,
     pub descriptor: BlockDescriptor,
@@ -302,8 +300,8 @@ impl<'a> Face<'a> {
             (self.quad.start.1 as f32 / 16.0),
             (self.quad.end.0 as f32 / 16.0),
             (self.quad.end.1 as f32 / 16.0),
-            (self.quad.self_start as f32 / 16.0),
-            (self.quad.self_end as f32 / 16.0),
+            (self.quad.start.2 as f32 / 16.0),
+            (self.quad.end.2 as f32 / 16.0),
         );
         let positions = match (&self.side.axis, &self.side.positive) {
             (Axis::X, false) => [
@@ -816,10 +814,8 @@ pub fn generate_mesh<C, T>(
                                     if generate {
                                         buffer.groups[i].push(Quad {
                                             voxel: [x as usize, y as usize, z as usize],
-                                            start: (origin_one, origin_two),
-                                            end: (end_one, end_two),
-                                            self_start,
-                                            self_end,
+                                            start: (origin_one, origin_two, self_start),
+                                            end: (end_one, end_two, self_end),
                                             cube: cube_num,
                                             geo: geometry.clone(),
                                             data: voxel_data.clone(),
