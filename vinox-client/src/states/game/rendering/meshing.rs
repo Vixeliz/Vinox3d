@@ -22,7 +22,7 @@ use tokio::sync::mpsc::{Receiver, Sender};
 use vinox_common::{
     storage::{blocks::descriptor::BlockDescriptor, geometry::descriptor::GeometryDescriptor},
     world::chunks::{
-        ecs::{ChunkComp, CurrentChunks},
+        ecs::{ChunkComp, ChunkPos, CurrentChunks},
         positions::{voxel_to_world, world_to_global_voxel},
         storage::{
             self, BlockTable, Chunk, RawChunk, RenderedBlockData, Voxel, VoxelVisibility,
@@ -1149,6 +1149,9 @@ pub fn priority_mesh(
                 commands
                     .entity(chunk_manager.current_chunks.get_entity(*chunk.pos).unwrap())
                     .remove::<PriorityMesh>();
+                commands
+                    .entity(chunk_manager.current_chunks.get_entity(*chunk.pos).unwrap())
+                    .remove::<NeedsMesh>();
             }
         }
     }
@@ -1242,6 +1245,19 @@ pub fn create_chunk_material(
         discard_pix: 1,
     });
 }
+pub fn priority_player(
+    player_chunk: Res<PlayerChunk>,
+    current_chunks: Res<CurrentChunks>,
+    chunks: Query<&Handle<Mesh>>,
+    mut commands: Commands,
+) {
+    if let Some(chunk_entity) = current_chunks.get_entity(player_chunk.chunk_pos) {
+        if chunks.get(chunk_entity).is_err() {
+            commands.entity(chunk_entity).insert(PriorityMesh);
+        }
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 pub fn process_queue(
     mut chunk_queue: ResMut<MeshQueue>,

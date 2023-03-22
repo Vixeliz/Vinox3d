@@ -452,10 +452,11 @@ pub fn interact(
                                 if item_data.unwrap_or_default().stack_size == 1 {
                                     inventory.hotbar[*cur_bar][*cur_item] = None;
                                 } else {
-                                    inventory.hotbar[*cur_bar][*cur_item]
-                                        .as_mut()
-                                        .unwrap()
-                                        .stack_size -= 1;
+                                    if let Some(item) =
+                                        inventory.hotbar[*cur_bar][*cur_item].as_mut()
+                                    {
+                                        item.stack_size -= 1;
+                                    }
                                 }
 
                                 if (point.x <= player_transform.translation.x - 0.5

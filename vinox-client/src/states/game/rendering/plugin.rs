@@ -3,8 +3,8 @@ use bevy::prelude::*;
 use crate::states::components::GameState;
 
 use super::meshing::{
-    create_chunk_material, process_priority_queue, process_queue, sort_chunks, sort_faces,
-    ChunkMaterial, MeshChannel, MeshQueue, PriorityMeshChannel, SortFaces,
+    create_chunk_material, priority_player, process_priority_queue, process_queue, sort_chunks,
+    sort_faces, ChunkMaterial, MeshChannel, MeshQueue, PriorityMeshChannel, SortFaces,
 };
 
 pub struct RenderingPlugin;
@@ -22,6 +22,7 @@ impl Plugin for RenderingPlugin {
             (
                 process_queue,
                 process_priority_queue,
+                priority_player,
                 sort_faces,
                 sort_chunks,
             )
