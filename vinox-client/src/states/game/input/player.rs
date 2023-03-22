@@ -449,7 +449,7 @@ pub fn interact(
                     if mouse_left || (mouse_right && place_item.is_some()) {
                         if let Ok(mut chunk) = chunks.get_mut(chunk_entity) {
                             if mouse_right {
-                                if item_data.unwrap().stack_size == 1 {
+                                if item_data.unwrap_or_default().stack_size == 1 {
                                     inventory.hotbar[*cur_bar][*cur_item] = None;
                                 } else {
                                     inventory.hotbar[*cur_bar][*cur_item]
