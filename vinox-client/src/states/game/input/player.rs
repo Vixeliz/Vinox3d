@@ -849,19 +849,9 @@ pub fn collision_movement_system(
                 10.0 * fps_camera.theta.cos(),
                 10.0 * fps_camera.phi.sin() * fps_camera.theta.sin(),
             );
-            // println!(
-            //     "Player y {} Camera translation {} aabb ymin {} aabb y max {} aabb center {}",
-            //     player_transform.translation.y,
-            //     camera_t.translation,
-            //     player_aabb.min().y,
-            //     player_aabb.max().y,
-            //     player_aabb.center
-            // );
-
-            // camera_t.translation = Vec3::ZERO;
+            camera_t.translation = Vec3::ZERO;
             camera_t.look_at(looking_at, Vec3::new(0.0, 1.0, 0.0));
-            // camera_t.translation =
-            //     Vec3::new(player_aabb.half_extents.x, 1.8, player_aabb.half_extents.z);
+            camera_t.translation = Vec3::new(0.0, 1.8, 0.0);
 
             let mut player_transform = transforms.get_mut(entity_player).unwrap();
             fps_camera.velocity.y -= 35.0 * time.delta().as_secs_f32().clamp(0.0, 0.1);
@@ -956,10 +946,8 @@ pub fn set_pos(position: Vec3, aabb: &mut Aabb, transform: &mut Transform) {
 
 pub fn update_aabb(mut player: Query<(&mut Aabb, &Transform), With<ControlledPlayer>>) {
     if let Ok((mut aabb, transform)) = player.get_single_mut() {
-        if Vec3::from(aabb.center - aabb.half_extents) != transform.translation {
-            debug!("AABB center was not aligned to player position!")
-        }
-        aabb.center = Vec3A::from(transform.translation) + aabb.half_extents;
+        aabb.center =
+            Vec3A::from(transform.translation) + Vec3A::new(0.0, aabb.half_extents.y, 0.0);
     }
 }
 
