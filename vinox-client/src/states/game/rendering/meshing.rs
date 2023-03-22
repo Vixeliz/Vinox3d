@@ -683,8 +683,6 @@ pub fn generate_mesh<C, T>(
     assert!(C::Y >= 2);
     assert!(C::Z >= 2);
 
-    // let my_span = info_span!("full_mesh", name = "full_mesh").entered();
-
     for z in 1..C::Z - 1 {
         for y in 1..C::Y - 1 {
             for x in 1..C::X - 1 {
@@ -695,11 +693,11 @@ pub fn generate_mesh<C, T>(
                     visibility => {
                         let neighbor_block = [
                             chunk.get_descriptor(x - 1, y, z, block_table),
-                            chunk.get_descriptor(x + 1, y, z, block_table),
+                            // chunk.get_descriptor(x + 1, y, z, block_table),
                             chunk.get_descriptor(x, y - 1, z, block_table),
-                            chunk.get_descriptor(x, y + 1, z, block_table),
+                            // chunk.get_descriptor(x, y + 1, z, block_table),
                             chunk.get_descriptor(x, y, z - 1, block_table),
-                            chunk.get_descriptor(x, y, z + 1, block_table),
+                            // chunk.get_descriptor(x, y, z + 1, block_table),
                         ];
                         let voxel_data = chunk.get_data(x, y, z);
                         if let Some(geometry) = geometry_table.get(
