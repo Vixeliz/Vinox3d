@@ -13,7 +13,7 @@ use bevy::{
 };
 use bevy_tweening::{lens::TransformPositionLens, *};
 use itertools::Itertools;
-use rand::{rngs::StdRng, Rng, SeedableRng};
+use rand::{rngs::StdRng, seq::IteratorRandom, Rng, SeedableRng};
 use rustc_hash::FxHashMap;
 // use rand::seq::IteratorRandom;
 use serde_big_array::Array;
@@ -662,7 +662,7 @@ pub struct MeshChannel {
 
 impl Default for MeshChannel {
     fn default() -> Self {
-        let (tx, rx) = tokio::sync::mpsc::channel(512);
+        let (tx, rx) = tokio::sync::mpsc::channel(1024);
         Self { tx, rx }
     }
 }
@@ -682,7 +682,7 @@ where
     assert!(C::Y >= 2);
     assert!(C::Z >= 2);
 
-    let my_span = info_span!("full_mesh", name = "full_mesh").entered();
+    // let my_span = info_span!("full_mesh", name = "full_mesh").entered();
     let mut buffer = QuadGroups::default();
 
     for z in 1..C::Z - 1 {
@@ -1174,7 +1174,10 @@ pub fn build_mesh(
         if count > options.meshes_frame {
             return;
         }
-        // for chunk in chunks.iter().choose_multiple(&mut rng, 256) {
+        // for chunk in chunks
+        //     .iter()
+        //     .choose_multiple(&mut rng, options.meshes_frame)
+        // {
         if chunk_manager
             .current_chunks
             .all_neighbors_exist(chunk.pos.clone())
