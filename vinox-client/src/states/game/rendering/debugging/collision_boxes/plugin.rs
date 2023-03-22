@@ -1,8 +1,6 @@
 use bevy::{pbr::wireframe::Wireframe, prelude::*, render::primitives::Aabb};
 
-use crate::states::game::{
-    input::player::FPSCamera, rendering::meshing::BasicMaterial, world::chunks::ControlledPlayer,
-};
+use crate::states::game::{input::player::FPSCamera, rendering::meshing::BasicMaterial};
 
 pub struct RenderCollisionBoxPlugin;
 

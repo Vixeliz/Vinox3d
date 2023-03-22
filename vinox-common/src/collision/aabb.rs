@@ -9,15 +9,10 @@ use crate::{
     storage::blocks::descriptor::BlockDescriptor,
     world::chunks::{
         ecs::{ChunkComp, CurrentChunks},
-        positions::{
-            voxel_to_global_voxel, voxel_to_world, world_to_chunk, world_to_global_voxel,
-            world_to_offsets, world_to_voxel,
-        },
+        positions::{voxel_to_global_voxel, world_to_voxel},
         storage::{BlockTable, Chunk, RawChunk, VoxelVisibility},
     },
 };
-
-use crate::world::chunks::storage::BlockData;
 
 #[derive(Debug)]
 pub struct CollisionInfo {

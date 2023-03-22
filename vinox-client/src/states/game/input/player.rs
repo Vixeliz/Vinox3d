@@ -20,10 +20,7 @@ use vinox_common::{
     storage::{blocks::descriptor::BlockGeometry, items::descriptor::ItemData},
     world::chunks::{
         ecs::{ChunkComp, CurrentChunks},
-        positions::{
-            relative_voxel_to_world, voxel_to_world, world_to_chunk, world_to_offsets,
-            world_to_voxel,
-        },
+        positions::{relative_voxel_to_world, voxel_to_world, world_to_chunk, world_to_voxel},
         storage::{
             self, name_to_identifier, trim_geo_identifier, BlockData, BlockTable, ItemTable,
             CHUNK_SIZE_ARR,
@@ -118,7 +115,6 @@ pub fn movement_input(
     mut mouse_events: EventReader<MouseMotion>,
     mouse_sensitivity: Res<MouseSensitivity>,
     windows: Query<&Window, With<PrimaryWindow>>,
-    time: Res<Time>,
     mut stationary_frames: Local<i32>,
     current_chunks: Res<CurrentChunks>,
 ) {
@@ -859,13 +855,10 @@ pub fn collision_movement_system(
                 &current_chunks,
                 &block_table,
             );
-            match aabb_collisions {
-                Some(collision_list) => {
-                    for col in collision_list {
-                        movement_left -= movement_left.dot(col.normal) * col.normal;
-                    }
+            if let Some(collisions_list) = aabb_collisions {
+                for col in collisions_list {
+                    movement_left -= movement_left.dot(col.normal) * col.normal;
                 }
-                None => {}
             }
             fps_camera.velocity = movement_left / time.delta().as_secs_f32();
             set_pos(
