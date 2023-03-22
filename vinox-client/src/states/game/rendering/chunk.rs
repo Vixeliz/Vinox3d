@@ -1,4 +1,4 @@
-use bevy::prelude::UVec3;
+use bevy::prelude::{info_span, UVec3};
 use bimap::BiMap;
 use itertools::*;
 use serde_big_array::Array;
@@ -56,8 +56,9 @@ impl ChunkBoundary {
     pub fn new(center: RawChunk, neighbors: Box<Array<RawChunk, 26>>) -> Self {
         const MAX: u32 = CHUNK_SIZE;
         // Just cause CHUNK_SIZE is long
-        let voxels: Box<[RenderedBlockData; TOTAL_CHUNK_SIZE_PADDED]> =
-            Box::new(std::array::from_fn(|idx| {
+        let voxels: Box<[RenderedBlockData; TOTAL_CHUNK_SIZE_PADDED]> = (0
+            ..TOTAL_CHUNK_SIZE_PADDED)
+            .map(|idx| {
                 let (x, y, z) = ChunkBoundary::delinearize(idx);
                 match (x, y, z) {
                     (0, 0, 0) => neighbors[0].get_rend(MAX - 1, MAX - 1, MAX - 1),
@@ -92,7 +93,10 @@ impl ChunkBoundary {
                         RenderedBlockData::new("vinox".to_string(), "air".to_string(), None, None)
                     }
                 }
-            }));
+            })
+            .collect_vec()
+            .try_into()
+            .unwrap();
 
         let mut palette = BiMap::new();
 
@@ -106,10 +110,12 @@ impl ChunkBoundary {
                 add_block_state(&mut palette, &voxels[idx]);
             }
         }
-        let fin_voxels: Box<[u16; TOTAL_CHUNK_SIZE_PADDED]> =
-            Box::new(std::array::from_fn(|idx| {
-                *palette.get_by_right(&voxels[idx]).unwrap()
-            }));
+
+        let fin_voxels: Box<[u16; TOTAL_CHUNK_SIZE_PADDED]> = (0..TOTAL_CHUNK_SIZE_PADDED)
+            .map(|idx| *palette.get_by_right(&voxels[idx]).unwrap())
+            .collect_vec()
+            .try_into()
+            .unwrap();
 
         ChunkBoundary {
             palette,
@@ -144,6 +150,7 @@ impl ChunkBoundary {
     }
 
     pub fn get_data(&self, index: usize, block_table: &BlockTable) -> BlockDescriptor {
+        // let my_span = info_span!("full_mesh", name = "full_mesh").entered();
         let block_state = self
             .get_state_for_index(self.voxels[index] as usize)
             .unwrap();

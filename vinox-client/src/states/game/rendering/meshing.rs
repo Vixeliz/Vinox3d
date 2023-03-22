@@ -683,8 +683,6 @@ pub fn generate_mesh<C, T>(
     assert!(C::Y >= 2);
     assert!(C::Z >= 2);
 
-    // let my_span = info_span!("full_mesh", name = "full_mesh").entered();
-
     for z in 1..C::Z - 1 {
         for y in 1..C::Y - 1 {
             for x in 1..C::X - 1 {
