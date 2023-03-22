@@ -143,6 +143,10 @@ impl QuadGroups {
         self.iter()
             .map(|face| FaceWithAO::new(face, chunk, block_table))
     }
+
+    pub fn clear(&mut self) {
+        self.groups.iter_mut().for_each(|g| g.clear());
+    }
 }
 
 pub fn face_aos<C, V>(face: &Face, chunk: &C, block_table: &BlockTable) -> [u32; 4]
@@ -673,8 +677,8 @@ pub fn generate_mesh<C, T>(
     block_table: &BlockTable,
     solid_pass: bool,
     geometry_table: &GeometryTable,
-) -> QuadGroups
-where
+    buffer: &mut QuadGroups,
+) where
     C: Chunk<Output = T>,
     T: Voxel,
 {
@@ -682,8 +686,7 @@ where
     assert!(C::Y >= 2);
     assert!(C::Z >= 2);
 
-    // let my_span = info_span!("full_mesh", name = "full_mesh").entered();
-    let mut buffer = QuadGroups::default();
+    let my_span = info_span!("full_mesh", name = "full_mesh").entered();
 
     for z in 1..C::Z - 1 {
         for y in 1..C::Y - 1 {
@@ -837,7 +840,7 @@ where
             }
         }
     }
-    buffer
+    // buffer
 }
 
 fn full_mesh(
@@ -848,13 +851,14 @@ fn full_mesh(
     texture_atlas: &TextureAtlas,
     chunk_pos: IVec3,
 ) -> MeshedChunk {
-    let mesh_result = generate_mesh(raw_chunk, block_table, true, geo_table);
+    let mut buffer = QuadGroups::default();
+    generate_mesh(raw_chunk, block_table, true, geo_table, &mut buffer);
     let mut positions = Vec::new();
     let mut indices = Vec::new();
     let mut normals = Vec::new();
     let mut uvs = Vec::new();
     let mut ao = Vec::new();
-    for face in mesh_result.iter_with_ao(raw_chunk, block_table) {
+    for face in buffer.iter_with_ao(raw_chunk, block_table) {
         indices.extend_from_slice(&face.indices(positions.len() as u32));
         // let geo = geo_table
         //     .get(
@@ -897,14 +901,14 @@ fn full_mesh(
             (Axis::Z, true) => 4,
         };
 
-        let vox_desc = raw_chunk.get_data(
-            ChunkBoundary::linearize(UVec3::new(
-                face.voxel()[0] as u32,
-                face.voxel()[1] as u32,
-                face.voxel()[2] as u32,
-            )),
-            block_table,
-        );
+        // let vox_desc = raw_chunk.get_data(
+        //     ChunkBoundary::linearize(UVec3::new(
+        //         face.voxel()[0] as u32,
+        //         face.voxel()[1] as u32,
+        //         face.voxel()[2] as u32,
+        //     )),
+        //     block_table,
+        // );
 
         uvs.extend_from_slice(&face.uvs(
             false,
@@ -932,15 +936,15 @@ fn full_mesh(
     mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
     mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
     mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, final_ao);
-
+    buffer.clear();
     //Transparent Mesh
-    let mesh_result = generate_mesh(raw_chunk, block_table, false, geo_table);
+    generate_mesh(raw_chunk, block_table, false, geo_table, &mut buffer);
     let mut ao = Vec::new();
     let mut positions = Vec::new();
     let mut indices = Vec::new();
     let mut normals = Vec::new();
     let mut uvs = Vec::new();
-    for face in mesh_result.iter_with_ao(raw_chunk, block_table) {
+    for face in buffer.iter_with_ao(raw_chunk, block_table) {
         indices.extend_from_slice(&face.indices(positions.len() as u32));
         // let geo = geo_table
         //     .get(
@@ -982,14 +986,14 @@ fn full_mesh(
             (Axis::Z, true) => 4,
         };
 
-        let vox_desc = raw_chunk.get_data(
-            ChunkBoundary::linearize(UVec3::new(
-                face.voxel()[0] as u32,
-                face.voxel()[1] as u32,
-                face.voxel()[2] as u32,
-            )),
-            block_table,
-        );
+        // let vox_desc = raw_chunk.get_data(
+        //     ChunkBoundary::linearize(UVec3::new(
+        //         face.voxel()[0] as u32,
+        //         face.voxel()[1] as u32,
+        //         face.voxel()[2] as u32,
+        //     )),
+        //     block_table,
+        // );
 
         uvs.extend_from_slice(&face.uvs(
             false,
