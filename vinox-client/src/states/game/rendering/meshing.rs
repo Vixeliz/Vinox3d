@@ -22,11 +22,10 @@ use tokio::sync::mpsc::{Receiver, Sender};
 use vinox_common::{
     storage::{blocks::descriptor::BlockDescriptor, geometry::descriptor::GeometryDescriptor},
     world::chunks::{
-        ecs::{ChunkComp, ChunkPos, CurrentChunks},
-        positions::{voxel_to_world, world_to_global_voxel},
+        ecs::CurrentChunks,
+        positions::{voxel_to_world, world_to_global_voxel, ChunkPos},
         storage::{
-            self, BlockTable, Chunk, RawChunk, RenderedBlockData, Voxel, VoxelVisibility,
-            CHUNK_SIZE,
+            self, BlockTable, ChunkData, RawChunk, RenderedBlockData, VoxelVisibility, CHUNK_SIZE,
         },
     },
 };
@@ -52,8 +51,6 @@ pub struct Quad {
     pub start: (i8, i8, i8),
     pub end: (i8, i8, i8),
     pub cube: usize,
-    pub geo: GeometryDescriptor,
-    pub descriptor: BlockDescriptor,
     pub data: RenderedBlockData,
 }
 
@@ -126,15 +123,11 @@ impl QuadGroups {
             })
     }
 
-    pub fn iter_with_ao<'a, C, V>(
+    pub fn iter_with_ao<'a>(
         &'a self,
-        chunk: &'a C,
+        chunk: &'a ChunkBoundary,
         block_table: &'a BlockTable,
-    ) -> impl Iterator<Item = FaceWithAO<'a>>
-    where
-        C: Chunk<Output = V>,
-        V: Voxel,
-    {
+    ) -> impl Iterator<Item = FaceWithAO<'a>> {
         self.iter()
             .map(|face| FaceWithAO::new(face, chunk, block_table))
     }
@@ -144,74 +137,70 @@ impl QuadGroups {
     }
 }
 
-pub fn face_aos<C, V>(face: &Face, chunk: &C, block_table: &BlockTable) -> [u32; 4]
-where
-    C: Chunk<Output = V>,
-    V: Voxel,
-{
+pub fn face_aos(face: &Face, chunk: &ChunkBoundary, block_table: &BlockTable) -> [u32; 4] {
     let [x, y, z] = face.voxel();
-    let (x, y, z) = (x as u32, y as u32, z as u32);
+    // let (x, y, z) = (x as u32, y as u32, z as u32);
 
     match (face.side.axis, face.side.positive) {
         (Axis::X, false) => side_aos([
-            chunk.get(x - 1, y, z + 1, block_table),
-            chunk.get(x - 1, y - 1, z + 1, block_table),
-            chunk.get(x - 1, y - 1, z, block_table),
-            chunk.get(x - 1, y - 1, z - 1, block_table),
-            chunk.get(x - 1, y, z - 1, block_table),
-            chunk.get(x - 1, y + 1, z - 1, block_table),
-            chunk.get(x - 1, y + 1, z, block_table),
-            chunk.get(x - 1, y + 1, z + 1, block_table),
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y, z + 1)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z + 1)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z - 1)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y, z - 1)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z - 1)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z + 1)].clone(),
         ]),
         (Axis::X, true) => side_aos([
-            chunk.get(x + 1, y, z - 1, block_table),
-            chunk.get(x + 1, y - 1, z - 1, block_table),
-            chunk.get(x + 1, y - 1, z, block_table),
-            chunk.get(x + 1, y - 1, z + 1, block_table),
-            chunk.get(x + 1, y, z + 1, block_table),
-            chunk.get(x + 1, y + 1, z + 1, block_table),
-            chunk.get(x + 1, y + 1, z, block_table),
-            chunk.get(x + 1, y + 1, z - 1, block_table),
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y, z - 1)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z - 1)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z + 1)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y, z + 1)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z + 1)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z - 1)].clone(),
         ]),
         (Axis::Y, false) => side_aos([
-            chunk.get(x - 1, y - 1, z, block_table),
-            chunk.get(x - 1, y - 1, z + 1, block_table),
-            chunk.get(x, y - 1, z + 1, block_table),
-            chunk.get(x + 1, y - 1, z + 1, block_table),
-            chunk.get(x + 1, y - 1, z, block_table),
-            chunk.get(x + 1, y - 1, z - 1, block_table),
-            chunk.get(x, y - 1, z - 1, block_table),
-            chunk.get(x - 1, y - 1, z - 1, block_table),
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z + 1)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x, y - 1, z + 1)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z + 1)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z - 1)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x, y - 1, z - 1)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z - 1)].clone(),
         ]),
         (Axis::Y, true) => side_aos([
-            chunk.get(x, y + 1, z + 1, block_table),
-            chunk.get(x - 1, y + 1, z + 1, block_table),
-            chunk.get(x - 1, y + 1, z, block_table),
-            chunk.get(x - 1, y + 1, z - 1, block_table),
-            chunk.get(x, y + 1, z - 1, block_table),
-            chunk.get(x + 1, y + 1, z - 1, block_table),
-            chunk.get(x + 1, y + 1, z, block_table),
-            chunk.get(x + 1, y + 1, z + 1, block_table),
+            chunk.voxels()[ChunkBoundary::linearize(x, y + 1, z + 1)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z + 1)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z - 1)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x, y + 1, z - 1)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z - 1)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z + 1)].clone(),
         ]),
         (Axis::Z, false) => side_aos([
-            chunk.get(x - 1, y, z - 1, block_table),
-            chunk.get(x - 1, y - 1, z - 1, block_table),
-            chunk.get(x, y - 1, z - 1, block_table),
-            chunk.get(x + 1, y - 1, z - 1, block_table),
-            chunk.get(x + 1, y, z - 1, block_table),
-            chunk.get(x + 1, y + 1, z - 1, block_table),
-            chunk.get(x, y + 1, z - 1, block_table),
-            chunk.get(x - 1, y + 1, z - 1, block_table),
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y, z - 1)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z - 1)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x, y - 1, z - 1)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z - 1)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y, z - 1)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z - 1)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x, y + 1, z - 1)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z - 1)].clone(),
         ]),
         (Axis::Z, true) => side_aos([
-            chunk.get(x + 1, y, z + 1, block_table),
-            chunk.get(x + 1, y - 1, z + 1, block_table),
-            chunk.get(x, y - 1, z + 1, block_table),
-            chunk.get(x - 1, y - 1, z + 1, block_table),
-            chunk.get(x - 1, y, z + 1, block_table),
-            chunk.get(x - 1, y + 1, z + 1, block_table),
-            chunk.get(x, y + 1, z + 1, block_table),
-            chunk.get(x + 1, y + 1, z + 1, block_table),
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y, z + 1)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z + 1)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x, y - 1, z + 1)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z + 1)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y, z + 1)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z + 1)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x, y + 1, z + 1)].clone(),
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z + 1)].clone(),
         ]),
     }
 }
@@ -222,11 +211,7 @@ pub struct FaceWithAO<'a> {
 }
 
 impl<'a> FaceWithAO<'a> {
-    pub fn new<C, V>(face: Face<'a>, chunk: &C, block_table: &BlockTable) -> Self
-    where
-        C: Chunk<Output = V>,
-        V: Voxel,
-    {
+    pub fn new(face: Face<'a>, chunk: &ChunkBoundary, block_table: &BlockTable) -> Self {
         let aos = face_aos(&face, chunk, block_table);
         Self { face, aos }
     }
@@ -255,16 +240,16 @@ pub(crate) fn ao_value(side1: bool, corner: bool, side2: bool) -> u32 {
     }
 }
 
-pub(crate) fn side_aos<V: Voxel>(neighbors: [V; 8]) -> [u32; 4] {
+pub(crate) fn side_aos(neighbors: [RenderedBlockData; 8]) -> [u32; 4] {
     let ns = [
-        neighbors[0].visibility() == OPAQUE,
-        neighbors[1].visibility() == OPAQUE,
-        neighbors[2].visibility() == OPAQUE,
-        neighbors[3].visibility() == OPAQUE,
-        neighbors[4].visibility() == OPAQUE,
-        neighbors[5].visibility() == OPAQUE,
-        neighbors[6].visibility() == OPAQUE,
-        neighbors[7].visibility() == OPAQUE,
+        neighbors[0].visibility == OPAQUE,
+        neighbors[1].visibility == OPAQUE,
+        neighbors[2].visibility == OPAQUE,
+        neighbors[3].visibility == OPAQUE,
+        neighbors[4].visibility == OPAQUE,
+        neighbors[5].visibility == OPAQUE,
+        neighbors[6].visibility == OPAQUE,
+        neighbors[7].visibility == OPAQUE,
     ];
 
     [
@@ -369,24 +354,17 @@ impl<'a> Face<'a> {
                 z * voxel_size + positions[3][2] * voxel_size,
             ),
         ];
-        let cube_pivot = self
-            .quad
-            .geo
-            .element
-            .cubes
-            .get(self.quad.cube)
-            .unwrap()
-            .pivot;
+        let cube_pivot = self.quad.data.geo.cubes.get(self.quad.cube).unwrap().pivot;
         let cube_rotation = self
             .quad
+            .data
             .geo
-            .element
             .cubes
             .get(self.quad.cube)
             .unwrap()
             .rotation;
-        let block_pivot = self.quad.geo.element.pivot;
-        let block_rotation = self.quad.geo.element.rotation;
+        let block_pivot = self.quad.data.geo.pivot;
+        let block_rotation = self.quad.data.geo.rotation;
         if (cube_rotation != (0, 0, 0) || block_rotation != (0, 0, 0))
             && self.quad.data.direction.is_none()
             && self.quad.data.top.is_none()
@@ -484,7 +462,7 @@ impl<'a> Face<'a> {
                 .get(&self.quad.data.identifier)
                 .unwrap()[matched_ind],
         ) {
-            let uv = self.quad.geo.element.cubes.get(self.quad.cube).unwrap().uv;
+            let uv = self.quad.data.geo.cubes.get(self.quad.cube).unwrap().uv;
             let mut face_tex = [[0.0; 2]; 4];
             let min_x = texture_atlas.textures.get(texture_index).unwrap().min.x;
             let min_y = texture_atlas.textures.get(texture_index).unwrap().min.y;
@@ -510,13 +488,9 @@ impl<'a> Face<'a> {
                 max_x / texture_atlas.size.x,
                 max_y / texture_atlas.size.y,
             );
-            let flip_num = if let Some(tex_variance) = self.quad.descriptor.tex_variance {
+            let flip_num = if self.quad.data.tex_variance[face_index] {
                 let mut rng: StdRng = SeedableRng::seed_from_u64(world_pos.reflect_hash().unwrap());
-                if tex_variance[face_index].unwrap_or_else(|| false) {
-                    rng.gen_range(0..6)
-                } else {
-                    0
-                }
+                rng.gen_range(0..6)
             } else {
                 0
             };
@@ -630,8 +604,8 @@ pub struct RenderedChunk {
 
 #[derive(Default, Resource)]
 pub struct MeshQueue {
-    pub mesh: Vec<(IVec3, RawChunk, Box<Array<RawChunk, 26>>)>,
-    pub priority: Vec<(IVec3, RawChunk, Box<Array<RawChunk, 26>>)>,
+    pub mesh: Vec<(IVec3, ChunkData, Box<Array<ChunkData, 26>>)>,
+    pub priority: Vec<(IVec3, ChunkData, Box<Array<ChunkData, 26>>)>,
 }
 
 #[derive(Component, Default)]
@@ -667,161 +641,133 @@ impl Default for MeshChannel {
 }
 
 // Possibly have this just fully generate the mesh
-pub fn generate_mesh<C, T>(
-    chunk: &C,
+pub fn generate_mesh(
+    chunk: &ChunkBoundary,
     block_table: &BlockTable,
     solid_pass: bool,
     geometry_table: &GeometryTable,
     buffer: &mut QuadGroups,
-) where
-    C: Chunk<Output = T>,
-    T: Voxel,
-{
-    assert!(C::X >= 2);
-    assert!(C::Y >= 2);
-    assert!(C::Z >= 2);
-
-    for z in 1..C::Z - 1 {
-        for y in 1..C::Y - 1 {
-            for x in 1..C::X - 1 {
-                let (x, y, z) = (x as u32, y as u32, z as u32);
-                let voxel = chunk.get_descriptor(x, y, z, block_table);
-                match voxel.visibility.unwrap_or_default() {
+) {
+    for z in 1..ChunkBoundary::edge() - 1 {
+        for y in 1..ChunkBoundary::edge() - 1 {
+            for x in 1..ChunkBoundary::edge() - 1 {
+                // let (x, y, z) = (x as u32, y as u32, z as u32);
+                let voxel = chunk.voxels()[ChunkBoundary::linearize(x, y, z)].clone();
+                match voxel.visibility {
                     EMPTY => continue,
                     visibility => {
                         let neighbor_block = [
-                            chunk.get_descriptor(x - 1, y, z, block_table),
-                            chunk.get_descriptor(x + 1, y, z, block_table),
-                            chunk.get_descriptor(x, y - 1, z, block_table),
-                            chunk.get_descriptor(x, y + 1, z, block_table),
-                            chunk.get_descriptor(x, y, z - 1, block_table),
-                            chunk.get_descriptor(x, y, z + 1, block_table),
+                            chunk.voxels()[ChunkBoundary::linearize(x - 1, y, z)].clone(),
+                            chunk.voxels()[ChunkBoundary::linearize(x + 1, y, z)].clone(),
+                            chunk.voxels()[ChunkBoundary::linearize(x, y - 1, z)].clone(),
+                            chunk.voxels()[ChunkBoundary::linearize(x, y + 1, z)].clone(),
+                            chunk.voxels()[ChunkBoundary::linearize(x, y, z - 1)].clone(),
+                            chunk.voxels()[ChunkBoundary::linearize(x, y, z + 1)].clone(),
                         ];
-                        let voxel_data = chunk.get_data(x, y, z);
-                        if let Some(geometry) = geometry_table.get(
-                            &voxel
-                                .clone()
-                                .geometry
-                                .unwrap_or_default()
-                                .get_geo_namespace(),
-                        ) {
-                            let element = geometry.element.clone();
-                            for (cube_num, cube) in element.cubes.into_iter().enumerate() {
-                                for (i, neighbor) in neighbor_block.iter().enumerate() {
-                                    let neighbor_geometry = geometry_table
-                                        .get(
-                                            &neighbor_block[i]
-                                                .clone()
-                                                .geometry
-                                                .unwrap_or_default()
-                                                .get_geo_namespace(),
-                                        )
-                                        .unwrap_or_else(|| {
-                                            geometry_table.get("vinox:block").unwrap()
-                                        });
-                                    let culled = cube.cull[i];
-                                    if cube.discard[i] {
-                                        continue;
-                                    }
-                                    let blocked = match i {
-                                        0 => neighbor_geometry.blocks[1],
-                                        1 => neighbor_geometry.blocks[0],
-                                        2 => neighbor_geometry.blocks[3],
-                                        3 => neighbor_geometry.blocks[2],
-                                        4 => neighbor_geometry.blocks[5],
-                                        5 => neighbor_geometry.blocks[4],
-                                        _ => true,
-                                    };
-                                    let other = neighbor.visibility.unwrap_or_default();
-                                    let generate = if culled && blocked {
-                                        if solid_pass {
-                                            match (visibility, other) {
-                                                (OPAQUE, EMPTY) | (OPAQUE, TRANSPARENT) => true,
+                        let voxel_data = chunk.voxels()[ChunkBoundary::linearize(x, y, z)].clone();
+                        let element = voxel.geo.clone();
+                        for (cube_num, cube) in element.cubes.into_iter().enumerate() {
+                            for (i, neighbor) in neighbor_block.clone().iter().enumerate() {
+                                let neighbor_geometry = neighbor_block[i].clone().geo;
+                                let culled = cube.cull[i];
+                                if cube.discard[i] {
+                                    continue;
+                                }
+                                let blocked = match i {
+                                    0 => neighbor_block[i].blocks[1],
+                                    1 => neighbor_block[i].blocks[0],
+                                    2 => neighbor_block[i].blocks[3],
+                                    3 => neighbor_block[i].blocks[2],
+                                    4 => neighbor_block[i].blocks[5],
+                                    5 => neighbor_block[i].blocks[4],
+                                    _ => true,
+                                };
+                                let other = neighbor.visibility;
+                                let generate = if culled && blocked {
+                                    if solid_pass {
+                                        match (visibility, other) {
+                                            (OPAQUE, EMPTY) | (OPAQUE, TRANSPARENT) => true,
 
-                                                (TRANSPARENT, TRANSPARENT) => voxel != *neighbor,
+                                            (TRANSPARENT, TRANSPARENT) => voxel != *neighbor,
 
-                                                (_, _) => false,
-                                            }
-                                        } else {
-                                            match (visibility, other) {
-                                                (TRANSPARENT, EMPTY) => true,
-
-                                                (TRANSPARENT, TRANSPARENT) => voxel != *neighbor,
-
-                                                (_, _) => false,
-                                            }
+                                            (_, _) => false,
                                         }
                                     } else {
-                                        (visibility == OPAQUE && solid_pass)
-                                            || (visibility == TRANSPARENT && !solid_pass)
-                                                && !blocked
-                                    };
-                                    let origin_one = match i {
-                                        0 => cube.origin.1,
-                                        1 => cube.origin.1,
-                                        2 => cube.origin.0,
-                                        3 => cube.origin.0,
-                                        4 => cube.origin.0,
-                                        5 => cube.origin.0,
-                                        _ => 0,
-                                    };
-                                    let end_one = match i {
-                                        0 => cube.end.1,
-                                        1 => cube.end.1,
-                                        2 => cube.end.0,
-                                        3 => cube.end.0,
-                                        4 => cube.end.0,
-                                        5 => cube.end.0,
-                                        _ => 0,
-                                    };
-                                    let origin_two = match i {
-                                        0 => cube.origin.2,
-                                        1 => cube.origin.2,
-                                        2 => cube.origin.2,
-                                        3 => cube.origin.2,
-                                        4 => cube.origin.1,
-                                        5 => cube.origin.1,
-                                        _ => 0,
-                                    };
-                                    let end_two = match i {
-                                        0 => cube.end.2,
-                                        1 => cube.end.2,
-                                        2 => cube.end.2,
-                                        3 => cube.end.2,
-                                        4 => cube.end.1,
-                                        5 => cube.end.1,
-                                        _ => 0,
-                                    };
-                                    let self_start = match i {
-                                        0 => cube.origin.0,
-                                        1 => cube.origin.0,
-                                        2 => cube.origin.1,
-                                        3 => cube.origin.1,
-                                        4 => cube.origin.2,
-                                        5 => cube.origin.2,
-                                        _ => 0,
-                                    };
-                                    let self_end = match i {
-                                        0 => cube.end.0,
-                                        1 => cube.end.0,
-                                        2 => cube.end.1,
-                                        3 => cube.end.1,
-                                        4 => cube.end.2,
-                                        5 => cube.end.2,
-                                        _ => 0,
-                                    };
+                                        match (visibility, other) {
+                                            (TRANSPARENT, EMPTY) => true,
 
-                                    if generate {
-                                        buffer.groups[i].push(Quad {
-                                            voxel: [x as usize, y as usize, z as usize],
-                                            start: (origin_one, origin_two, self_start),
-                                            end: (end_one, end_two, self_end),
-                                            cube: cube_num,
-                                            geo: geometry.clone(),
-                                            data: voxel_data.clone(),
-                                            descriptor: voxel.clone(),
-                                        });
+                                            (TRANSPARENT, TRANSPARENT) => voxel != *neighbor,
+
+                                            (_, _) => false,
+                                        }
                                     }
+                                } else {
+                                    (visibility == OPAQUE && solid_pass)
+                                        || (visibility == TRANSPARENT && !solid_pass) && !blocked
+                                };
+                                let origin_one = match i {
+                                    0 => cube.origin.1,
+                                    1 => cube.origin.1,
+                                    2 => cube.origin.0,
+                                    3 => cube.origin.0,
+                                    4 => cube.origin.0,
+                                    5 => cube.origin.0,
+                                    _ => 0,
+                                };
+                                let end_one = match i {
+                                    0 => cube.end.1,
+                                    1 => cube.end.1,
+                                    2 => cube.end.0,
+                                    3 => cube.end.0,
+                                    4 => cube.end.0,
+                                    5 => cube.end.0,
+                                    _ => 0,
+                                };
+                                let origin_two = match i {
+                                    0 => cube.origin.2,
+                                    1 => cube.origin.2,
+                                    2 => cube.origin.2,
+                                    3 => cube.origin.2,
+                                    4 => cube.origin.1,
+                                    5 => cube.origin.1,
+                                    _ => 0,
+                                };
+                                let end_two = match i {
+                                    0 => cube.end.2,
+                                    1 => cube.end.2,
+                                    2 => cube.end.2,
+                                    3 => cube.end.2,
+                                    4 => cube.end.1,
+                                    5 => cube.end.1,
+                                    _ => 0,
+                                };
+                                let self_start = match i {
+                                    0 => cube.origin.0,
+                                    1 => cube.origin.0,
+                                    2 => cube.origin.1,
+                                    3 => cube.origin.1,
+                                    4 => cube.origin.2,
+                                    5 => cube.origin.2,
+                                    _ => 0,
+                                };
+                                let self_end = match i {
+                                    0 => cube.end.0,
+                                    1 => cube.end.0,
+                                    2 => cube.end.1,
+                                    3 => cube.end.1,
+                                    4 => cube.end.2,
+                                    5 => cube.end.2,
+                                    _ => 0,
+                                };
+
+                                if generate {
+                                    buffer.groups[i].push(Quad {
+                                        voxel: [x as usize, y as usize, z as usize],
+                                        start: (origin_one, origin_two, self_start),
+                                        end: (end_one, end_two, self_end),
+                                        cube: cube_num,
+                                        data: voxel_data.clone(),
+                                    });
                                 }
                             }
                             //
@@ -901,24 +847,25 @@ fn full_mesh(
         //     block_table,
         // );
 
-        uvs.extend_from_slice(&face.uvs(
-            false,
-            false,
-            // geo,
-            texture_atlas,
-            matched_index,
-            loadable_assets,
-            // &vox_data,
-            // &vox_desc,
-            world_to_global_voxel(voxel_to_world(
-                UVec3::new(
-                    face.voxel()[0] as u32,
-                    face.voxel()[1] as u32,
-                    face.voxel()[2] as u32,
-                ),
-                chunk_pos,
-            )),
-        ));
+        uvs.extend_from_slice(
+            &face.uvs(
+                false,
+                false,
+                // geo,
+                texture_atlas,
+                matched_index,
+                loadable_assets,
+                // &vox_data,
+                // &vox_desc,
+                world_to_global_voxel(Vec3::new(
+                    face.voxel()[0] as f32,
+                    face.voxel()[1] as f32,
+                    face.voxel()[2] as f32,
+                ))
+                .as_vec3()
+                .as_ivec3(),
+            ),
+        );
     }
     let final_ao = ao_convert(ao);
     let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
@@ -986,24 +933,25 @@ fn full_mesh(
         //     block_table,
         // );
 
-        uvs.extend_from_slice(&face.uvs(
-            false,
-            false,
-            // geo,
-            texture_atlas,
-            matched_index,
-            loadable_assets,
-            // &vox_data,
-            // &vox_desc,
-            world_to_global_voxel(voxel_to_world(
-                UVec3::new(
-                    face.voxel()[0] as u32,
-                    face.voxel()[1] as u32,
-                    face.voxel()[2] as u32,
-                ),
-                chunk_pos,
-            )),
-        ));
+        uvs.extend_from_slice(
+            &face.uvs(
+                false,
+                false,
+                // geo,
+                texture_atlas,
+                matched_index,
+                loadable_assets,
+                // &vox_data,
+                // &vox_desc,
+                world_to_global_voxel(Vec3::new(
+                    face.voxel()[0] as f32,
+                    face.voxel()[1] as f32,
+                    face.voxel()[2] as f32,
+                ))
+                .as_vec3()
+                .as_ivec3(),
+            ),
+        );
     }
 
     let mut transparent_mesh = Mesh::new(PrimitiveTopology::TriangleList);
@@ -1014,7 +962,7 @@ fn full_mesh(
     MeshedChunk {
         chunk_mesh: mesh,
         transparent_mesh,
-        pos: chunk_pos,
+        pos: ChunkPos(chunk_pos),
     }
 }
 
@@ -1045,7 +993,8 @@ pub fn process_priority_queue(
 
         task_pool
             .spawn(async move {
-                let raw_chunk = ChunkBoundary::new(center_chunk, neighbors);
+                let raw_chunk =
+                    ChunkBoundary::new(center_chunk, neighbors, &cloned_table, &cloned_geo_table);
                 cloned_sender
                     .send(full_mesh(
                         &raw_chunk,
@@ -1066,9 +1015,9 @@ pub fn process_priority_queue(
             commands.entity(chunk_entity).despawn_descendants();
 
             let chunk_pos = Vec3::new(
-                (chunk.pos[0] * (CHUNK_SIZE) as i32) as f32,
-                (chunk.pos[1] * (CHUNK_SIZE) as i32) as f32,
-                (chunk.pos[2] * (CHUNK_SIZE) as i32) as f32,
+                (chunk.pos.x as i32 * (CHUNK_SIZE) as i32) as f32,
+                (chunk.pos.y as i32 * (CHUNK_SIZE) as i32) as f32,
+                (chunk.pos.z as i32 * (CHUNK_SIZE) as i32) as f32,
             );
 
             let trans_entity = commands
@@ -1130,23 +1079,21 @@ pub fn process_priority_queue(
 
 pub fn priority_mesh(
     mut commands: Commands,
-    chunks: Query<&ChunkComp, With<PriorityMesh>>,
+    chunks: Query<(&ChunkData, &ChunkPos), With<PriorityMesh>>,
     chunk_manager: ChunkManager,
     mut chunk_queue: ResMut<MeshQueue>,
 ) {
     for chunk in chunks.iter() {
-        if let Some(neighbors) = chunk_manager.get_neighbors(chunk.pos.clone()) {
+        if let Some(neighbors) = chunk_manager.get_neighbors(chunk.1.clone()) {
             if let Ok(neighbors) = neighbors.try_into() {
-                chunk_queue.priority.push((
-                    *chunk.pos,
-                    chunk.chunk_data.clone(),
-                    Box::new(Array(neighbors)),
-                ));
+                chunk_queue
+                    .priority
+                    .push((**chunk.1, chunk.0.clone(), Box::new(Array(neighbors))));
                 commands
-                    .entity(chunk_manager.current_chunks.get_entity(*chunk.pos).unwrap())
+                    .entity(chunk_manager.current_chunks.get_entity(*chunk.1).unwrap())
                     .remove::<PriorityMesh>();
                 commands
-                    .entity(chunk_manager.current_chunks.get_entity(*chunk.pos).unwrap())
+                    .entity(chunk_manager.current_chunks.get_entity(*chunk.1).unwrap())
                     .remove::<NeedsMesh>();
             }
         }
@@ -1156,7 +1103,7 @@ pub fn priority_mesh(
 pub fn build_mesh(
     mut commands: Commands,
     mut chunk_queue: ResMut<MeshQueue>,
-    chunks: Query<&ChunkComp, With<NeedsMesh>>,
+    chunks: Query<(&ChunkData, &ChunkPos), With<NeedsMesh>>,
     chunk_manager: ChunkManager,
     player_chunk: Res<PlayerChunk>,
     options: Res<GameOptions>,
@@ -1165,7 +1112,7 @@ pub fn build_mesh(
     for (count, chunk) in chunks
         .iter()
         .sorted_unstable_by_key(|key| {
-            FloatOrd(key.pos.as_vec3().distance(player_chunk.chunk_pos.as_vec3()))
+            FloatOrd(key.1.as_vec3().distance(player_chunk.chunk_pos.as_vec3()))
         })
         .enumerate()
     {
@@ -1178,18 +1125,16 @@ pub fn build_mesh(
         // {
         if chunk_manager
             .current_chunks
-            .all_neighbors_exist(chunk.pos.clone())
+            .all_neighbors_exist(chunk.1.clone())
         {
-            if let Some(neighbors) = chunk_manager.get_neighbors(chunk.pos.clone()) {
+            if let Some(neighbors) = chunk_manager.get_neighbors(chunk.1.clone()) {
                 if let Ok(neighbors) = neighbors.try_into() {
-                    chunk_queue.mesh.push((
-                        *chunk.pos,
-                        chunk.chunk_data.clone(),
-                        Box::new(Array(neighbors)),
-                    ));
+                    chunk_queue
+                        .mesh
+                        .push((**chunk.1, chunk.0.clone(), Box::new(Array(neighbors))));
 
                     commands
-                        .entity(chunk_manager.current_chunks.get_entity(*chunk.pos).unwrap())
+                        .entity(chunk_manager.current_chunks.get_entity(*chunk.1).unwrap())
                         .remove::<NeedsMesh>();
                 }
             }
@@ -1201,7 +1146,7 @@ pub fn build_mesh(
 pub struct MeshedChunk {
     chunk_mesh: Mesh,
     transparent_mesh: Mesh,
-    pos: IVec3,
+    pos: ChunkPos,
 }
 
 #[derive(Resource, Default)]
@@ -1247,7 +1192,7 @@ pub fn priority_player(
     chunks: Query<&Handle<Mesh>>,
     mut commands: Commands,
 ) {
-    if let Some(chunk_entity) = current_chunks.get_entity(player_chunk.chunk_pos) {
+    if let Some(chunk_entity) = current_chunks.get_entity(ChunkPos(player_chunk.chunk_pos)) {
         if chunks.get(chunk_entity).is_err() {
             commands.entity(chunk_entity).insert(PriorityMesh);
         }
@@ -1283,7 +1228,8 @@ pub fn process_queue(
 
         task_pool
             .spawn(async move {
-                let raw_chunk = ChunkBoundary::new(center_chunk, neighbors);
+                let raw_chunk =
+                    ChunkBoundary::new(center_chunk, neighbors, &cloned_table, &cloned_geo_table);
                 cloned_sender
                     .send(full_mesh(
                         &raw_chunk,
@@ -1302,21 +1248,17 @@ pub fn process_queue(
     while let Ok(chunk) = mesh_channel.rx.try_recv() {
         if let Some(chunk_entity) = current_chunks.get_entity(chunk.pos) {
             commands.entity(chunk_entity).despawn_descendants();
+            let chunk_pos = Vec3::new(
+                (chunk.pos.x as i32 * (CHUNK_SIZE) as i32) as f32,
+                (chunk.pos.y as i32 * (CHUNK_SIZE) as i32) as f32,
+                (chunk.pos.z as i32 * (CHUNK_SIZE) as i32) as f32,
+            );
             let tween = Tween::new(
                 EaseFunction::QuadraticInOut,
                 Duration::from_secs(1),
                 TransformPositionLens {
-                    start: Vec3::new(
-                        (chunk.pos[0] * (CHUNK_SIZE) as i32) as f32,
-                        ((chunk.pos[1] * (CHUNK_SIZE) as i32) as f32) - CHUNK_SIZE as f32,
-                        (chunk.pos[2] * (CHUNK_SIZE) as i32) as f32,
-                    ),
-
-                    end: Vec3::new(
-                        (chunk.pos[0] * (CHUNK_SIZE) as i32) as f32,
-                        (chunk.pos[1] * (CHUNK_SIZE) as i32) as f32,
-                        (chunk.pos[2] * (CHUNK_SIZE) as i32) as f32,
-                    ),
+                    start: Vec3::new(chunk_pos.x, chunk_pos.y - CHUNK_SIZE as f32, chunk_pos.z),
+                    end: chunk_pos,
                 },
             )
             .with_repeat_count(RepeatCount::Finite(1));
@@ -1329,17 +1271,9 @@ pub fn process_queue(
                     > 4.0
             {
                 commands.entity(chunk_entity).insert(Animator::new(tween));
-                Vec3::new(
-                    (chunk.pos[0] * (CHUNK_SIZE) as i32) as f32,
-                    ((chunk.pos[1] * (CHUNK_SIZE) as i32) as f32) - CHUNK_SIZE as f32,
-                    (chunk.pos[2] * (CHUNK_SIZE) as i32) as f32,
-                )
+                Vec3::new(chunk_pos.x, chunk_pos.y - CHUNK_SIZE as f32, chunk_pos.z)
             } else {
-                Vec3::new(
-                    (chunk.pos[0] * (CHUNK_SIZE) as i32) as f32,
-                    (chunk.pos[1] * (CHUNK_SIZE) as i32) as f32,
-                    (chunk.pos[2] * (CHUNK_SIZE) as i32) as f32,
-                )
+                chunk_pos
             };
 
             let trans_entity = commands
@@ -1419,14 +1353,14 @@ pub struct SortFaces {
 pub fn sort_faces(
     current_chunks: Res<CurrentChunks>,
     handles: Query<&Handle<Mesh>>,
-    chunks: Query<&Children, With<ChunkComp>>,
+    chunks: Query<&Children, With<ChunkData>>,
     mut meshes: ResMut<Assets<Mesh>>,
     camera_transform: Query<&GlobalTransform, With<Camera>>,
     mut events: EventReader<SortFaces>,
 ) {
     for evt in events.iter() {
         if let Ok(camera_transform) = camera_transform.get_single() {
-            if let Some(chunk_entity) = current_chunks.get_entity(evt.chunk_pos) {
+            if let Some(chunk_entity) = current_chunks.get_entity(ChunkPos(evt.chunk_pos)) {
                 if let Ok(children) = chunks.get(chunk_entity) {
                     if let Some(child_entity) = children.get(0) {
                         if let Ok(chunk_mesh_handle) = handles.get(*child_entity) {

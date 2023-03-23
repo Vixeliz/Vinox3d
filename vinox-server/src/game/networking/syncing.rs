@@ -9,8 +9,9 @@ use vinox_common::{
     ecs::bundles::{ClientName, Inventory, PlayerBundleBuilder},
     networking::protocol::{ClientMessage, NetworkedEntities, Player, ServerMessage},
     world::chunks::{
-        ecs::{ChunkComp, CurrentChunks},
-        positions::world_to_chunk,
+        ecs::CurrentChunks,
+        positions::{world_to_chunk, ChunkPos},
+        storage::ChunkData,
     },
 };
 use zstd::stream::copy_encode;
@@ -47,7 +48,7 @@ pub fn get_messages(
     mut lobby: ResMut<ServerLobby>,
     mut players: Query<(Entity, &Player, &Transform, &ClientName)>,
     player_builder: Res<PlayerBundleBuilder>,
-    mut chunks: Query<&mut ChunkComp>,
+    mut chunks: Query<&mut ChunkData>,
     current_chunks: Res<CurrentChunks>,
     mut chunks_to_save: ResMut<ChunksToSave>,
 ) {
@@ -128,18 +129,15 @@ pub fn get_messages(
                     voxel_pos,
                     block_type,
                 } => {
-                    if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos) {
+                    if let Some(chunk_entity) = current_chunks.get_entity(ChunkPos(chunk_pos)) {
                         if let Ok(mut chunk) = chunks.get_mut(chunk_entity) {
-                            chunk.chunk_data.add_block_state(&block_type);
-                            chunk.chunk_data.set_block(
-                                UVec3::new(
-                                    voxel_pos[0] as u32,
-                                    voxel_pos[1] as u32,
-                                    voxel_pos[2] as u32,
-                                ),
-                                &block_type,
+                            chunk.set(
+                                voxel_pos[0] as usize,
+                                voxel_pos[1] as usize,
+                                voxel_pos[2] as usize,
+                                block_type.clone(),
                             );
-                            chunks_to_save.push((*chunk.pos, chunk.chunk_data.clone()));
+                            chunks_to_save.push((ChunkPos(chunk_pos), chunk.to_raw()));
                             endpoint.try_broadcast_message(ServerMessage::SentBlock {
                                 chunk_pos,
                                 voxel_pos,
@@ -202,10 +200,10 @@ pub fn send_chunks(
                 let load_point = LoadPoint(chunk_pos);
                 commands.entity(*player_entity).insert(load_point.clone());
                 for chunk in chunk_manager
-                    .get_chunks_around_chunk(chunk_pos, &sent_chunks)
+                    .get_chunks_around_chunk(ChunkPos(chunk_pos), &sent_chunks)
                     .choose_multiple(&mut rng, **chunk_limit)
                 {
-                    let raw_chunk = chunk.chunk_data.clone();
+                    let raw_chunk = chunk.0.to_raw();
                     if let Ok(raw_chunk_bin) = bincode::serialize(&raw_chunk) {
                         let mut final_chunk = Cursor::new(raw_chunk_bin);
                         let mut output = Cursor::new(Vec::new());
@@ -216,12 +214,12 @@ pub fn send_chunks(
                                 client_id,
                                 ServerMessage::LevelData {
                                     chunk_data: output.get_ref().clone(),
-                                    pos: *chunk.pos,
+                                    pos: *chunk.1,
                                 },
                             )
                             .is_ok()
                         {
-                            sent_chunks.chunks.insert(*chunk.pos);
+                            sent_chunks.chunks.insert(chunk.1);
                         }
                     }
                 }

@@ -6,11 +6,14 @@ use r2d2_sqlite::SqliteConnectionManager;
 use bevy::prelude::*;
 use rusqlite::*;
 use serde::{Deserialize, Serialize};
-use vinox_common::{ecs::bundles::Inventory, world::chunks::storage::RawChunk};
+use vinox_common::{
+    ecs::bundles::Inventory,
+    world::chunks::{positions::ChunkPos, storage::RawChunk},
+};
 use zstd::stream::{copy_decode, copy_encode};
 
 #[derive(Resource, Deref, DerefMut, Default)]
-pub struct ChunksToSave(pub Vec<(IVec3, RawChunk)>);
+pub struct ChunksToSave(pub Vec<(ChunkPos, RawChunk)>);
 
 #[derive(Resource, Deref, DerefMut, Default)]
 pub struct InventoriesToSave(pub Vec<(String, Inventory)>);
@@ -63,9 +66,9 @@ pub fn save_chunks(chunks: &ChunksToSave, database: &Connection) {
                 .execute(
                     "REPLACE INTO blocks (posx, posy, posz, data) values (?1, ?2, ?3, ?4)",
                     params![
-                        &chunk_pos.x,
-                        &chunk_pos.y,
-                        &chunk_pos.z,
+                        &(chunk_pos.x as i32),
+                        &(chunk_pos.y as i32),
+                        &(chunk_pos.z as i32),
                         &output.get_ref().clone(),
                     ],
                 )
@@ -104,16 +107,16 @@ pub fn save_chunks(chunks: &ChunksToSave, database: &Connection) {
 //     None
 // }
 
-pub fn load_chunk(chunk_pos: IVec3, database: &Connection) -> Option<RawChunk> {
+pub fn load_chunk(chunk_pos: ChunkPos, database: &Connection) -> Option<RawChunk> {
     let stmt = database.prepare(
         "SELECT posx, posy, posz, data FROM blocks WHERE posx=:posx AND posy=:posy AND posz=:posz;",
     );
     if let Ok(mut stmt) = stmt {
         let chunk_result: Result<Vec<u8>, _> = stmt.query_row(
             &[
-                (":posx", &chunk_pos.x),
-                (":posy", &chunk_pos.y),
-                (":posz", &chunk_pos.z),
+                (":posx", &(chunk_pos.x as i32)),
+                (":posy", &(chunk_pos.y as i32)),
+                (":posz", &(chunk_pos.z as i32)),
             ],
             |row| Ok(row.get(3).unwrap()),
         );

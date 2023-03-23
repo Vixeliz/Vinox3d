@@ -3,10 +3,10 @@ use std::{collections::HashSet, time::Duration};
 use bevy::{ecs::system::SystemParam, math::Vec3Swizzles, prelude::*};
 use bevy_tweening::{lens::TransformPositionLens, *};
 use vinox_common::world::chunks::{
-    ecs::{ChunkComp, ChunkPos, CurrentChunks, RemoveChunk, SimulationRadius, ViewRadius},
-    positions::{circle_points, world_to_chunk},
+    ecs::{CurrentChunks, RemoveChunk, SimulationRadius, ViewRadius},
+    positions::{circle_points, world_to_chunk, ChunkPos},
     storage::{
-        BlockData, BlockTable, RawChunk, VoxelVisibility, CHUNK_SIZE, CHUNK_SIZE_ARR,
+        BlockData, BlockTable, ChunkData, RawChunk, VoxelVisibility, CHUNK_SIZE, CHUNK_SIZE_ARR,
         HORIZONTAL_DISTANCE, VERTICAL_DISTANCE,
     },
 };
@@ -84,16 +84,17 @@ pub struct ChunkManager<'w, 's> {
     pub current_chunks: ResMut<'w, CurrentChunks>,
     // chunk_queue: ResMut<'w, ChunkQueue>,
     pub view_radius: Res<'w, ViewRadius>,
-    pub chunk_query: Query<'w, 's, &'static ChunkComp>,
+    pub chunk_query: Query<'w, 's, &'static ChunkData>,
 }
 
 impl<'w, 's> ChunkManager<'w, 's> {
-    pub fn get_chunk_positions(&mut self, chunk_pos: IVec3) -> Vec<IVec3> {
+    pub fn get_chunk_positions(&mut self, chunk_pos: ChunkPos) -> Vec<ChunkPos> {
         let mut chunks = Vec::new();
 
         for point in circle_points(&self.view_radius) {
             for y in -self.view_radius.vertical..=self.view_radius.vertical {
-                chunks.push(chunk_pos + IVec3::new(point.x, y, point.y));
+                let pos = *chunk_pos + IVec3::new(point.x, y, point.y);
+                chunks.push(ChunkPos(pos));
             }
         }
 
@@ -101,7 +102,7 @@ impl<'w, 's> ChunkManager<'w, 's> {
         //     .sort_unstable_by_key(|key| (key.x - chunk_pos.x).abs() + (key.z - chunk_pos.z).abs());
         chunks
     }
-    pub fn get_chunks_around_chunk(&mut self, pos: IVec3) -> Vec<&ChunkComp> {
+    pub fn get_chunks_around_chunk(&mut self, pos: ChunkPos) -> Vec<&ChunkData> {
         let mut res = Vec::new();
         for chunk_pos in self.get_chunk_positions(pos).iter() {
             if let Some(entity) = self.current_chunks.get_entity(*chunk_pos) {
@@ -113,11 +114,11 @@ impl<'w, 's> ChunkManager<'w, 's> {
 
         res
     }
-    pub fn get_neighbors(&self, pos: ChunkPos) -> Option<Vec<RawChunk>> {
+    pub fn get_neighbors(&self, pos: ChunkPos) -> Option<Vec<ChunkData>> {
         let mut res = Vec::with_capacity(26);
         for chunk_entity in self.current_chunks.get_all_neighbors(pos) {
             if let Ok(chunk) = self.chunk_query.get(chunk_entity) {
-                res.push(chunk.chunk_data.clone())
+                res.push(chunk.clone())
             }
         }
         if res.len() == 26 {
@@ -130,33 +131,35 @@ impl<'w, 's> ChunkManager<'w, 's> {
 
 pub fn unload_chunks(
     mut commands: Commands,
-    remove_chunks: Query<(&ChunkComp, Entity), With<RemoveChunk>>,
+    remove_chunks: Query<(&ChunkPos, Entity), With<RemoveChunk>>,
     mut current_chunks: ResMut<CurrentChunks>,
 ) {
     for (chunk, chunk_entity) in remove_chunks.iter() {
-        let tween = Tween::new(
-            EaseFunction::QuadraticInOut,
-            Duration::from_secs(1),
-            TransformPositionLens {
-                end: Vec3::new(
-                    (chunk.pos.x * (CHUNK_SIZE) as i32) as f32,
-                    ((chunk.pos.y * (CHUNK_SIZE) as i32) as f32) - CHUNK_SIZE as f32,
-                    (chunk.pos.z * (CHUNK_SIZE) as i32) as f32,
-                ),
+        if current_chunks.get_entity(*chunk).is_some() {
+            let tween = Tween::new(
+                EaseFunction::QuadraticInOut,
+                Duration::from_secs(1),
+                TransformPositionLens {
+                    end: Vec3::new(
+                        (chunk.x as i32 * (CHUNK_SIZE) as i32) as f32,
+                        ((chunk.y as i32 * (CHUNK_SIZE) as i32) as f32) - CHUNK_SIZE as f32,
+                        (chunk.z as i32 * (CHUNK_SIZE) as i32) as f32,
+                    ),
 
-                start: Vec3::new(
-                    (chunk.pos.x * (CHUNK_SIZE) as i32) as f32,
-                    (chunk.pos.y * (CHUNK_SIZE) as i32) as f32,
-                    (chunk.pos.z * (CHUNK_SIZE) as i32) as f32,
-                ),
-            },
-        )
-        .with_repeat_count(RepeatCount::Finite(1))
-        .with_completed_event(0);
-        commands.entity(chunk_entity).insert(Animator::new(tween));
-        commands.entity(chunk_entity).remove::<RemoveChunk>();
-        commands.entity(chunk_entity).remove::<ChunkComp>();
-        current_chunks.remove_entity(*chunk.pos).unwrap();
+                    start: Vec3::new(
+                        (chunk.x as i32 * (CHUNK_SIZE) as i32) as f32,
+                        (chunk.y as i32 * (CHUNK_SIZE) as i32) as f32,
+                        (chunk.z as i32 * (CHUNK_SIZE) as i32) as f32,
+                    ),
+                },
+            )
+            .with_repeat_count(RepeatCount::Finite(1))
+            .with_completed_event(0);
+            commands.entity(chunk_entity).insert(Animator::new(tween));
+            commands.entity(chunk_entity).remove::<RemoveChunk>();
+            commands.entity(chunk_entity).remove::<ChunkData>();
+            current_chunks.remove_entity(*chunk).unwrap();
+        }
     }
 }
 
@@ -170,12 +173,12 @@ pub fn destroy_chunks(mut commands: Commands, mut query_event: EventReader<Tween
 
 pub fn clear_unloaded_chunks(
     mut commands: Commands,
-    chunks: Query<(&ChunkComp, Entity)>,
+    chunks: Query<(&ChunkPos, Entity)>,
     player_chunk: Res<PlayerChunk>,
     view_radius: Res<ViewRadius>,
 ) {
     for (chunk, entity) in chunks.iter() {
-        if player_chunk.is_in_radius(*chunk.pos, &view_radius) {
+        if player_chunk.is_in_radius(**chunk, &view_radius) {
             continue;
         } else {
             commands.entity(entity).insert(RemoveChunk);
@@ -194,46 +197,18 @@ pub fn receive_chunks(
 ) {
     for evt in event.iter() {
         if player_chunk.is_in_radius(evt.pos, &view_radius)
-            && current_chunks.get_entity(evt.pos).is_none()
+            && current_chunks.get_entity(ChunkPos(evt.pos)).is_none()
         {
+            let chunk_data = ChunkData::from_raw(evt.raw_chunk.clone());
             let chunk_id = commands
-                .spawn(ChunkComp {
-                    pos: ChunkPos(evt.pos),
-                    chunk_data: evt.raw_chunk.to_owned(),
-                    saved_entities: Vec::new(),
-                    entities: Vec::new(),
-                })
+                .spawn(chunk_data.clone())
+                .insert(ChunkPos(evt.pos))
                 .id();
 
-            current_chunks.insert_entity(evt.pos, chunk_id);
+            current_chunks.insert_entity(ChunkPos(evt.pos), chunk_id);
 
             // Don't mark chunks that won't create any blocks
-            let mut empty = true;
-            for block in evt.raw_chunk.palette.right_values() {
-                let mut identifier = block.namespace.clone();
-                identifier.push(':');
-                identifier.push_str(&block.name);
-                if let Some(block) = block_table.get(&identifier) {
-                    if block.visibility.unwrap() != VoxelVisibility::Empty {
-                        empty = false;
-                    }
-                }
-            }
-            let mut full = true;
-            if !empty {
-                for block in evt.raw_chunk.palette.right_values() {
-                    let mut identifier = block.namespace.clone();
-                    identifier.push(':');
-                    identifier.push_str(&block.name);
-                    if let Some(block) = block_table.get(&identifier) {
-                        if block.visibility.unwrap() != VoxelVisibility::Opaque {
-                            full = false;
-                        }
-                    }
-                }
-            }
-
-            if !empty && !full {
+            if !chunk_data.is_empty(&block_table) {
                 commands.entity(chunk_id).insert(NeedsMesh);
             }
         }
@@ -244,25 +219,29 @@ pub fn set_block(
     mut commands: Commands,
     mut event: EventReader<SetBlockEvent>,
     current_chunks: Res<CurrentChunks>,
-    mut chunks: Query<&mut ChunkComp>,
+    mut chunks: Query<&mut ChunkData>,
 ) {
     for evt in event.iter() {
-        if let Some(chunk_entity) = current_chunks.get_entity(evt.chunk_pos) {
+        if let Some(chunk_entity) = current_chunks.get_entity(ChunkPos(evt.chunk_pos)) {
             if let Ok(mut chunk) = chunks.get_mut(chunk_entity) {
-                chunk.chunk_data.add_block_state(&evt.block_type);
-                chunk.chunk_data.set_block(evt.voxel_pos, &evt.block_type);
+                chunk.set(
+                    evt.voxel_pos.x as usize,
+                    evt.voxel_pos.y as usize,
+                    evt.voxel_pos.z as usize,
+                    evt.block_type.clone(),
+                );
 
                 match evt.voxel_pos.x {
                     0 => {
-                        if let Some(neighbor_chunk) =
-                            current_chunks.get_entity(evt.chunk_pos + IVec3::new(-1, 0, 0))
+                        if let Some(neighbor_chunk) = current_chunks
+                            .get_entity(ChunkPos(evt.chunk_pos + IVec3::new(-1, 0, 0)))
                         {
                             commands.entity(neighbor_chunk).insert(PriorityMesh);
                         }
                     }
                     CHUNK_SIZE_ARR => {
                         if let Some(neighbor_chunk) =
-                            current_chunks.get_entity(evt.chunk_pos + IVec3::new(1, 0, 0))
+                            current_chunks.get_entity(ChunkPos(evt.chunk_pos + IVec3::new(1, 0, 0)))
                         {
                             commands.entity(neighbor_chunk).insert(PriorityMesh);
                         }
@@ -271,15 +250,15 @@ pub fn set_block(
                 }
                 match evt.voxel_pos.y {
                     0 => {
-                        if let Some(neighbor_chunk) =
-                            current_chunks.get_entity(evt.chunk_pos + IVec3::new(0, -1, 0))
+                        if let Some(neighbor_chunk) = current_chunks
+                            .get_entity(ChunkPos(evt.chunk_pos + IVec3::new(0, -1, 0)))
                         {
                             commands.entity(neighbor_chunk).insert(PriorityMesh);
                         }
                     }
                     CHUNK_SIZE_ARR => {
                         if let Some(neighbor_chunk) =
-                            current_chunks.get_entity(evt.chunk_pos + IVec3::new(0, 1, 0))
+                            current_chunks.get_entity(ChunkPos(evt.chunk_pos + IVec3::new(0, 1, 0)))
                         {
                             commands.entity(neighbor_chunk).insert(PriorityMesh);
                         }
@@ -288,15 +267,15 @@ pub fn set_block(
                 }
                 match evt.voxel_pos.z {
                     0 => {
-                        if let Some(neighbor_chunk) =
-                            current_chunks.get_entity(evt.chunk_pos + IVec3::new(0, 0, -1))
+                        if let Some(neighbor_chunk) = current_chunks
+                            .get_entity(ChunkPos(evt.chunk_pos + IVec3::new(0, 0, -1)))
                         {
                             commands.entity(neighbor_chunk).insert(PriorityMesh);
                         }
                     }
                     CHUNK_SIZE_ARR => {
                         if let Some(neighbor_chunk) =
-                            current_chunks.get_entity(evt.chunk_pos + IVec3::new(0, 0, 1))
+                            current_chunks.get_entity(ChunkPos(evt.chunk_pos + IVec3::new(0, 0, 1)))
                         {
                             commands.entity(neighbor_chunk).insert(PriorityMesh);
                         }
@@ -322,8 +301,8 @@ impl Plugin for ChunkPlugin {
             .insert_resource(PlayerChunk::default())
             .insert_resource(PlayerBlock::default())
             .insert_resource(ViewRadius {
-                horizontal: HORIZONTAL_DISTANCE,
-                vertical: VERTICAL_DISTANCE,
+                horizontal: HORIZONTAL_DISTANCE as i32,
+                vertical: VERTICAL_DISTANCE as i32,
             })
             .insert_resource(SimulationRadius {
                 horizontal: 4,

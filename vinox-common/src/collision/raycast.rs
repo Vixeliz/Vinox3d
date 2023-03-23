@@ -1,19 +1,20 @@
 use bevy::prelude::*;
 
 use crate::world::chunks::{
-    ecs::{ChunkComp, CurrentChunks},
-    positions::{world_to_global_voxel, world_to_voxel},
-    storage::{BlockTable, Chunk, RawChunk, VoxelVisibility},
+    ecs::CurrentChunks,
+    positions::{world_to_global_voxel, world_to_voxel, ChunkPos},
+    storage::{BlockTable, ChunkData, RawChunk, VoxelVisibility},
 };
+use ndshape::ConstShape;
 // Takes in absolute world positions returns a chunk pos and a voxel pos for whatever face it hits and a normal
 pub fn raycast_world(
     origin: Vec3,
     direction: Vec3,
     radius: f32,
-    chunks: &Query<&mut ChunkComp>,
+    chunks: &Query<&mut ChunkData>,
     current_chunks: &CurrentChunks,
     block_table: &BlockTable,
-) -> Option<(IVec3, UVec3, Vec3, f32)> {
+) -> Option<(ChunkPos, UVec3, Vec3, f32)> {
     // TMax needs the fractional part of origin to work.
     let mut tmax = Vec3::new(
         intbound(origin.x, direction.x),
@@ -44,20 +45,18 @@ pub fn raycast_world(
             break;
         }
         let (chunk_pos, voxel_pos) = world_to_voxel(current_block);
-        if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos) {
+        if let Some(chunk_entity) = current_chunks.get_entity(ChunkPos(chunk_pos)) {
             if let Ok(chunk) = chunks.get(chunk_entity) {
-                if chunk
-                    .chunk_data
-                    .get_data(
-                        RawChunk::linearize(UVec3::new(voxel_pos.x, voxel_pos.y, voxel_pos.z)),
-                        block_table,
+                if !chunk
+                    .get(
+                        voxel_pos.x as usize,
+                        voxel_pos.y as usize,
+                        voxel_pos.z as usize,
                     )
-                    .visibility
-                    .unwrap()
-                    != VoxelVisibility::Empty
+                    .is_empty(block_table)
                 {
                     let toi = lastmax * direction.length();
-                    return Some((chunk_pos, voxel_pos, face, toi));
+                    return Some((ChunkPos(chunk_pos), voxel_pos, face, toi));
                 }
             }
         }
