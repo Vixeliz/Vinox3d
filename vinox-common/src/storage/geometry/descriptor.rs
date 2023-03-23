@@ -11,7 +11,7 @@ pub enum CullDirection {
     Up,
     Down,
 }
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Default, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Default, Clone, Copy, Hash)]
 pub struct FaceDescript {
     pub uv: [((i8, i8), (i8, i8)); 6],
     pub discard: [bool; 6], // Should we completely ignore this face regardless
@@ -22,7 +22,7 @@ pub struct FaceDescript {
     pub pivot: (i8, i8, i8), //CULLING CAN BE DONE BY CHECKING IF ANY GIVEN FACE IS TOUCHING THE SIDES OF THE NEIGHBORS FACE?
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Default, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Default, Clone, Hash)]
 pub struct BlockGeo {
     pub pivot: (i8, i8, i8),
     pub rotation: (i8, i8, i8),

@@ -1,19 +1,20 @@
 use bevy::prelude::*;
 
 use crate::world::chunks::{
-    ecs::{ChunkComp, CurrentChunks},
-    positions::{world_to_global_voxel, world_to_voxel},
-    storage::{BlockTable, Chunk, RawChunk, VoxelVisibility},
+    ecs::CurrentChunks,
+    positions::{ChunkPos, VoxelPos},
+    storage::{BlockTable, ChunkData, RawChunk, VoxelVisibility},
 };
+use ndshape::ConstShape;
 // Takes in absolute world positions returns a chunk pos and a voxel pos for whatever face it hits and a normal
 pub fn raycast_world(
     origin: Vec3,
     direction: Vec3,
     radius: f32,
-    chunks: &Query<&mut ChunkComp>,
+    chunks: &Query<&mut ChunkData>,
     current_chunks: &CurrentChunks,
     block_table: &BlockTable,
-) -> Option<(IVec3, UVec3, Vec3, f32)> {
+) -> Option<(ChunkPos, VoxelPos, Vec3, f32)> {
     // TMax needs the fractional part of origin to work.
     let mut tmax = Vec3::new(
         intbound(origin.x, direction.x),
@@ -21,7 +22,7 @@ pub fn raycast_world(
         intbound(origin.z, direction.z),
     );
 
-    let mut current_block = world_to_global_voxel(origin).as_vec3();
+    let mut current_block = VoxelPos::from_global_coords(origin.x, origin.y, origin.z).as_vec3();
     let step = direction.signum();
 
     let tdelta = step / direction;
@@ -43,18 +44,19 @@ pub fn raycast_world(
         if counter > (radius * 4.0) as u32 {
             break;
         }
-        let (chunk_pos, voxel_pos) = world_to_voxel(current_block);
+        let (chunk_pos, voxel_pos) = (
+            ChunkPos::from_global_coords(current_block.x, current_block.y, current_block.z),
+            VoxelPos::from_global_coords(current_block.x, current_block.y, current_block.z),
+        );
         if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos) {
             if let Ok(chunk) = chunks.get(chunk_entity) {
-                if chunk
-                    .chunk_data
-                    .get_data(
-                        RawChunk::linearize(UVec3::new(voxel_pos.x, voxel_pos.y, voxel_pos.z)),
-                        block_table,
+                if !chunk
+                    .get(
+                        voxel_pos.x as usize,
+                        voxel_pos.y as usize,
+                        voxel_pos.z as usize,
                     )
-                    .visibility
-                    .unwrap()
-                    != VoxelVisibility::Empty
+                    .is_empty()
                 {
                     let toi = lastmax * direction.length();
                     return Some((chunk_pos, voxel_pos, face, toi));

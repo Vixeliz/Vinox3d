@@ -7,9 +7,9 @@ use bevy::{
 };
 use tokio::sync::mpsc::{Receiver, Sender};
 use vinox_common::world::chunks::{
-    ecs::{ChunkComp, ChunkPos, CurrentChunks, RemoveChunk, SimulationRadius, ViewRadius},
-    positions::circle_points,
-    storage::{HORIZONTAL_DISTANCE, VERTICAL_DISTANCE},
+    ecs::{CurrentChunks, RemoveChunk, SimulationRadius, ViewRadius},
+    positions::{circle_points, ChunkPos},
+    storage::{ChunkData, HORIZONTAL_DISTANCE, VERTICAL_DISTANCE},
 };
 
 use crate::game::networking::components::SentChunks;
@@ -37,8 +37,8 @@ impl LoadPoint {
 
 #[derive(Default, Resource, Debug)]
 pub struct ChunkQueue {
-    pub create: Vec<IVec3>,
-    pub remove: Vec<IVec3>,
+    pub create: Vec<ChunkPos>,
+    pub remove: Vec<ChunkPos>,
 }
 
 #[derive(SystemParam)]
@@ -47,15 +47,20 @@ pub struct ChunkManager<'w, 's> {
     current_chunks: ResMut<'w, CurrentChunks>,
     // chunk_queue: ResMut<'w, ChunkQueue>,
     view_radius: Res<'w, ViewRadius>,
-    chunk_query: Query<'w, 's, &'static ChunkComp>,
+    chunk_query: Query<'w, 's, &'static ChunkData>,
 }
 
 impl<'w, 's> ChunkManager<'w, 's> {
-    pub fn get_chunk_positions(&mut self, chunk_pos: IVec3) -> Vec<IVec3> {
+    pub fn get_chunk_positions(&mut self, chunk_pos: ChunkPos) -> Vec<ChunkPos> {
         let mut chunks = Vec::new();
         for point in circle_points(&self.view_radius) {
             for y in -self.view_radius.vertical..=self.view_radius.vertical {
-                chunks.push(chunk_pos + IVec3::new(point.x, y, point.y));
+                let pos = chunk_pos.as_ivec3() + IVec3::new(point.x, y, point.y);
+                chunks.push(ChunkPos {
+                    x: pos.x as usize,
+                    y: pos.y as usize,
+                    z: pos.z as usize,
+                });
             }
         }
         // chunks
@@ -64,15 +69,15 @@ impl<'w, 's> ChunkManager<'w, 's> {
     }
     pub fn get_chunks_around_chunk(
         &mut self,
-        pos: IVec3,
+        pos: ChunkPos,
         sent_chunks: &SentChunks,
-    ) -> Vec<&ChunkComp> {
+    ) -> Vec<(&ChunkData, ChunkPos)> {
         let mut res = Vec::new();
         for chunk_pos in self.get_chunk_positions(pos).iter() {
             if !sent_chunks.chunks.contains(chunk_pos) {
                 if let Some(entity) = self.current_chunks.get_entity(*chunk_pos) {
                     if let Ok(chunk) = self.chunk_query.get(entity) {
-                        res.push(chunk);
+                        res.push((chunk, *chunk_pos));
                     }
                 }
             }
@@ -90,18 +95,11 @@ pub fn generate_chunks_world(
     database: Res<WorldDatabase>,
 ) {
     for point in load_points.iter() {
-        for pos in chunk_manager.get_chunk_positions(**point) {
+        for pos in chunk_manager.get_chunk_positions(ChunkPos::from_ivec3(**point)) {
             if chunk_manager.current_chunks.get_entity(pos).is_none() {
                 let data = database.connection.get().unwrap();
                 if let Some(chunk) = load_chunk(pos, &data) {
-                    let chunk_id = commands
-                        .spawn(ChunkComp {
-                            pos: ChunkPos(pos),
-                            chunk_data: chunk,
-                            entities: Vec::new(),
-                            saved_entities: Vec::new(),
-                        })
-                        .id();
+                    let chunk_id = commands.spawn(ChunkData::from_raw(chunk)).insert(pos).id();
                     chunk_manager.current_chunks.insert_entity(pos, chunk_id);
                 } else {
                     let chunk_id = commands.spawn_empty().id();
@@ -116,28 +114,28 @@ pub fn generate_chunks_world(
 pub fn destroy_chunks(
     mut commands: Commands,
     mut current_chunks: ResMut<CurrentChunks>,
-    remove_chunks: Query<&ChunkComp, With<RemoveChunk>>,
+    remove_chunks: Query<&ChunkPos, With<RemoveChunk>>,
     mut load_points: Query<&mut SentChunks>,
 ) {
     for chunk in remove_chunks.iter() {
         for mut sent_chunks in load_points.iter_mut() {
-            sent_chunks.chunks.remove(&chunk.pos);
+            sent_chunks.chunks.remove(&*chunk);
         }
         commands
-            .entity(current_chunks.remove_entity(*chunk.pos).unwrap())
+            .entity(current_chunks.remove_entity(*chunk).unwrap())
             .despawn_recursive();
     }
 }
 
 pub fn clear_unloaded_chunks(
     mut commands: Commands,
-    chunks: Query<(&ChunkComp, Entity)>,
+    chunks: Query<(&ChunkPos, Entity)>,
     load_points: Query<&LoadPoint>,
     view_radius: Res<ViewRadius>,
 ) {
     for (chunk, entity) in chunks.iter() {
         for load_point in load_points.iter() {
-            if load_point.is_in_radius(*chunk.pos, &view_radius) {
+            if load_point.is_in_radius(chunk.as_ivec3(), &view_radius) {
                 continue;
             } else {
                 commands.entity(entity).insert(RemoveChunk);
@@ -147,14 +145,14 @@ pub fn clear_unloaded_chunks(
 }
 
 pub fn unsend_chunks(
-    chunks: Query<&ChunkComp>,
+    chunks: Query<&ChunkPos>,
     mut load_points: Query<(&LoadPoint, &mut SentChunks)>,
     view_radius: Res<ViewRadius>,
 ) {
     for (load_point, mut sent_chunks) in load_points.iter_mut() {
         for chunk in chunks.iter() {
-            if !load_point.is_in_radius(*chunk.pos, &view_radius) {
-                sent_chunks.chunks.remove(&chunk.pos);
+            if !load_point.is_in_radius(chunk.as_ivec3(), &view_radius) {
+                sent_chunks.chunks.remove(&*chunk);
             } else {
                 continue;
             }
@@ -164,8 +162,8 @@ pub fn unsend_chunks(
 
 #[derive(Resource)]
 pub struct ChunkChannel {
-    pub tx: Sender<ChunkComp>,
-    pub rx: Receiver<ChunkComp>,
+    pub tx: Sender<(ChunkData, ChunkPos)>,
+    pub rx: Receiver<(ChunkData, ChunkPos)>,
 }
 
 impl Default for ChunkChannel {
@@ -196,12 +194,10 @@ pub fn process_queue(
         task_pool
             .spawn(async move {
                 cloned_sender
-                    .send(ChunkComp {
-                        pos: ChunkPos(chunk_pos),
-                        chunk_data: generate_chunk(chunk_pos, cloned_seed),
-                        entities: Vec::new(),
-                        saved_entities: Vec::new(),
-                    })
+                    .send((
+                        ChunkData::from_raw(generate_chunk(chunk_pos.as_ivec3(), cloned_seed)),
+                        chunk_pos,
+                    ))
                     .await
                     .ok();
             })
@@ -209,11 +205,11 @@ pub fn process_queue(
     }
     chunk_queue.create.clear();
     while let Ok(chunk) = chunk_channel.rx.try_recv() {
-        let chunk_pos = chunk.pos.clone();
+        let chunk_pos = chunk.1.clone();
 
-        chunks_to_save.push((*chunk_pos, chunk.chunk_data.clone()));
+        chunks_to_save.push((chunk_pos, chunk.0.to_raw()));
         commands
-            .entity(current_chunks.get_entity(*chunk_pos).unwrap())
+            .entity(current_chunks.get_entity(chunk_pos).unwrap())
             .insert(chunk);
     }
 }
@@ -226,8 +222,8 @@ impl Plugin for ChunkPlugin {
             .insert_resource(CurrentChunks::default())
             .insert_resource(ChunkQueue::default())
             .insert_resource(ViewRadius {
-                horizontal: HORIZONTAL_DISTANCE,
-                vertical: VERTICAL_DISTANCE,
+                horizontal: HORIZONTAL_DISTANCE as i32,
+                vertical: VERTICAL_DISTANCE as i32,
             })
             .insert_resource(SimulationRadius {
                 vertical: 4,

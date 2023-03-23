@@ -17,11 +17,11 @@ use vinox_common::{
     networking::protocol::ClientMessage,
     storage::{blocks::descriptor::BlockGeometry, items::descriptor::ItemData},
     world::chunks::{
-        ecs::{ChunkComp, CurrentChunks},
-        positions::{relative_voxel_to_world, voxel_to_world, world_to_chunk, world_to_voxel},
+        ecs::CurrentChunks,
+        positions::{relative_voxel_to_world, voxel_to_world, world_to_voxel, ChunkPos},
         storage::{
-            self, name_to_identifier, trim_geo_identifier, BlockData, BlockTable, ItemTable,
-            CHUNK_SIZE_ARR,
+            self, name_to_identifier, trim_geo_identifier, BlockData, BlockTable, ChunkData,
+            ItemTable, CHUNK_SIZE_ARR,
         },
     },
 };
@@ -119,7 +119,11 @@ pub fn movement_input(
 ) {
     if let Ok((translation, action_state)) = player_position.get_single_mut() {
         if current_chunks
-            .get_entity(world_to_chunk(translation.translation))
+            .get_entity(ChunkPos::from_global_coords(
+                translation.translation.x,
+                translation.translation.y,
+                translation.translation.z,
+            ))
             .is_none()
         {
             return;
@@ -181,7 +185,11 @@ pub fn movement_input(
                 fps_camera.velocity *= 5.0;
             }
             fps_camera.velocity.y = y;
-            let chunk_pos = world_to_chunk(translation.translation);
+            let chunk_pos = ChunkPos::from_global_coords(
+                translation.translation.x,
+                translation.translation.y,
+                translation.translation.z,
+            );
 
             if current_chunks.get_entity(chunk_pos).is_none() {
                 return;
@@ -223,7 +231,7 @@ pub fn interact(
         (&mut Transform, &mut Visibility),
         (With<HighLightCube>, Without<ControlledPlayer>),
     >,
-    mut chunks: Query<&mut ChunkComp>,
+    mut chunks: Query<&mut ChunkData>,
     current_chunks: Res<CurrentChunks>,
     block_table: Res<BlockTable>,
     item_table: Res<ItemTable>,
@@ -435,7 +443,7 @@ pub fn interact(
                 &block_table,
             );
             if let Some((chunk_pos, voxel_pos, normal, _)) = hit {
-                let point = voxel_to_world(voxel_pos, chunk_pos);
+                let point = voxel_to_world(voxel_pos.as_vec3().as_uvec3(), chunk_pos.as_ivec3());
 
                 if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos) {
                     if let Ok((mut block_transform, mut block_visibility)) =
@@ -468,10 +476,11 @@ pub fn interact(
                                 {
                                     let (chunk_pos, voxel_pos) =
                                         world_to_voxel(relative_voxel_to_world(
-                                            voxel_pos.as_ivec3() + normal.as_ivec3(),
-                                            chunk_pos,
+                                            voxel_pos.as_vec3().as_ivec3() + normal.as_ivec3(),
+                                            chunk_pos.as_ivec3(),
                                         ));
-                                    if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos)
+                                    if let Some(chunk_entity) =
+                                        current_chunks.get_entity(ChunkPos::from_ivec3(chunk_pos))
                                     {
                                         if let Some(mut modified_item) = place_item.clone() {
                                             modified_item.name = if block_table
@@ -576,10 +585,12 @@ pub fn interact(
                                                     }
                                                 }
 
-                                                chunk.chunk_data.add_block_state(&modified_item);
-                                                chunk
-                                                    .chunk_data
-                                                    .set_block(voxel_pos, &place_item.unwrap());
+                                                chunk.set(
+                                                    voxel_pos.x as usize,
+                                                    voxel_pos.y as usize,
+                                                    voxel_pos.z as usize,
+                                                    place_item.unwrap(),
+                                                );
                                                 client.connection_mut().try_send_message(
                                                     ClientMessage::SentBlock {
                                                         chunk_pos,
@@ -594,9 +605,9 @@ pub fn interact(
                                                 match voxel_pos.x {
                                                     0 => {
                                                         if let Some(neighbor_chunk) = current_chunks
-                                                            .get_entity(
+                                                            .get_entity(ChunkPos::from_ivec3(
                                                                 chunk_pos + IVec3::new(-1, 0, 0),
-                                                            )
+                                                            ))
                                                         {
                                                             commands
                                                                 .entity(neighbor_chunk)
@@ -608,9 +619,9 @@ pub fn interact(
                                                     }
                                                     CHUNK_SIZE_ARR => {
                                                         if let Some(neighbor_chunk) = current_chunks
-                                                            .get_entity(
+                                                            .get_entity(ChunkPos::from_ivec3(
                                                                 chunk_pos + IVec3::new(1, 0, 0),
-                                                            )
+                                                            ))
                                                         {
                                                             commands
                                                                 .entity(neighbor_chunk)
@@ -625,9 +636,9 @@ pub fn interact(
                                                 match voxel_pos.y {
                                                     0 => {
                                                         if let Some(neighbor_chunk) = current_chunks
-                                                            .get_entity(
+                                                            .get_entity(ChunkPos::from_ivec3(
                                                                 chunk_pos + IVec3::new(0, -1, 0),
-                                                            )
+                                                            ))
                                                         {
                                                             commands
                                                                 .entity(neighbor_chunk)
@@ -639,9 +650,9 @@ pub fn interact(
                                                     }
                                                     CHUNK_SIZE_ARR => {
                                                         if let Some(neighbor_chunk) = current_chunks
-                                                            .get_entity(
+                                                            .get_entity(ChunkPos::from_ivec3(
                                                                 chunk_pos + IVec3::new(0, 1, 0),
-                                                            )
+                                                            ))
                                                         {
                                                             commands
                                                                 .entity(neighbor_chunk)
@@ -656,9 +667,9 @@ pub fn interact(
                                                 match voxel_pos.z {
                                                     0 => {
                                                         if let Some(neighbor_chunk) = current_chunks
-                                                            .get_entity(
+                                                            .get_entity(ChunkPos::from_ivec3(
                                                                 chunk_pos + IVec3::new(0, 0, -1),
-                                                            )
+                                                            ))
                                                         {
                                                             commands
                                                                 .entity(neighbor_chunk)
@@ -670,9 +681,9 @@ pub fn interact(
                                                     }
                                                     CHUNK_SIZE_ARR => {
                                                         if let Some(neighbor_chunk) = current_chunks
-                                                            .get_entity(
+                                                            .get_entity(ChunkPos::from_ivec3(
                                                                 chunk_pos + IVec3::new(0, 0, 1),
-                                                            )
+                                                            ))
                                                         {
                                                             commands
                                                                 .entity(neighbor_chunk)
@@ -690,7 +701,8 @@ pub fn interact(
                                     }
                                 }
                             } else if mouse_left {
-                                let identifier = chunk.chunk_data.get_identifier(voxel_pos);
+                                let identifier =
+                                    chunk.get_identifier(voxel_pos.x, voxel_pos.y, voxel_pos.z);
                                 let identifier = trim_geo_identifier(identifier);
                                 if let Some(item_def) = item_table.get(&identifier) {
                                     if let Some((section, row_index, item_index, stack_size)) =
@@ -743,10 +755,13 @@ pub fn interact(
                                         }
                                     }
                                 }
-                                chunk.chunk_data.set_block(
-                                    voxel_pos,
-                                    &BlockData::new("vinox".to_string(), "air".to_string()),
+                                chunk.set(
+                                    voxel_pos.x,
+                                    voxel_pos.y,
+                                    voxel_pos.z,
+                                    BlockData::new("vinox".to_string(), "air".to_string()),
                                 );
+                                let chunk_pos = chunk_pos.as_ivec3();
                                 client.connection_mut().try_send_message(
                                     ClientMessage::SentBlock {
                                         chunk_pos,
@@ -762,57 +777,57 @@ pub fn interact(
                                     },
                                 );
 
-                                match voxel_pos.x {
+                                match voxel_pos.x as u32 {
                                     0 => {
-                                        if let Some(neighbor_chunk) = current_chunks
-                                            .get_entity(chunk_pos + IVec3::new(-1, 0, 0))
-                                        {
+                                        if let Some(neighbor_chunk) = current_chunks.get_entity(
+                                            ChunkPos::from_ivec3(chunk_pos + IVec3::new(-1, 0, 0)),
+                                        ) {
                                             commands.entity(neighbor_chunk).remove::<NeedsMesh>();
                                             commands.entity(neighbor_chunk).insert(PriorityMesh);
                                         }
                                     }
                                     CHUNK_SIZE_ARR => {
-                                        if let Some(neighbor_chunk) = current_chunks
-                                            .get_entity(chunk_pos + IVec3::new(1, 0, 0))
-                                        {
+                                        if let Some(neighbor_chunk) = current_chunks.get_entity(
+                                            ChunkPos::from_ivec3(chunk_pos + IVec3::new(1, 0, 0)),
+                                        ) {
                                             commands.entity(neighbor_chunk).remove::<NeedsMesh>();
                                             commands.entity(neighbor_chunk).insert(PriorityMesh);
                                         }
                                     }
                                     _ => {}
                                 }
-                                match voxel_pos.y {
+                                match voxel_pos.y as u32 {
                                     0 => {
-                                        if let Some(neighbor_chunk) = current_chunks
-                                            .get_entity(chunk_pos + IVec3::new(0, -1, 0))
-                                        {
+                                        if let Some(neighbor_chunk) = current_chunks.get_entity(
+                                            ChunkPos::from_ivec3(chunk_pos + IVec3::new(0, -1, 0)),
+                                        ) {
                                             commands.entity(neighbor_chunk).remove::<NeedsMesh>();
                                             commands.entity(neighbor_chunk).insert(PriorityMesh);
                                         }
                                     }
                                     CHUNK_SIZE_ARR => {
-                                        if let Some(neighbor_chunk) = current_chunks
-                                            .get_entity(chunk_pos + IVec3::new(0, 1, 0))
-                                        {
+                                        if let Some(neighbor_chunk) = current_chunks.get_entity(
+                                            ChunkPos::from_ivec3(chunk_pos + IVec3::new(0, 1, 0)),
+                                        ) {
                                             commands.entity(neighbor_chunk).remove::<NeedsMesh>();
                                             commands.entity(neighbor_chunk).insert(PriorityMesh);
                                         }
                                     }
                                     _ => {}
                                 }
-                                match voxel_pos.z {
+                                match voxel_pos.z as u32 {
                                     0 => {
-                                        if let Some(neighbor_chunk) = current_chunks
-                                            .get_entity(chunk_pos + IVec3::new(0, 0, -1))
-                                        {
+                                        if let Some(neighbor_chunk) = current_chunks.get_entity(
+                                            ChunkPos::from_ivec3(chunk_pos + IVec3::new(0, 0, -1)),
+                                        ) {
                                             commands.entity(neighbor_chunk).remove::<NeedsMesh>();
                                             commands.entity(neighbor_chunk).insert(PriorityMesh);
                                         }
                                     }
                                     CHUNK_SIZE_ARR => {
-                                        if let Some(neighbor_chunk) = current_chunks
-                                            .get_entity(chunk_pos + IVec3::new(0, 0, 1))
-                                        {
+                                        if let Some(neighbor_chunk) = current_chunks.get_entity(
+                                            ChunkPos::from_ivec3(chunk_pos + IVec3::new(0, 0, 1)),
+                                        ) {
                                             commands.entity(neighbor_chunk).remove::<NeedsMesh>();
                                             commands.entity(neighbor_chunk).insert(PriorityMesh);
                                         }
@@ -839,7 +854,7 @@ pub fn collision_movement_system(
     player: Query<(Entity, &Aabb), With<ControlledPlayer>>,
     mut transforms: Query<&mut Transform>,
     time: Res<Time>,
-    chunks: Query<&mut ChunkComp>,
+    chunks: Query<&mut ChunkData>,
     current_chunks: Res<CurrentChunks>,
     block_table: Res<BlockTable>,
 ) {
