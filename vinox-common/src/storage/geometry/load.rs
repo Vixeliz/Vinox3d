@@ -3,7 +3,25 @@ use std::fs;
 
 use walkdir::WalkDir;
 
-use super::descriptor::GeometryDescriptor;
+use super::descriptor::{BlockGeo, GeometryDescriptor};
+
+pub fn block_geo() -> Option<BlockGeo> {
+    if let Some(proj_dirs) = ProjectDirs::from("com", "vinox", "vinox") {
+        let final_path = proj_dirs.data_dir().join("assets/geometry/block/block.ron");
+        if let Ok(ron_string) = fs::read_to_string(final_path) {
+            let ron_result = ron::from_str::<GeometryDescriptor>(ron_string.as_str());
+            if let Ok(block) = ron_result {
+                Some(block.element)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    } else {
+        None
+    }
+}
 
 pub fn load_all_geo() -> Vec<GeometryDescriptor> {
     let mut result = Vec::new();

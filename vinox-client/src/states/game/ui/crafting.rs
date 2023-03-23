@@ -4,10 +4,7 @@ use std::collections::{BTreeMap, HashMap};
 
 use bevy::prelude::*;
 use bevy_egui::EguiContexts;
-use bevy_egui::{
-    egui::{Color32, FontId, Sense},
-    *,
-};
+use bevy_egui::{egui::FontId, *};
 use vinox_common::storage::items::descriptor::ItemData;
 use vinox_common::world::chunks::storage::{identifier_to_name, name_to_identifier, ItemTable};
 use vinox_common::{ecs::bundles::Inventory, world::chunks::storage::RecipeTable};
@@ -29,7 +26,7 @@ pub fn craft(
                 let identifier =
                     name_to_identifier(bar_item.clone().namespace, bar_item.clone().name);
                 if modified_items.contains_key(&identifier) {
-                    let amount_left = modified_items.get(&identifier).unwrap().clone();
+                    let amount_left = *modified_items.get(&identifier).unwrap();
                     if amount_left < bar_item.stack_size {
                         let mut new_item = bar_item.clone();
                         new_item.stack_size -= amount_left;
@@ -54,7 +51,7 @@ pub fn craft(
                 let identifier =
                     name_to_identifier(inv_item.clone().namespace, inv_item.clone().name);
                 if modified_items.contains_key(&identifier) {
-                    let amount_left = modified_items.get(&identifier).unwrap().clone();
+                    let amount_left = *modified_items.get(&identifier).unwrap();
                     if amount_left < inv_item.stack_size {
                         let mut new_item = inv_item.clone();
                         new_item.stack_size -= amount_left;
@@ -75,7 +72,7 @@ pub fn craft(
     }
     if modified_items.is_empty() {
         if let Some((section, row_index, item_index, count)) =
-            new_inventory.get_first_item(&item_table.get(&output_item.0).unwrap())
+            new_inventory.get_first_item(item_table.get(&output_item.0).unwrap())
         {
             if let Some((namespace, name)) = identifier_to_name(output_item.0) {
                 match section {
@@ -188,7 +185,7 @@ pub fn crafting_ui(
                                                 if let Some((_, name)) =
                                                     identifier_to_name(required_item.clone())
                                                 {
-                                                    ui.label(format!("{}: x{}", name, item_amount));
+                                                    ui.label(format!("{name}: x{item_amount}"));
                                                 }
                                             }
                                         });

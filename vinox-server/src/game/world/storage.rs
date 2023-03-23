@@ -6,11 +6,14 @@ use r2d2_sqlite::SqliteConnectionManager;
 use bevy::prelude::*;
 use rusqlite::*;
 use serde::{Deserialize, Serialize};
-use vinox_common::{ecs::bundles::Inventory, world::chunks::storage::RawChunk};
+use vinox_common::{
+    ecs::bundles::Inventory,
+    world::chunks::{positions::ChunkPos, storage::RawChunk},
+};
 use zstd::stream::{copy_decode, copy_encode};
 
 #[derive(Resource, Deref, DerefMut, Default)]
-pub struct ChunksToSave(pub Vec<(IVec3, RawChunk)>);
+pub struct ChunksToSave(pub Vec<(ChunkPos, RawChunk)>);
 
 #[derive(Resource, Deref, DerefMut, Default)]
 pub struct InventoriesToSave(pub Vec<(String, Inventory)>);
@@ -104,7 +107,7 @@ pub fn save_chunks(chunks: &ChunksToSave, database: &Connection) {
 //     None
 // }
 
-pub fn load_chunk(chunk_pos: IVec3, database: &Connection) -> Option<RawChunk> {
+pub fn load_chunk(chunk_pos: ChunkPos, database: &Connection) -> Option<RawChunk> {
     let stmt = database.prepare(
         "SELECT posx, posy, posz, data FROM blocks WHERE posx=:posx AND posy=:posy AND posz=:posz;",
     );

@@ -22,6 +22,7 @@ impl Plugin for RenderingPlugin {
             (
                 process_queue,
                 process_priority_queue,
+                // priority_player,
                 sort_faces,
                 sort_chunks,
             )

@@ -6,7 +6,7 @@ use noise::{BasicMulti, Blend, MultiFractal, NoiseFn, OpenSimplex, RidgedMulti, 
 use serde::{Deserialize, Serialize};
 use vinox_common::{
     storage::blocks::descriptor::BlockDescriptor,
-    world::chunks::storage::{BlockData, RawChunk, CHUNK_SIZE},
+    world::chunks::storage::{BlockData, ChunkData, RawChunk, CHUNK_SIZE},
 };
 
 #[derive(Resource, Default, Serialize, Deserialize)]
@@ -15,7 +15,7 @@ pub struct ToBePlaced(HashMap<IVec3, Vec<(UVec3, BlockDescriptor)>>);
 // Just some interesting stuff to look at while testing
 #[allow(clippy::type_complexity)]
 pub fn add_grass(
-    raw_chunk: &mut RawChunk,
+    raw_chunk: &mut ChunkData,
     noisefn: &noise::Blend<
         f64,
         noise::RotatePoint<noise::RidgedMulti<noise::OpenSimplex>>,
@@ -34,17 +34,16 @@ pub fn add_grass(
                     let full_y = y as i32 + ((CHUNK_SIZE as i32) * pos.y) + 1;
                     let noise_val =
                         noisefn.get([full_x as f64, full_y as f64, full_z as f64]) * 45.152;
-                    if full_y as f64 > noise_val
-                        && raw_chunk.get_identifier(UVec3::new(x, y, z)) != "vinox:air"
+                    if full_y as f64 > noise_val && raw_chunk.get_identifier(x, y, z) != "vinox:air"
                     {
                         let grass = BlockData::new("vinox".to_string(), "grass".to_string());
-                        raw_chunk.set_block(UVec3::new(x, y, z), &grass);
+                        raw_chunk.set(x, y, z, grass);
                     }
-                } else if raw_chunk.get_identifier(UVec3::new(x, y + 1, z)) == "vinox:air"
-                    && raw_chunk.get_identifier(UVec3::new(x, y, z)) != "vinox:air"
+                } else if raw_chunk.get_identifier(x, y + 1, z) == "vinox:air"
+                    && raw_chunk.get_identifier(x, y, z) != "vinox:air"
                 {
                     let grass = BlockData::new("vinox".to_string(), "grass".to_string());
-                    raw_chunk.set_block(UVec3::new(x, y, z), &grass);
+                    raw_chunk.set(x, y, z, grass);
                 }
             }
         }
@@ -121,7 +120,7 @@ pub fn generate_chunk(pos: IVec3, seed: u32) -> RawChunk {
             .set_frequency(0.003415),
     );
 
-    let mut raw_chunk = RawChunk::new();
+    let mut raw_chunk = ChunkData::default();
     for x in 0..=CHUNK_SIZE - 1 {
         for z in 0..=CHUNK_SIZE - 1 {
             for y in 0..=CHUNK_SIZE - 1 {
@@ -131,19 +130,23 @@ pub fn generate_chunk(pos: IVec3, seed: u32) -> RawChunk {
                 let noise_val =
                     final_noise.get([full_x as f64, full_y as f64, full_z as f64]) * 45.152;
                 if full_y as f64 <= noise_val {
-                    raw_chunk.set_block(
-                        UVec3::new(x, y, z),
-                        &BlockData::new("vinox".to_string(), "dirt".to_string()),
+                    raw_chunk.set(
+                        x,
+                        y,
+                        z,
+                        BlockData::new("vinox".to_string(), "dirt".to_string()),
                     );
                 } else {
-                    raw_chunk.set_block(
-                        UVec3::new(x, y, z),
-                        &BlockData::new("vinox".to_string(), "air".to_string()),
+                    raw_chunk.set(
+                        x,
+                        y,
+                        z,
+                        BlockData::new("vinox".to_string(), "air".to_string()),
                     );
                 }
             }
         }
     }
     add_grass(&mut raw_chunk, &final_noise, pos);
-    raw_chunk
+    raw_chunk.to_raw()
 }
