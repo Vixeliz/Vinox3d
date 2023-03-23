@@ -453,6 +453,7 @@ impl ChunkData {
     pub fn get(&self, x: usize, y: usize, z: usize) -> BlockData {
         self.voxels.get(Self::linearize(x, y, z))
     }
+
     pub fn get_identifier(&self, x: usize, y: usize, z: usize) -> String {
         let voxel = self.voxels.get(Self::linearize(x, y, z));
         name_to_identifier(voxel.namespace, voxel.name)

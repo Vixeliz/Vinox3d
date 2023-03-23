@@ -121,8 +121,8 @@ impl PlayerBundleBuilder {
                 ..default()
             },
             aabb: Aabb {
-                center: translation.into(),
-                half_extents: Vec3A::new(0.4, 0.9, 0.4),
+                center: Vec3A::from(translation) + Vec3A::new(0.4, 0.9, 0.4),
+                half_extents: Vec3A::new(0.3, 0.9, 0.3),
             },
             username: ClientName(user_name),
         }
