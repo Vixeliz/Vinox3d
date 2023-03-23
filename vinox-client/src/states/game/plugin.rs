@@ -18,8 +18,8 @@ impl Plugin for GamePlugin {
             .add_plugin(NetworkingPlugin)
             .add_plugin(InputPlugin)
             .add_plugin(UiPlugin)
-            .add_plugin(LogDiagnosticsPlugin::default())
-            .add_plugin(FrameTimeDiagnosticsPlugin::default())
+            // .add_plugin(LogDiagnosticsPlugin::default())
+            // .add_plugin(FrameTimeDiagnosticsPlugin::default())
             .add_system(despawn_with::<Game>.in_schedule(OnExit(GameState::Game)));
     }
 }
