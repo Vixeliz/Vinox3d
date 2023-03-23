@@ -866,18 +866,18 @@ pub fn collision_movement_system(
             let movement = fps_camera.velocity * time.delta().as_secs_f32();
             let mut v_after = movement;
             let mut max_move = v_after.abs();
+            let margin: f32 = 0.01;
             let aabb_collisions = aabb_vs_world(
                 player_aabb.clone(),
                 &chunks,
                 v_after,
                 &current_chunks,
                 &block_table,
+                margin,
             );
             if let Some(collisions_list) = aabb_collisions {
-                let margin: f32 = 0.01;
                 for col in collisions_list {
-                    // movement_left -= movement_left.dot(col.normal) * col.normal;
-                    let margin_dist = col.dist - margin;
+                    let margin_dist = col.dist;
                     if col.normal.x != 0.0 {
                         max_move.x = f32::min(max_move.x, margin_dist);
                         v_after.x = 0.0;

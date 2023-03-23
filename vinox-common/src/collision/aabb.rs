@@ -18,15 +18,17 @@ pub struct CollisionInfo {
     pub dist: f32,
 }
 
+// margin is how much you can be inside a block by and still collide with it (untested)
 pub fn aabb_vs_world(
     aabb: Aabb,
     chunks: &Query<&ChunkData>,
     velocity: Vec3,
     current_chunks: &CurrentChunks,
     block_table: &BlockTable,
+    margin: f32,
 ) -> Option<Vec<CollisionInfo>> {
     let mut collisions: Vec<CollisionInfo> = Vec::new();
-    // Extend the area to check for collisions to what can be conceivably reached beased on velocity
+    // Area to check for collisions that can be conceivably reached beased on velocity
     let area_to_check = (
         (Vec3::from(-aabb.half_extents) + velocity)
             .floor()
@@ -54,6 +56,8 @@ pub fn aabb_vs_world(
                                 half_extents: Vec3A::new(0.5, 0.5, 0.5),
                             };
 
+                            // inv_enter is distance between closest sides
+                            // inv_exit is distance between farthest sides
                             let mut inv_enter = Vec3::ZERO;
                             let mut inv_exit = Vec3::ZERO;
 
@@ -81,6 +85,8 @@ pub fn aabb_vs_world(
                                 inv_exit.z = block_aabb.min().z - aabb.max().z;
                             }
 
+                            // enter is amt time to intersect based on current velocity
+                            // exit is amt time to go past it based on current velocity
                             let mut enter = Vec3::ZERO;
                             let mut exit = Vec3::ZERO;
 
@@ -114,14 +120,15 @@ pub fn aabb_vs_world(
                                 enter.z = inv_enter.z / velocity.z;
                                 exit.z = inv_exit.z / velocity.z;
                             }
+
                             let mut normal = Vec3::ZERO;
+
                             let enter_time =
                                 max(max(FloatOrd(enter.x), FloatOrd(enter.y)), FloatOrd(enter.z));
-
                             let exit_time =
                                 min(min(FloatOrd(exit.x), FloatOrd(exit.y)), FloatOrd(exit.z));
                             if enter_time > exit_time
-                                || enter.x < 0.0 && enter.y < 0.0 && enter.z < 0.0
+                                || enter.x < -margin && enter.y < -margin && enter.z < -margin
                                 || enter.x > 1.0
                                 || enter.y > 1.0
                                 || enter.z > 1.0
@@ -132,13 +139,13 @@ pub fn aabb_vs_world(
                                 // This might be a collision this frame
                                 let dist: f32;
                                 if enter_time.0 == enter.x {
-                                    normal.x = if inv_enter.x < 0.0 { 1.0 } else { -1.0 };
+                                    normal.x = if inv_exit.x < 0.0 { 1.0 } else { -1.0 };
                                     dist = inv_enter.x.abs();
                                 } else if enter_time.0 == enter.y {
-                                    normal.y = if inv_enter.y < 0.0 { 1.0 } else { -1.0 };
+                                    normal.y = if inv_exit.y < 0.0 { 1.0 } else { -1.0 };
                                     dist = inv_enter.y.abs();
                                 } else {
-                                    normal.z = if inv_enter.z < 0.0 { 1.0 } else { -1.0 };
+                                    normal.z = if inv_exit.z < 0.0 { 1.0 } else { -1.0 };
                                     dist = inv_enter.z.abs();
                                 }
                                 collisions.push(CollisionInfo {
@@ -184,21 +191,15 @@ pub fn aabb_vs_world(
 }
 
 #[inline]
-fn is_inside_aabb(pos: Vec3A, aabb: &Aabb) -> bool {
-    let min = aabb.min();
-    let max = aabb.max();
-    return pos.x >= min.x
-        && pos.x <= max.x
-        && pos.y >= min.x
-        && pos.y <= max.y
-        && pos.z >= min.z
-        && pos.z <= max.z;
-}
-
-#[inline]
 fn aabbs_intersecting(a: &Aabb, b: &Aabb) -> bool {
-    return is_inside_aabb(a.min(), b)
-        || is_inside_aabb(a.max(), b)
-        || is_inside_aabb(b.min(), a)
-        || is_inside_aabb(b.max(), a);
+    let amin = a.min();
+    let amax = a.max();
+    let bmin = b.min();
+    let bmax = b.max();
+    return !(amin.x >= bmax.x
+        || bmin.x >= amax.x
+        || amin.y >= bmax.y
+        || bmin.y >= amax.y
+        || amin.z >= bmax.z
+        || bmin.z >= amax.z);
 }
