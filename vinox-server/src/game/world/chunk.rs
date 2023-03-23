@@ -115,7 +115,7 @@ pub fn destroy_chunks(
 ) {
     for chunk in remove_chunks.iter() {
         for mut sent_chunks in load_points.iter_mut() {
-            sent_chunks.chunks.remove(&*chunk);
+            sent_chunks.chunks.remove(chunk);
         }
         commands
             .entity(current_chunks.remove_entity(*chunk).unwrap())
@@ -148,7 +148,7 @@ pub fn unsend_chunks(
     for (load_point, mut sent_chunks) in load_points.iter_mut() {
         for chunk in chunks.iter() {
             if !load_point.is_in_radius(**chunk, &view_radius) {
-                sent_chunks.chunks.remove(&*chunk);
+                sent_chunks.chunks.remove(chunk);
             } else {
                 continue;
             }
@@ -201,7 +201,7 @@ pub fn process_queue(
     }
     chunk_queue.create.clear();
     while let Ok(chunk) = chunk_channel.rx.try_recv() {
-        let chunk_pos = chunk.1.clone();
+        let chunk_pos = chunk.1;
 
         chunks_to_save.push((chunk_pos, chunk.0.to_raw()));
         commands

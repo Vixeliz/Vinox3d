@@ -11,15 +11,15 @@ pub fn block_geo() -> Option<BlockGeo> {
         if let Ok(ron_string) = fs::read_to_string(final_path) {
             let ron_result = ron::from_str::<GeometryDescriptor>(ron_string.as_str());
             if let Ok(block) = ron_result {
-                return Some(block.element);
+                Some(block.element)
             } else {
-                return None;
+                None
             }
         } else {
-            return None;
+            None
         }
     } else {
-        return None;
+        None
     }
 }
 

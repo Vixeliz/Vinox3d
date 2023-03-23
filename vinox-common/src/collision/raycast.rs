@@ -3,9 +3,8 @@ use bevy::prelude::*;
 use crate::world::chunks::{
     ecs::CurrentChunks,
     positions::{world_to_global_voxel, world_to_voxel, ChunkPos},
-    storage::{BlockTable, ChunkData, RawChunk, VoxelVisibility},
+    storage::{BlockTable, ChunkData},
 };
-use ndshape::ConstShape;
 // Takes in absolute world positions returns a chunk pos and a voxel pos for whatever face it hits and a normal
 pub fn raycast_world(
     origin: Vec3,

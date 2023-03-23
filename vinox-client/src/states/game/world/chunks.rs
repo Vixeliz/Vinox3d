@@ -6,7 +6,7 @@ use vinox_common::world::chunks::{
     ecs::{CurrentChunks, RemoveChunk, SimulationRadius, ViewRadius},
     positions::{circle_points, world_to_chunk, ChunkPos},
     storage::{
-        BlockData, BlockTable, ChunkData, RawChunk, VoxelVisibility, CHUNK_SIZE, CHUNK_SIZE_ARR,
+        BlockData, BlockTable, ChunkData, RawChunk, CHUNK_SIZE, CHUNK_SIZE_ARR,
         HORIZONTAL_DISTANCE, VERTICAL_DISTANCE,
     },
 };
@@ -141,15 +141,15 @@ pub fn unload_chunks(
                 Duration::from_secs(1),
                 TransformPositionLens {
                     end: Vec3::new(
-                        (chunk.x as i32 * (CHUNK_SIZE) as i32) as f32,
-                        ((chunk.y as i32 * (CHUNK_SIZE) as i32) as f32) - CHUNK_SIZE as f32,
-                        (chunk.z as i32 * (CHUNK_SIZE) as i32) as f32,
+                        (chunk.x * (CHUNK_SIZE) as i32) as f32,
+                        ((chunk.y * (CHUNK_SIZE) as i32) as f32) - CHUNK_SIZE as f32,
+                        (chunk.z * (CHUNK_SIZE) as i32) as f32,
                     ),
 
                     start: Vec3::new(
-                        (chunk.x as i32 * (CHUNK_SIZE) as i32) as f32,
-                        (chunk.y as i32 * (CHUNK_SIZE) as i32) as f32,
-                        (chunk.z as i32 * (CHUNK_SIZE) as i32) as f32,
+                        (chunk.x * (CHUNK_SIZE) as i32) as f32,
+                        (chunk.y * (CHUNK_SIZE) as i32) as f32,
+                        (chunk.z * (CHUNK_SIZE) as i32) as f32,
                     ),
                 },
             )

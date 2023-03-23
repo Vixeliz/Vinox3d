@@ -453,12 +453,10 @@ pub fn interact(
                             if mouse_right {
                                 if item_data.unwrap_or_default().stack_size == 1 {
                                     inventory.hotbar[*cur_bar][*cur_item] = None;
-                                } else {
-                                    if let Some(item) =
-                                        inventory.hotbar[*cur_bar][*cur_item].as_mut()
-                                    {
-                                        item.stack_size -= 1;
-                                    }
+                                } else if let Some(item) =
+                                    inventory.hotbar[*cur_bar][*cur_item].as_mut()
+                                {
+                                    item.stack_size -= 1;
                                 }
 
                                 if (point.x <= player_transform.translation.x - 0.5
@@ -774,7 +772,7 @@ pub fn interact(
                                     },
                                 );
 
-                                match voxel_pos.x as u32 {
+                                match voxel_pos.x {
                                     0 => {
                                         if let Some(neighbor_chunk) = current_chunks
                                             .get_entity(ChunkPos(*chunk_pos + IVec3::new(-1, 0, 0)))
@@ -793,7 +791,7 @@ pub fn interact(
                                     }
                                     _ => {}
                                 }
-                                match voxel_pos.y as u32 {
+                                match voxel_pos.y {
                                     0 => {
                                         if let Some(neighbor_chunk) = current_chunks
                                             .get_entity(ChunkPos(*chunk_pos + IVec3::new(0, -1, 0)))
@@ -812,7 +810,7 @@ pub fn interact(
                                     }
                                     _ => {}
                                 }
-                                match voxel_pos.z as u32 {
+                                match voxel_pos.z {
                                     0 => {
                                         if let Some(neighbor_chunk) = current_chunks
                                             .get_entity(ChunkPos(*chunk_pos + IVec3::new(0, 0, -1)))

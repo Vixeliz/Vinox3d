@@ -2,9 +2,7 @@ use std::collections::HashMap;
 
 use bevy::prelude::*;
 
-use super::{positions::ChunkPos, storage::Storage};
-
-// use super::storage::RawChunk;
+use super::positions::ChunkPos;
 
 #[derive(Component, Default)]
 pub struct RemoveChunk;
@@ -13,54 +11,6 @@ pub struct RemoveChunk;
 pub struct CurrentChunks {
     pub chunks: HashMap<ChunkPos, Entity>,
 }
-
-// #[derive(Component, Clone, Deref, DerefMut)]
-// pub struct ChunkPos(pub IVec3);
-
-// impl ChunkPos {
-//     pub fn new(x: i32, y: i32, z: i32) -> Self {
-//         Self(IVec3::new(x, y, z))
-//     }
-
-//     pub fn neighbors(&self) -> Vec<ChunkPos> {
-//         vec![
-//             ChunkPos::new(self.x - 1, self.y - 1, self.z - 1),
-//             ChunkPos::new(self.x - 1, self.y - 1, self.z),
-//             ChunkPos::new(self.x - 1, self.y - 1, self.z + 1),
-//             ChunkPos::new(self.x - 1, self.y, self.z - 1),
-//             ChunkPos::new(self.x - 1, self.y, self.z),
-//             ChunkPos::new(self.x - 1, self.y, self.z + 1),
-//             ChunkPos::new(self.x - 1, self.y + 1, self.z - 1),
-//             ChunkPos::new(self.x - 1, self.y + 1, self.z),
-//             ChunkPos::new(self.x - 1, self.y + 1, self.z + 1),
-//             ChunkPos::new(self.x, self.y - 1, self.z - 1),
-//             ChunkPos::new(self.x, self.y - 1, self.z),
-//             ChunkPos::new(self.x, self.y - 1, self.z + 1),
-//             ChunkPos::new(self.x, self.y, self.z - 1),
-//             ChunkPos::new(self.x, self.y, self.z + 1),
-//             ChunkPos::new(self.x, self.y + 1, self.z - 1),
-//             ChunkPos::new(self.x, self.y + 1, self.z),
-//             ChunkPos::new(self.x, self.y + 1, self.z + 1),
-//             ChunkPos::new(self.x + 1, self.y - 1, self.z - 1),
-//             ChunkPos::new(self.x + 1, self.y - 1, self.z),
-//             ChunkPos::new(self.x + 1, self.y - 1, self.z + 1),
-//             ChunkPos::new(self.x + 1, self.y, self.z - 1),
-//             ChunkPos::new(self.x + 1, self.y, self.z),
-//             ChunkPos::new(self.x + 1, self.y, self.z + 1),
-//             ChunkPos::new(self.x + 1, self.y + 1, self.z - 1),
-//             ChunkPos::new(self.x + 1, self.y + 1, self.z),
-//             ChunkPos::new(self.x + 1, self.y + 1, self.z + 1),
-//         ]
-//     }
-// }
-
-// #[derive(Component)]
-// pub struct ChunkComp {
-//     pub pos: ChunkPos,
-//     pub chunk_data: Storage,
-//     pub entities: Vec<Entity>,
-//     pub saved_entities: Vec<String>,
-// }
 
 impl CurrentChunks {
     pub fn insert_entity(&mut self, pos: ChunkPos, entity: Entity) {

@@ -20,13 +20,11 @@ use serde_big_array::Array;
 use std::{ops::Deref, time::Duration};
 use tokio::sync::mpsc::{Receiver, Sender};
 use vinox_common::{
-    storage::{blocks::descriptor::BlockDescriptor, geometry::descriptor::GeometryDescriptor},
+    storage::geometry::descriptor::GeometryDescriptor,
     world::chunks::{
         ecs::CurrentChunks,
         positions::{voxel_to_world, world_to_global_voxel, ChunkPos},
-        storage::{
-            self, BlockTable, ChunkData, RawChunk, RenderedBlockData, VoxelVisibility, CHUNK_SIZE,
-        },
+        storage::{self, BlockTable, ChunkData, RenderedBlockData, VoxelVisibility, CHUNK_SIZE},
     },
 };
 
@@ -126,10 +124,8 @@ impl QuadGroups {
     pub fn iter_with_ao<'a>(
         &'a self,
         chunk: &'a ChunkBoundary,
-        block_table: &'a BlockTable,
     ) -> impl Iterator<Item = FaceWithAO<'a>> {
-        self.iter()
-            .map(|face| FaceWithAO::new(face, chunk, block_table))
+        self.iter().map(|face| FaceWithAO::new(face, chunk))
     }
 
     pub fn clear(&mut self) {
@@ -137,7 +133,7 @@ impl QuadGroups {
     }
 }
 
-pub fn face_aos(face: &Face, chunk: &ChunkBoundary, block_table: &BlockTable) -> [u32; 4] {
+pub fn face_aos(face: &Face, chunk: &ChunkBoundary) -> [u32; 4] {
     let [x, y, z] = face.voxel();
     // let (x, y, z) = (x as u32, y as u32, z as u32);
 
@@ -211,8 +207,8 @@ pub struct FaceWithAO<'a> {
 }
 
 impl<'a> FaceWithAO<'a> {
-    pub fn new(face: Face<'a>, chunk: &ChunkBoundary, block_table: &BlockTable) -> Self {
-        let aos = face_aos(&face, chunk, block_table);
+    pub fn new(face: Face<'a>, chunk: &ChunkBoundary) -> Self {
+        let aos = face_aos(&face, chunk);
         Self { face, aos }
     }
 
@@ -641,17 +637,10 @@ impl Default for MeshChannel {
 }
 
 // Possibly have this just fully generate the mesh
-pub fn generate_mesh(
-    chunk: &ChunkBoundary,
-    block_table: &BlockTable,
-    solid_pass: bool,
-    geometry_table: &GeometryTable,
-    buffer: &mut QuadGroups,
-) {
+pub fn generate_mesh(chunk: &ChunkBoundary, solid_pass: bool, buffer: &mut QuadGroups) {
     for z in 1..ChunkBoundary::edge() - 1 {
         for y in 1..ChunkBoundary::edge() - 1 {
             for x in 1..ChunkBoundary::edge() - 1 {
-                // let (x, y, z) = (x as u32, y as u32, z as u32);
                 let voxel = chunk.voxels()[ChunkBoundary::linearize(x, y, z)].clone();
                 match voxel.visibility {
                     EMPTY => continue,
@@ -668,7 +657,6 @@ pub fn generate_mesh(
                         let element = voxel.geo.clone();
                         for (cube_num, cube) in element.cubes.into_iter().enumerate() {
                             for (i, neighbor) in neighbor_block.clone().iter().enumerate() {
-                                let neighbor_geometry = neighbor_block[i].clone().geo;
                                 let culled = cube.cull[i];
                                 if cube.discard[i] {
                                     continue;
@@ -762,7 +750,7 @@ pub fn generate_mesh(
 
                                 if generate {
                                     buffer.groups[i].push(Quad {
-                                        voxel: [x as usize, y as usize, z as usize],
+                                        voxel: [x, y, z],
                                         start: (origin_one, origin_two, self_start),
                                         end: (end_one, end_two, self_end),
                                         cube: cube_num,
@@ -782,51 +770,20 @@ pub fn generate_mesh(
 
 fn full_mesh(
     raw_chunk: &ChunkBoundary,
-    block_table: &BlockTable,
-    geo_table: &GeometryTable,
     loadable_assets: &LoadableAssets,
     texture_atlas: &TextureAtlas,
     chunk_pos: IVec3,
 ) -> MeshedChunk {
     let mut buffer = QuadGroups::default();
-    generate_mesh(raw_chunk, block_table, true, geo_table, &mut buffer);
+    generate_mesh(raw_chunk, true, &mut buffer);
     let mut positions = Vec::new();
     let mut indices = Vec::new();
     let mut normals = Vec::new();
     let mut uvs = Vec::new();
     let mut ao = Vec::new();
-    for face in buffer.iter_with_ao(raw_chunk, block_table) {
+    for face in buffer.iter_with_ao(raw_chunk) {
         indices.extend_from_slice(&face.indices(positions.len() as u32));
-        // let geo = geo_table
-        //     .get(
-        //         &raw_chunk
-        //             .get_descriptor(
-        //                 face.voxel()[0] as u32,
-        //                 face.voxel()[1] as u32,
-        //                 face.voxel()[2] as u32,
-        //                 block_table,
-        //             )
-        //             .clone()
-        //             .geometry
-        //             .unwrap_or_default()
-        //             .get_geo_namespace(),
-        //     )
-        //     .unwrap_or(geo_table.get("vinox:block").unwrap());
-
-        // let vox_data = raw_chunk
-        //     .get_block(UVec3::new(
-        //         face.voxel()[0] as u32,
-        //         face.voxel()[1] as u32,
-        //         face.voxel()[2] as u32,
-        //     ))
-        //     .unwrap();
-
-        positions.extend_from_slice(&face.positions(
-            1.0,
-            // geo,
-            // vox_data.direction.clone(),
-            // vox_data.top,
-        )); // Voxel size is 1m
+        positions.extend_from_slice(&face.positions(1.0)); // Voxel size is 1m
         normals.extend_from_slice(&face.normals());
         ao.extend_from_slice(&face.aos());
         let matched_index = match (face.side.axis, face.side.positive) {
@@ -838,25 +795,13 @@ fn full_mesh(
             (Axis::Z, true) => 4,
         };
 
-        // let vox_desc = raw_chunk.get_data(
-        //     ChunkBoundary::linearize(UVec3::new(
-        //         face.voxel()[0] as u32,
-        //         face.voxel()[1] as u32,
-        //         face.voxel()[2] as u32,
-        //     )),
-        //     block_table,
-        // );
-
         uvs.extend_from_slice(
             &face.uvs(
                 false,
                 false,
-                // geo,
                 texture_atlas,
                 matched_index,
                 loadable_assets,
-                // &vox_data,
-                // &vox_desc,
                 world_to_global_voxel(Vec3::new(
                     face.voxel()[0] as f32,
                     face.voxel()[1] as f32,
@@ -876,43 +821,16 @@ fn full_mesh(
     mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, final_ao);
     buffer.clear();
     //Transparent Mesh
-    generate_mesh(raw_chunk, block_table, false, geo_table, &mut buffer);
+    generate_mesh(raw_chunk, false, &mut buffer);
     let mut ao = Vec::new();
     let mut positions = Vec::new();
     let mut indices = Vec::new();
     let mut normals = Vec::new();
     let mut uvs = Vec::new();
-    for face in buffer.iter_with_ao(raw_chunk, block_table) {
+    for face in buffer.iter_with_ao(raw_chunk) {
         indices.extend_from_slice(&face.indices(positions.len() as u32));
-        // let geo = geo_table
-        //     .get(
-        //         &raw_chunk
-        //             .get_descriptor(
-        //                 face.voxel()[0] as u32,
-        //                 face.voxel()[1] as u32,
-        //                 face.voxel()[2] as u32,
-        //                 block_table,
-        //             )
-        //             .clone()
-        //             .geometry
-        //             .unwrap_or_default()
-        //             .get_geo_namespace(),
-        //     )
-        //     .unwrap_or(geo_table.get("vinox:block").unwrap());
-        // let vox_data = raw_chunk
-        //     .get_block(UVec3::new(
-        //         face.voxel()[0] as u32,
-        //         face.voxel()[1] as u32,
-        //         face.voxel()[2] as u32,
-        //     ))
-        //     .unwrap();
 
-        positions.extend_from_slice(&face.positions(
-            1.0,
-            // geo,
-            // vox_data.direction.clone(),
-            // vox_data.top,
-        )); // Voxel size is 1m
+        positions.extend_from_slice(&face.positions(1.0)); // Voxel size is 1m
         normals.extend_from_slice(&face.normals());
         ao.extend_from_slice(&face.aos());
         let matched_index = match (face.side.axis, face.side.positive) {
@@ -924,25 +842,13 @@ fn full_mesh(
             (Axis::Z, true) => 4,
         };
 
-        // let vox_desc = raw_chunk.get_data(
-        //     ChunkBoundary::linearize(UVec3::new(
-        //         face.voxel()[0] as u32,
-        //         face.voxel()[1] as u32,
-        //         face.voxel()[2] as u32,
-        //     )),
-        //     block_table,
-        // );
-
         uvs.extend_from_slice(
             &face.uvs(
                 false,
                 false,
-                // geo,
                 texture_atlas,
                 matched_index,
                 loadable_assets,
-                // &vox_data,
-                // &vox_desc,
                 world_to_global_voxel(Vec3::new(
                     face.voxel()[0] as f32,
                     face.voxel()[1] as f32,
@@ -998,8 +904,6 @@ pub fn process_priority_queue(
                 cloned_sender
                     .send(full_mesh(
                         &raw_chunk,
-                        &cloned_table,
-                        &cloned_geo_table,
                         &cloned_assets,
                         &clone_atlas,
                         chunk_pos,
@@ -1015,9 +919,9 @@ pub fn process_priority_queue(
             commands.entity(chunk_entity).despawn_descendants();
 
             let chunk_pos = Vec3::new(
-                (chunk.pos.x as i32 * (CHUNK_SIZE) as i32) as f32,
-                (chunk.pos.y as i32 * (CHUNK_SIZE) as i32) as f32,
-                (chunk.pos.z as i32 * (CHUNK_SIZE) as i32) as f32,
+                (chunk.pos.x * (CHUNK_SIZE) as i32) as f32,
+                (chunk.pos.y * (CHUNK_SIZE) as i32) as f32,
+                (chunk.pos.z * (CHUNK_SIZE) as i32) as f32,
             );
 
             let trans_entity = commands
@@ -1084,7 +988,7 @@ pub fn priority_mesh(
     mut chunk_queue: ResMut<MeshQueue>,
 ) {
     for chunk in chunks.iter() {
-        if let Some(neighbors) = chunk_manager.get_neighbors(chunk.1.clone()) {
+        if let Some(neighbors) = chunk_manager.get_neighbors(*chunk.1) {
             if let Ok(neighbors) = neighbors.try_into() {
                 chunk_queue
                     .priority
@@ -1108,7 +1012,6 @@ pub fn build_mesh(
     player_chunk: Res<PlayerChunk>,
     options: Res<GameOptions>,
 ) {
-    // let mut rng = rand::thread_rng();
     for (count, chunk) in chunks
         .iter()
         .sorted_unstable_by_key(|key| {
@@ -1119,15 +1022,8 @@ pub fn build_mesh(
         if count > options.meshes_frame {
             return;
         }
-        // for chunk in chunks
-        //     .iter()
-        //     .choose_multiple(&mut rng, options.meshes_frame)
-        // {
-        if chunk_manager
-            .current_chunks
-            .all_neighbors_exist(chunk.1.clone())
-        {
-            if let Some(neighbors) = chunk_manager.get_neighbors(chunk.1.clone()) {
+        if chunk_manager.current_chunks.all_neighbors_exist(*chunk.1) {
+            if let Some(neighbors) = chunk_manager.get_neighbors(*chunk.1) {
                 if let Ok(neighbors) = neighbors.try_into() {
                     chunk_queue
                         .mesh
@@ -1233,8 +1129,6 @@ pub fn process_queue(
                 cloned_sender
                     .send(full_mesh(
                         &raw_chunk,
-                        &cloned_table,
-                        &cloned_geo_table,
                         &cloned_assets,
                         &clone_atlas,
                         chunk_pos,
@@ -1249,9 +1143,9 @@ pub fn process_queue(
         if let Some(chunk_entity) = current_chunks.get_entity(chunk.pos) {
             commands.entity(chunk_entity).despawn_descendants();
             let chunk_pos = Vec3::new(
-                (chunk.pos.x as i32 * (CHUNK_SIZE) as i32) as f32,
-                (chunk.pos.y as i32 * (CHUNK_SIZE) as i32) as f32,
-                (chunk.pos.z as i32 * (CHUNK_SIZE) as i32) as f32,
+                (chunk.pos.x * (CHUNK_SIZE) as i32) as f32,
+                (chunk.pos.y * (CHUNK_SIZE) as i32) as f32,
+                (chunk.pos.z * (CHUNK_SIZE) as i32) as f32,
             );
             let tween = Tween::new(
                 EaseFunction::QuadraticInOut,

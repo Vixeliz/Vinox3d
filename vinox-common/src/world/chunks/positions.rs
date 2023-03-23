@@ -1,9 +1,6 @@
 use bevy::prelude::*;
 
-use super::{
-    ecs::ViewRadius,
-    storage::{ChunkData, CHUNK_SIZE},
-};
+use super::{ecs::ViewRadius, storage::CHUNK_SIZE};
 
 pub fn circle_points(view_radius: &ViewRadius) -> Vec<IVec2> {
     let center = IVec2::new(0, 0);

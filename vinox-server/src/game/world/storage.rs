@@ -66,9 +66,9 @@ pub fn save_chunks(chunks: &ChunksToSave, database: &Connection) {
                 .execute(
                     "REPLACE INTO blocks (posx, posy, posz, data) values (?1, ?2, ?3, ?4)",
                     params![
-                        &(chunk_pos.x as i32),
-                        &(chunk_pos.y as i32),
-                        &(chunk_pos.z as i32),
+                        &chunk_pos.x,
+                        &chunk_pos.y,
+                        &chunk_pos.z,
                         &output.get_ref().clone(),
                     ],
                 )
@@ -114,9 +114,9 @@ pub fn load_chunk(chunk_pos: ChunkPos, database: &Connection) -> Option<RawChunk
     if let Ok(mut stmt) = stmt {
         let chunk_result: Result<Vec<u8>, _> = stmt.query_row(
             &[
-                (":posx", &(chunk_pos.x as i32)),
-                (":posy", &(chunk_pos.y as i32)),
-                (":posz", &(chunk_pos.z as i32)),
+                (":posx", &chunk_pos.x),
+                (":posy", &chunk_pos.y),
+                (":posz", &chunk_pos.z),
             ],
             |row| Ok(row.get(3).unwrap()),
         );
