@@ -939,19 +939,21 @@ pub fn cursor_grab_system(
 ) {
     let mut window = windows.single_mut();
     if let Ok((mut inventory, action_state)) = inventory.get_single_mut() {
-        if action_state.just_pressed(GameActions::Inventory) && !**in_ui {
-            let window_center: Option<Vec2> =
-                Some(Vec2::new(window.width() / 2.0, window.height() / 2.0));
-            window.set_cursor_position(window_center);
-            if window.cursor.grab_mode == CursorGrabMode::None {
+        if action_state.just_pressed(GameActions::Inventory) {
+            if window.cursor.grab_mode == CursorGrabMode::None && inventory.open {
                 window.cursor.grab_mode = CursorGrabMode::Locked;
                 window.cursor.visible = false;
-            } else {
+                inventory.open = !inventory.open;
+                **in_ui = !**in_ui;
+            } else if !**in_ui {
+                let window_center: Option<Vec2> =
+                    Some(Vec2::new(window.width() / 2.0, window.height() / 2.0));
+                window.set_cursor_position(window_center);
                 window.cursor.grab_mode = CursorGrabMode::None;
                 window.cursor.visible = true;
+                inventory.open = !inventory.open;
+                **in_ui = !**in_ui;
             }
-            inventory.open = !inventory.open;
-            **in_ui = !**in_ui;
         }
 
         if btn.just_pressed(MouseButton::Left) && !in_ui.0 {
