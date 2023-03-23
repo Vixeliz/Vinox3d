@@ -155,7 +155,7 @@ pub fn movement_input(
 
                 if action_state.pressed(GameActions::Jump) && *stationary_frames > 2 {
                     *stationary_frames = 0;
-                    fps_camera.velocity.y = 12.0;
+                    fps_camera.velocity.y = 14.0;
                 }
             }
 
