@@ -25,9 +25,9 @@ pub fn add_grass(
     >,
     pos: IVec3,
 ) {
-    for x in 0..=CHUNK_SIZE - 1 {
-        for z in 0..=CHUNK_SIZE - 1 {
-            for y in 0..=CHUNK_SIZE - 1 {
+    for z in 0..=CHUNK_SIZE - 1 {
+        for y in 0..=CHUNK_SIZE - 1 {
+            for x in 0..=CHUNK_SIZE - 1 {
                 if y == CHUNK_SIZE - 1 {
                     let full_x = x as i32 + ((CHUNK_SIZE as i32) * pos.x);
                     let full_z = z as i32 + ((CHUNK_SIZE as i32) * pos.z);

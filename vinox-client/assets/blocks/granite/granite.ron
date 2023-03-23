@@ -1,0 +1,21 @@
+BlockDescriptor(
+    namespace: "vinox",
+    name: "granite",
+    textures: Some({
+    Some("front"): Some("granite.png"),
+    }),
+    break_tool: "pickaxe",
+    visibility: Some(Opaque), 
+    has_item: Some(true),
+    geometry: Some(Block),
+    auto_geo: Some([
+        Stairs,
+        Custom("vinox:pole"),
+        Slab,
+        BorderedBlock,
+        Flat,
+        Fence,
+        Cross
+    ]),
+    has_direction: Some(true)
+)
