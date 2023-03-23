@@ -847,22 +847,41 @@ pub fn collision_movement_system(
 
             let mut player_transform = transforms.get_mut(entity_player).unwrap();
             fps_camera.velocity.y -= 35.0 * time.delta().as_secs_f32().clamp(0.0, 0.1);
-            let mut movement_left = fps_camera.velocity * time.delta().as_secs_f32();
+            let mut movement = fps_camera.velocity * time.delta().as_secs_f32();
+            let mut v_after = movement;
+            let mut max_move = v_after.abs();
             let aabb_collisions = aabb_vs_world(
                 player_aabb.clone(),
                 &mut chunks,
-                movement_left,
+                v_after,
                 &current_chunks,
                 &block_table,
             );
             if let Some(collisions_list) = aabb_collisions {
+                let margin: f32 = 0.01;
                 for col in collisions_list {
-                    movement_left -= movement_left.dot(col.normal) * col.normal;
+                    // movement_left -= movement_left.dot(col.normal) * col.normal;
+                    let margin_dist = col.dist - margin;
+                    if col.normal.x != 0.0 {
+                        max_move.x = f32::min(max_move.x, margin_dist);
+                        v_after.x = 0.0;
+                    } else if col.normal.y != 0.0 {
+                        max_move.y = f32::min(max_move.y, margin_dist);
+                        v_after.y = 0.0;
+                    } else if col.normal.z != 0.0 {
+                        max_move.z = f32::min(max_move.z, margin_dist);
+                        v_after.z = 0.0;
+                    }
                 }
             }
-            fps_camera.velocity = movement_left / time.delta().as_secs_f32();
+            fps_camera.velocity = v_after / time.delta().as_secs_f32();
             set_pos(
-                player_transform.translation + movement_left,
+                player_transform.translation
+                    + Vec3::new(
+                        max_move.x * movement.x.signum(),
+                        max_move.y * movement.y.signum(),
+                        max_move.z * movement.z.signum(),
+                    ),
                 &mut player_aabb,
                 &mut player_transform,
             );

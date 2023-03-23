@@ -18,6 +18,7 @@ use crate::{
 pub struct CollisionInfo {
     pub voxel_pos: IVec3,
     pub normal: Vec3,
+    pub dist: f32,
 }
 
 pub fn aabb_vs_world(
@@ -52,7 +53,7 @@ pub fn aabb_vs_world(
                                 let block_aabb = Aabb {
                                     center: (Vec3A::from(voxel_pos.as_vec3())
                                         + Vec3A::new(0.5, 0.5, 0.5)),
-                                    half_extents: Vec3::new(0.5, 0.5, 0.5).into(),
+                                    half_extents: Vec3A::new(0.5, 0.5, 0.5),
                                 };
 
                                 let mut inv_enter = Vec3::ZERO;
@@ -133,14 +134,22 @@ pub fn aabb_vs_world(
                                     continue;
                                 } else {
                                     // This might be a collision this frame
+                                    let dist: f32;
                                     if enter_time.0 == enter.x {
-                                        normal.x = if inv_enter.x < 0.0 { 1.0 } else { -1.0 }
+                                        normal.x = if inv_enter.x < 0.0 { 1.0 } else { -1.0 };
+                                        dist = inv_enter.x.abs();
                                     } else if enter_time.0 == enter.y {
-                                        normal.y = if inv_enter.y < 0.0 { 1.0 } else { -1.0 }
-                                    } else if enter_time.0 == enter.z {
-                                        normal.z = if inv_enter.z < 0.0 { 1.0 } else { -1.0 }
+                                        normal.y = if inv_enter.y < 0.0 { 1.0 } else { -1.0 };
+                                        dist = inv_enter.y.abs();
+                                    } else {
+                                        normal.z = if inv_enter.z < 0.0 { 1.0 } else { -1.0 };
+                                        dist = inv_enter.z.abs();
                                     }
-                                    collisions.push(CollisionInfo { voxel_pos, normal });
+                                    collisions.push(CollisionInfo {
+                                        voxel_pos,
+                                        normal,
+                                        dist,
+                                    });
                                 }
                             }
                         }
@@ -151,7 +160,16 @@ pub fn aabb_vs_world(
     }
     // Remove all detected collisions that are on a face blocked by another block
     collisions.retain(|col| {
-        let (chunk_pos, voxel_cpos) = world_to_voxel(col.voxel_pos.as_vec3() + col.normal);
+        let blocked_pos = col.voxel_pos.as_vec3() + Vec3::new(0.5, 0.5, 0.5) + col.normal;
+        let block_aabb = Aabb {
+            center: Vec3A::from(blocked_pos),
+            half_extents: Vec3A::new(0.5, 0.5, 0.5),
+        };
+        // If the "blocked pos" is inside the player, don't count it as blocked
+        if aabbs_intersecting(&aabb, &block_aabb) {
+            return true;
+        }
+        let (chunk_pos, voxel_cpos) = world_to_voxel(blocked_pos);
         if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos) {
             if let Ok(chunk) = chunks.get(chunk_entity) {
                 let block_data: BlockDescriptor = chunk
@@ -168,4 +186,24 @@ pub fn aabb_vs_world(
         return Some(collisions);
     }
     None
+}
+
+#[inline]
+fn is_inside_aabb(pos: Vec3A, aabb: &Aabb) -> bool {
+    let min = aabb.min();
+    let max = aabb.max();
+    return pos.x >= min.x
+        && pos.x <= max.x
+        && pos.y >= min.x
+        && pos.y <= max.y
+        && pos.z >= min.z
+        && pos.z <= max.z;
+}
+
+#[inline]
+fn aabbs_intersecting(a: &Aabb, b: &Aabb) -> bool {
+    return is_inside_aabb(a.min(), b)
+        || is_inside_aabb(a.max(), b)
+        || is_inside_aabb(b.min(), a)
+        || is_inside_aabb(b.max(), a);
 }
