@@ -47,7 +47,7 @@ pub fn aabb_vs_world(
                             check_block_cpos.z as usize,
                         );
                         let voxel_pos = voxel_to_global_voxel(check_block_cpos, check_chunk_pos);
-                        if block_data.is_empty(block_table) {
+                        if !block_data.is_empty(block_table) {
                             let block_aabb = Aabb {
                                 center: (Vec3A::from(voxel_pos.as_vec3())
                                     + Vec3A::new(0.5, 0.5, 0.5)),
