@@ -373,6 +373,7 @@ pub fn get_rend(
     geo_table: &GeometryTable,
     block_table: &BlockTable,
 ) -> RenderedBlockData {
+    // return RenderedBlockData::default();
     let voxel = chunk.get(x, y, z);
     let identifier = chunk.get_identifier(x, y, z);
     let block_data = block_table.get(&identifier).unwrap();
@@ -397,7 +398,7 @@ pub fn get_rend(
         direction: voxel.direction,
         top: voxel.top,
         geo: geo_data.unwrap().element.clone(),
-        visibility: voxel.visibility,
+        visibility: block_data.visibility.unwrap_or_default(),
         has_direction: block_data.has_direction.unwrap_or_else(|| false),
         exclusive_direction: block_data.exclusive_direction.unwrap_or_else(|| false),
         tex_variance,

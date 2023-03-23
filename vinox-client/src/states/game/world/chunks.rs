@@ -208,7 +208,7 @@ pub fn receive_chunks(
             current_chunks.insert_entity(ChunkPos(evt.pos), chunk_id);
 
             // Don't mark chunks that won't create any blocks
-            if chunk_data.is_empty() {
+            if !chunk_data.is_empty(&block_table) {
                 commands.entity(chunk_id).insert(NeedsMesh);
             }
         }

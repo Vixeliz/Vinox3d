@@ -147,6 +147,6 @@ pub fn generate_chunk(pos: IVec3, seed: u32) -> RawChunk {
             }
         }
     }
-    // add_grass(&mut raw_chunk, &final_noise, pos);
+    add_grass(&mut raw_chunk, &final_noise, pos);
     raw_chunk.to_raw()
 }

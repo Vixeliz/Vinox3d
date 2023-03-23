@@ -53,7 +53,7 @@ pub fn raycast_world(
                         voxel_pos.y as usize,
                         voxel_pos.z as usize,
                     )
-                    .is_empty()
+                    .is_empty(block_table)
                 {
                     let toi = lastmax * direction.length();
                     return Some((ChunkPos(chunk_pos), voxel_pos, face, toi));

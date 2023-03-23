@@ -145,13 +145,20 @@ pub struct BlockData {
     pub growth_state: Option<GrowthState>,
     pub last_tick: Option<u64>,
     pub arbitary_data: Option<String>,
-    pub visibility: VoxelVisibility, //This is included in blockdata for convenience
     pub top: Option<bool>,
 }
 
 impl BlockData {
-    pub fn is_empty(&self) -> bool {
-        self.visibility == VoxelVisibility::Empty
+    pub fn is_empty(&self, block_table: &BlockTable) -> bool {
+        block_table
+            .get(&name_to_identifier(
+                self.namespace.clone(),
+                self.name.clone(),
+            ))
+            .unwrap()
+            .visibility
+            .unwrap_or_default()
+            == VoxelVisibility::Empty
     }
 }
 
@@ -160,7 +167,6 @@ impl Default for BlockData {
         BlockData {
             namespace: "vinox".to_string(),
             name: "air".to_string(),
-            visibility: VoxelVisibility::Empty,
             direction: None,
             container: None,
             growth_state: None,
@@ -773,8 +779,8 @@ impl ChunkData {
         }
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.is_uniform() && self.get(0, 0, 0).is_empty()
+    pub fn is_empty(&self, block_table: &BlockTable) -> bool {
+        self.is_uniform() && self.get(0, 0, 0).is_empty(block_table)
     }
 
     pub fn is_dirty(&self) -> bool {
