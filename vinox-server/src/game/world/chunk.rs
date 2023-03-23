@@ -55,12 +55,8 @@ impl<'w, 's> ChunkManager<'w, 's> {
         let mut chunks = Vec::new();
         for point in circle_points(&self.view_radius) {
             for y in -self.view_radius.vertical..=self.view_radius.vertical {
-                let pos = chunk_pos.as_ivec3() + IVec3::new(point.x, y, point.y);
-                chunks.push(ChunkPos {
-                    x: pos.x as usize,
-                    y: pos.y as usize,
-                    z: pos.z as usize,
-                });
+                let pos = *chunk_pos + IVec3::new(point.x, y, point.y);
+                chunks.push(ChunkPos(pos));
             }
         }
         // chunks
@@ -95,7 +91,7 @@ pub fn generate_chunks_world(
     database: Res<WorldDatabase>,
 ) {
     for point in load_points.iter() {
-        for pos in chunk_manager.get_chunk_positions(ChunkPos::from_ivec3(**point)) {
+        for pos in chunk_manager.get_chunk_positions(ChunkPos(**point)) {
             if chunk_manager.current_chunks.get_entity(pos).is_none() {
                 let data = database.connection.get().unwrap();
                 if let Some(chunk) = load_chunk(pos, &data) {
@@ -135,7 +131,7 @@ pub fn clear_unloaded_chunks(
 ) {
     for (chunk, entity) in chunks.iter() {
         for load_point in load_points.iter() {
-            if load_point.is_in_radius(chunk.as_ivec3(), &view_radius) {
+            if load_point.is_in_radius(**chunk, &view_radius) {
                 continue;
             } else {
                 commands.entity(entity).insert(RemoveChunk);
@@ -151,7 +147,7 @@ pub fn unsend_chunks(
 ) {
     for (load_point, mut sent_chunks) in load_points.iter_mut() {
         for chunk in chunks.iter() {
-            if !load_point.is_in_radius(chunk.as_ivec3(), &view_radius) {
+            if !load_point.is_in_radius(**chunk, &view_radius) {
                 sent_chunks.chunks.remove(&*chunk);
             } else {
                 continue;
@@ -195,7 +191,7 @@ pub fn process_queue(
             .spawn(async move {
                 cloned_sender
                     .send((
-                        ChunkData::from_raw(generate_chunk(chunk_pos.as_ivec3(), cloned_seed)),
+                        ChunkData::from_raw(generate_chunk(*chunk_pos, cloned_seed)),
                         chunk_pos,
                     ))
                     .await

@@ -23,7 +23,7 @@ use vinox_common::{
     storage::{blocks::descriptor::BlockDescriptor, geometry::descriptor::GeometryDescriptor},
     world::chunks::{
         ecs::CurrentChunks,
-        positions::{voxel_to_world, ChunkPos, VoxelPos},
+        positions::{voxel_to_world, world_to_global_voxel, ChunkPos},
         storage::{
             self, BlockTable, ChunkData, RawChunk, RenderedBlockData, VoxelVisibility, CHUNK_SIZE,
         },
@@ -857,11 +857,11 @@ fn full_mesh(
                 loadable_assets,
                 // &vox_data,
                 // &vox_desc,
-                VoxelPos::from_global_coords(
+                world_to_global_voxel(Vec3::new(
                     face.voxel()[0] as f32,
                     face.voxel()[1] as f32,
                     face.voxel()[2] as f32,
-                )
+                ))
                 .as_vec3()
                 .as_ivec3(),
             ),
@@ -943,11 +943,11 @@ fn full_mesh(
                 loadable_assets,
                 // &vox_data,
                 // &vox_desc,
-                VoxelPos::from_global_coords(
+                world_to_global_voxel(Vec3::new(
                     face.voxel()[0] as f32,
                     face.voxel()[1] as f32,
                     face.voxel()[2] as f32,
-                )
+                ))
                 .as_vec3()
                 .as_ivec3(),
             ),
@@ -962,7 +962,7 @@ fn full_mesh(
     MeshedChunk {
         chunk_mesh: mesh,
         transparent_mesh,
-        pos: ChunkPos::from_ivec3(chunk_pos),
+        pos: ChunkPos(chunk_pos),
     }
 }
 
@@ -1086,11 +1086,9 @@ pub fn priority_mesh(
     for chunk in chunks.iter() {
         if let Some(neighbors) = chunk_manager.get_neighbors(chunk.1.clone()) {
             if let Ok(neighbors) = neighbors.try_into() {
-                chunk_queue.priority.push((
-                    chunk.1.as_ivec3(),
-                    chunk.0.clone(),
-                    Box::new(Array(neighbors)),
-                ));
+                chunk_queue
+                    .priority
+                    .push((**chunk.1, chunk.0.clone(), Box::new(Array(neighbors))));
                 commands
                     .entity(chunk_manager.current_chunks.get_entity(*chunk.1).unwrap())
                     .remove::<PriorityMesh>();
@@ -1114,12 +1112,7 @@ pub fn build_mesh(
     for (count, chunk) in chunks
         .iter()
         .sorted_unstable_by_key(|key| {
-            FloatOrd(
-                key.1
-                    .as_ivec3()
-                    .as_vec3()
-                    .distance(player_chunk.chunk_pos.as_vec3()),
-            )
+            FloatOrd(key.1.as_vec3().distance(player_chunk.chunk_pos.as_vec3()))
         })
         .enumerate()
     {
@@ -1136,11 +1129,9 @@ pub fn build_mesh(
         {
             if let Some(neighbors) = chunk_manager.get_neighbors(chunk.1.clone()) {
                 if let Ok(neighbors) = neighbors.try_into() {
-                    chunk_queue.mesh.push((
-                        chunk.1.as_ivec3(),
-                        chunk.0.clone(),
-                        Box::new(Array(neighbors)),
-                    ));
+                    chunk_queue
+                        .mesh
+                        .push((**chunk.1, chunk.0.clone(), Box::new(Array(neighbors))));
 
                     commands
                         .entity(chunk_manager.current_chunks.get_entity(*chunk.1).unwrap())
@@ -1201,9 +1192,7 @@ pub fn priority_player(
     chunks: Query<&Handle<Mesh>>,
     mut commands: Commands,
 ) {
-    if let Some(chunk_entity) =
-        current_chunks.get_entity(ChunkPos::from_ivec3(player_chunk.chunk_pos))
-    {
+    if let Some(chunk_entity) = current_chunks.get_entity(ChunkPos(player_chunk.chunk_pos)) {
         if chunks.get(chunk_entity).is_err() {
             commands.entity(chunk_entity).insert(PriorityMesh);
         }
@@ -1277,7 +1266,6 @@ pub fn process_queue(
             let chunk_pos = if chunks.get(chunk_entity).is_err()
                 && chunk
                     .pos
-                    .as_ivec3()
                     .as_vec3()
                     .distance(player_chunk.chunk_pos.as_vec3())
                     > 4.0
@@ -1372,9 +1360,7 @@ pub fn sort_faces(
 ) {
     for evt in events.iter() {
         if let Ok(camera_transform) = camera_transform.get_single() {
-            if let Some(chunk_entity) =
-                current_chunks.get_entity(ChunkPos::from_ivec3(evt.chunk_pos))
-            {
+            if let Some(chunk_entity) = current_chunks.get_entity(ChunkPos(evt.chunk_pos)) {
                 if let Ok(children) = chunks.get(chunk_entity) {
                     if let Some(child_entity) = children.get(0) {
                         if let Ok(chunk_mesh_handle) = handles.get(*child_entity) {

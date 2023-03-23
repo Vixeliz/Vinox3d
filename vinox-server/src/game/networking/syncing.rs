@@ -8,7 +8,11 @@ use bevy_quinnet::server::*;
 use vinox_common::{
     ecs::bundles::{ClientName, Inventory, PlayerBundleBuilder},
     networking::protocol::{ClientMessage, NetworkedEntities, Player, ServerMessage},
-    world::chunks::{ecs::CurrentChunks, positions::ChunkPos, storage::ChunkData},
+    world::chunks::{
+        ecs::CurrentChunks,
+        positions::{world_to_chunk, ChunkPos},
+        storage::ChunkData,
+    },
 };
 use zstd::stream::copy_encode;
 
@@ -84,14 +88,7 @@ pub fn get_messages(
                         .insert(SentChunks {
                             chunks: FxHashSet::default(),
                         })
-                        .insert(LoadPoint(
-                            ChunkPos::from_global_coords(
-                                transform.translation.x,
-                                transform.translation.y,
-                                transform.translation.z,
-                            )
-                            .as_ivec3(),
-                        ))
+                        .insert(LoadPoint(world_to_chunk(transform.translation)))
                         .id();
                     lobby.players.insert(id, player_entity);
 
@@ -132,9 +129,7 @@ pub fn get_messages(
                     voxel_pos,
                     block_type,
                 } => {
-                    if let Some(chunk_entity) =
-                        current_chunks.get_entity(ChunkPos::from_ivec3(chunk_pos))
-                    {
+                    if let Some(chunk_entity) = current_chunks.get_entity(ChunkPos(chunk_pos)) {
                         if let Ok(mut chunk) = chunks.get_mut(chunk_entity) {
                             chunk.set(
                                 voxel_pos[0] as usize,
@@ -142,7 +137,7 @@ pub fn get_messages(
                                 voxel_pos[2] as usize,
                                 block_type.clone(),
                             );
-                            chunks_to_save.push((ChunkPos::from_ivec3(chunk_pos), chunk.to_raw()));
+                            chunks_to_save.push((ChunkPos(chunk_pos), chunk.to_raw()));
                             endpoint.try_broadcast_message(ServerMessage::SentBlock {
                                 chunk_pos,
                                 voxel_pos,
@@ -201,15 +196,11 @@ pub fn send_chunks(
     for client_id in endpoint.clients() {
         if let Some(player_entity) = lobby.players.get(&client_id) {
             if let Ok((player_transform, mut sent_chunks)) = players.get_mut(*player_entity) {
-                let chunk_pos = ChunkPos::from_global_coords(
-                    player_transform.translation.x,
-                    player_transform.translation.y,
-                    player_transform.translation.z,
-                );
-                let load_point = LoadPoint(chunk_pos.as_ivec3());
+                let chunk_pos = world_to_chunk(player_transform.translation);
+                let load_point = LoadPoint(chunk_pos);
                 commands.entity(*player_entity).insert(load_point.clone());
                 for chunk in chunk_manager
-                    .get_chunks_around_chunk(chunk_pos, &sent_chunks)
+                    .get_chunks_around_chunk(ChunkPos(chunk_pos), &sent_chunks)
                     .choose_multiple(&mut rng, **chunk_limit)
                 {
                     let raw_chunk = chunk.0.to_raw();
@@ -223,7 +214,7 @@ pub fn send_chunks(
                                 client_id,
                                 ServerMessage::LevelData {
                                     chunk_data: output.get_ref().clone(),
-                                    pos: chunk.1.as_ivec3(),
+                                    pos: *chunk.1,
                                 },
                             )
                             .is_ok()
