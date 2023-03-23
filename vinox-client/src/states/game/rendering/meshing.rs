@@ -1025,13 +1025,15 @@ pub fn build_mesh(
         if chunk_manager.current_chunks.all_neighbors_exist(*chunk.1) {
             if let Some(neighbors) = chunk_manager.get_neighbors(*chunk.1) {
                 if let Ok(neighbors) = neighbors.try_into() {
-                    chunk_queue
-                        .mesh
-                        .push((**chunk.1, chunk.0.clone(), Box::new(Array(neighbors))));
+                    if let Some(chunk_entity) = chunk_manager.current_chunks.get_entity(*chunk.1) {
+                        chunk_queue.mesh.push((
+                            **chunk.1,
+                            chunk.0.clone(),
+                            Box::new(Array(neighbors)),
+                        ));
 
-                    commands
-                        .entity(chunk_manager.current_chunks.get_entity(*chunk.1).unwrap())
-                        .remove::<NeedsMesh>();
+                        commands.entity(chunk_entity).remove::<NeedsMesh>();
+                    }
                 }
             }
         }

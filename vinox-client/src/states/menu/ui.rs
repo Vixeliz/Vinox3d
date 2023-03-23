@@ -4,7 +4,7 @@ use vinox_server::create_server;
 use bevy::{
     input::{keyboard::KeyboardInput, mouse::MouseButtonInput, ButtonState},
     prelude::*,
-    window::PrimaryWindow,
+    window::{PresentMode, PrimaryWindow},
 };
 use bevy_egui::{
     egui::{self, FontId, Rounding},
@@ -59,6 +59,7 @@ pub fn options(
     mut current_change: Local<Option<GameActions>>,
     mut keys: EventReader<KeyboardInput>,
     mut mouse_buttons: EventReader<MouseButtonInput>,
+    mut windows: Query<&mut Window>,
 ) {
     if **in_options {
         if let Some(current_action) = *current_change {
@@ -152,6 +153,20 @@ pub fn options(
                                 ui.label("Max meshes per frame: ");
                                 ui.add(egui::Slider::new(&mut options.meshes_frame, 64..=2048));
                             });
+                            ui.separator();
+                            ui.horizontal(|ui| {
+                                ui.label("Vsync: ");
+                                if ui.small_button(format!("{}", options.vsync)).clicked() {
+                                    options.vsync = !options.vsync;
+                                    let mut window = windows.single_mut();
+                                    window.present_mode = if options.vsync {
+                                        PresentMode::AutoVsync
+                                    } else {
+                                        PresentMode::AutoNoVsync
+                                    };
+                                }
+                            });
+                            ui.separator();
                         });
                 });
             });

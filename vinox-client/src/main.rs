@@ -1,7 +1,7 @@
 pub mod states;
 use bevy::{
+    diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
     pbr::wireframe::WireframePlugin,
-    // diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
     prelude::*,
     render::{
         settings::{WgpuFeatures, WgpuSettings},
@@ -65,7 +65,13 @@ fn main() {
                 .set(WindowPlugin {
                     primary_window: Some(Window {
                         title: "Vinox".into(),
-                        present_mode: PresentMode::AutoVsync,
+                        present_mode: {
+                            if final_options.vsync {
+                                PresentMode::AutoVsync
+                            } else {
+                                PresentMode::AutoNoVsync
+                            }
+                        },
                         ..default()
                     }),
                     ..default()
@@ -78,8 +84,8 @@ fn main() {
                 }),
         )
         .add_plugin(WireframePlugin)
-        // .add_plugin(LogDiagnosticsPlugin::default())
-        // .add_plugin(FrameTimeDiagnosticsPlugin::default())
+        .add_plugin(LogDiagnosticsPlugin::default())
+        .add_plugin(FrameTimeDiagnosticsPlugin::default())
         .insert_resource(ProjectPath(asset_path))
         .insert_resource(final_options)
         .add_plugin(MaterialPlugin::<BasicMaterial>::default())
