@@ -24,4 +24,7 @@ pub struct LightChunk {
     pub queue_green: Vec<LightNode>,
     pub queue_blue: Vec<LightNode>,
     pub remove_queue: Vec<(LightNode, LightData)>,
+    pub remove_queue_red: Vec<(LightNode, LightData)>,
+    pub remove_queue_green: Vec<(LightNode, LightData)>,
+    pub remove_queue_blue: Vec<(LightNode, LightData)>,
 } // First light data is light placed, second is sky

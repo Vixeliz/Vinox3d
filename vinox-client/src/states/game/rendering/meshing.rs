@@ -830,7 +830,7 @@ fn full_mesh(
     let final_ao = ao_convert(ao);
     let mut final_color = Vec::new();
     for (idx, color) in final_ao.iter().enumerate() {
-        let light_level = light_to_color(light[idx].a);
+        let light_level = light_to_inten(light[idx].a);
         let light_level_red = light_to_color(light[idx].r);
         let light_level_green = light_to_color(light[idx].g);
         let light_level_blue = light_to_color(light[idx].b);
@@ -1260,6 +1260,27 @@ pub fn process_queue(
 }
 
 fn light_to_color(color: u8) -> f32 {
+    match color {
+        0 => 0.0,
+        1 => 0.0,
+        2 => 0.1,
+        3 => 0.2,
+        4 => 0.25,
+        5 => 1.0,
+        6 => 1.1,
+        7 => 1.2,
+        8 => 1.3,
+        9 => 1.5,
+        10 => 2.0,
+        11 => 3.0,
+        12 => 4.0,
+        13 => 4.5,
+        14 => 5.0,
+        15 => 7.5,
+        _ => 10.0,
+    }
+}
+fn light_to_inten(color: u8) -> f32 {
     match color {
         0 => 0.25,
         1 => 0.4,
