@@ -51,12 +51,12 @@ pub struct ChunkQueue {
 
 impl PlayerChunk {
     pub fn is_in_radius(&self, pos: IVec3, view_radius: &ViewRadius) -> bool {
-        !(pos.x > (view_radius.horizontal + pos.x)
-            || pos.x < (-view_radius.horizontal + pos.x)
-            || pos.z > (view_radius.horizontal + pos.z)
-            || pos.z < (-view_radius.horizontal + pos.z)
-            || pos.y > (view_radius.vertical + pos.y)
-            || pos.y < (-view_radius.vertical + pos.y))
+        !(pos.x > (view_radius.horizontal + self.chunk_pos.x)
+            || pos.x < (-view_radius.horizontal + self.chunk_pos.x)
+            || pos.z > (view_radius.horizontal + self.chunk_pos.z)
+            || pos.z < (-view_radius.horizontal + self.chunk_pos.z)
+            || pos.y > (view_radius.vertical + self.chunk_pos.y)
+            || pos.y < (-view_radius.vertical + self.chunk_pos.y))
     }
 }
 
@@ -141,31 +141,34 @@ pub fn unload_chunks(
     mut current_chunks: ResMut<CurrentChunks>,
 ) {
     for (chunk, chunk_entity) in remove_chunks.iter() {
-        if current_chunks.get_entity(*chunk).is_some() {
-            let tween = Tween::new(
-                EaseFunction::QuadraticInOut,
-                Duration::from_secs(1),
-                TransformPositionLens {
-                    end: Vec3::new(
-                        (chunk.x * (CHUNK_SIZE) as i32) as f32,
-                        ((chunk.y * (CHUNK_SIZE) as i32) as f32) - CHUNK_SIZE as f32,
-                        (chunk.z * (CHUNK_SIZE) as i32) as f32,
-                    ),
+        // if current_chunks.get_entity(*chunk).is_some() {
+        let tween = Tween::new(
+            EaseFunction::QuadraticInOut,
+            Duration::from_secs(1),
+            TransformPositionLens {
+                end: Vec3::new(
+                    (chunk.x * (CHUNK_SIZE) as i32) as f32,
+                    ((chunk.y * (CHUNK_SIZE) as i32) as f32) - CHUNK_SIZE as f32,
+                    (chunk.z * (CHUNK_SIZE) as i32) as f32,
+                ),
 
-                    start: Vec3::new(
-                        (chunk.x * (CHUNK_SIZE) as i32) as f32,
-                        (chunk.y * (CHUNK_SIZE) as i32) as f32,
-                        (chunk.z * (CHUNK_SIZE) as i32) as f32,
-                    ),
-                },
-            )
-            .with_repeat_count(RepeatCount::Finite(1))
-            .with_completed_event(0);
-            commands.entity(chunk_entity).insert(Animator::new(tween));
-            commands.entity(chunk_entity).remove::<RemoveChunk>();
-            commands.entity(chunk_entity).remove::<ChunkData>();
-            current_chunks.remove_entity(*chunk).unwrap();
-        }
+                start: Vec3::new(
+                    (chunk.x * (CHUNK_SIZE) as i32) as f32,
+                    (chunk.y * (CHUNK_SIZE) as i32) as f32,
+                    (chunk.z * (CHUNK_SIZE) as i32) as f32,
+                ),
+            },
+        )
+        .with_repeat_count(RepeatCount::Finite(1))
+        .with_completed_event(0);
+        commands.entity(chunk_entity).insert(Animator::new(tween));
+        commands.entity(chunk_entity).remove::<RemoveChunk>();
+        commands.entity(chunk_entity).remove::<ChunkData>();
+        current_chunks.remove_entity(*chunk).ok_or(0).ok();
+        // }
+        // commands
+        //     .entity(current_chunks.get_entity(*chunk).unwrap())
+        //     .despawn_recursive();
     }
 }
 
@@ -184,9 +187,8 @@ pub fn clear_unloaded_chunks(
     view_radius: Res<ViewRadius>,
 ) {
     for (chunk, entity) in chunks.iter() {
-        if player_chunk.is_in_radius(**chunk, &view_radius) {
-            continue;
-        } else {
+        if !player_chunk.is_in_radius(**chunk, &view_radius) {
+            println!("Beep boop");
             commands.entity(entity).insert(RemoveChunk);
         }
     }

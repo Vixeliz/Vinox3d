@@ -24,12 +24,12 @@ pub struct LoadPoint(pub IVec3);
 
 impl LoadPoint {
     pub fn is_in_radius(&self, pos: IVec3, view_radius: &ViewRadius) -> bool {
-        !(pos.x > (view_radius.horizontal + pos.x)
-            || pos.x < (-view_radius.horizontal + pos.x)
-            || pos.z > (view_radius.horizontal + pos.z)
-            || pos.z < (-view_radius.horizontal + pos.z)
-            || pos.y > (view_radius.vertical + pos.y)
-            || pos.y < (-view_radius.vertical + pos.y))
+        !(pos.x > (view_radius.horizontal + self.0.x)
+            || pos.x < (-view_radius.horizontal + self.0.x)
+            || pos.z > (view_radius.horizontal + self.0.z)
+            || pos.z < (-view_radius.horizontal + self.0.z)
+            || pos.y > (view_radius.vertical + self.0.y)
+            || pos.y < (-view_radius.vertical + self.0.y))
     }
 }
 
