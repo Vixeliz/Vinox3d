@@ -20,5 +20,8 @@ pub struct LightNode {
 pub struct LightChunk {
     pub light: Box<Array<(LightData, LightData), TOTAL_CHUNK_SIZE>>,
     pub queue: Vec<LightNode>,
+    pub queue_red: Vec<LightNode>,
+    pub queue_green: Vec<LightNode>,
+    pub queue_blue: Vec<LightNode>,
     pub remove_queue: Vec<(LightNode, LightData)>,
 } // First light data is light placed, second is sky

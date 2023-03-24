@@ -6,5 +6,5 @@ BlockDescriptor(
     }),
     has_item: Some(true),
     visibility: Some(Opaque),
-    light: Some(16)
+    light: Some((0, 0, 16, 0))
 )

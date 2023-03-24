@@ -806,8 +806,7 @@ fn full_mesh(
         let light_val = raw_chunk.voxels()
             [ChunkBoundary::linearize(matched_neighbor.0, matched_neighbor.1, matched_neighbor.2)]
         .light
-        .clone()
-        .a;
+        .clone();
 
         light.extend_from_slice(&[light_val, light_val, light_val, light_val]);
 
@@ -831,11 +830,14 @@ fn full_mesh(
     let final_ao = ao_convert(ao);
     let mut final_color = Vec::new();
     for (idx, color) in final_ao.iter().enumerate() {
-        let light_level = light_to_color(light[idx]);
+        let light_level = light_to_color(light[idx].a);
+        let light_level_red = light_to_color(light[idx].r);
+        let light_level_green = light_to_color(light[idx].g);
+        let light_level_blue = light_to_color(light[idx].b);
         final_color.extend_from_slice(&[[
-            color[0] * light_level,
-            color[1] * light_level,
-            color[2] * light_level,
+            color[0] * (light_level + light_level_red),
+            color[1] * (light_level + light_level_green),
+            color[2] * (light_level + light_level_blue),
             color[3],
         ]]);
     }
