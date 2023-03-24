@@ -885,16 +885,15 @@ pub fn collision_movement_system(
             let mut v_after = movement;
             let mut max_move = v_after.abs();
             let margin: f32 = 0.01;
-            let aabb_collisions = aabb_vs_world(
+            if let Some(aabb_collisions) = aabb_vs_world(
                 player_aabb.clone(),
                 &chunks,
                 v_after,
                 &current_chunks,
                 &block_table,
                 margin,
-            );
-            if let Some(collisions_list) = aabb_collisions {
-                for col in collisions_list {
+            ) {
+                for col in aabb_collisions {
                     let margin_dist = col.dist;
                     if col.normal.x != 0.0 {
                         max_move.x = f32::min(max_move.x, margin_dist);
