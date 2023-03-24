@@ -508,7 +508,7 @@ impl ChunkData {
                             a: 0,
                         },
                     );
-                    // self.calculate_light(block_table);
+                    self.calculate_light(block_table);
                 }
             }
         } else {
@@ -523,7 +523,7 @@ impl ChunkData {
                     a: 0,
                 },
             );
-            // self.calculate_light(block_table);
+            self.calculate_light(block_table);
         }
     }
 

@@ -831,11 +831,11 @@ fn full_mesh(
     let final_ao = ao_convert(ao);
     let mut final_color = Vec::new();
     for (idx, color) in final_ao.iter().enumerate() {
-        let light_level = light[idx];
+        let light_level = light_to_color(light[idx]);
         final_color.extend_from_slice(&[[
-            color[0] * light_level as f32,
-            color[1] * light_level as f32,
-            color[2] * light_level as f32,
+            color[0] * light_level,
+            color[1] * light_level,
+            color[2] * light_level,
             color[3],
         ]]);
     }
@@ -1254,6 +1254,28 @@ pub fn process_queue(
             commands.entity(chunk_entity).push_children(&[trans_entity]);
         } else {
         }
+    }
+}
+
+fn light_to_color(color: u8) -> f32 {
+    match color {
+        0 => 0.25,
+        1 => 0.4,
+        2 => 0.5,
+        3 => 0.75,
+        4 => 0.9,
+        5 => 1.0,
+        6 => 1.1,
+        7 => 1.2,
+        8 => 1.3,
+        9 => 1.5,
+        10 => 2.0,
+        11 => 3.0,
+        12 => 4.0,
+        13 => 4.5,
+        14 => 5.0,
+        15 => 7.5,
+        _ => 10.0,
     }
 }
 
