@@ -3,6 +3,8 @@ BlockDescriptor(
     name: "oak_log",
     textures: Some({
     Some("front"): Some("oak_log.png"),
+    Some("up"): Some("oak_top.png"),
+    Some("down"): Some("oak_top.png"),
     }),
     has_item: Some(true),
     visibility: Some(Opaque)
