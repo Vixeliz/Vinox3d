@@ -18,6 +18,7 @@ use std::{io::Cursor, time::Duration};
 use vinox_common::{
     ecs::bundles::PlayerBundleBuilder,
     networking::protocol::{ClientMessage, EntityBuffer, ServerMessage},
+    physics::simulate::{CollidesWithWorld, Velocity},
     world::chunks::storage::RawChunk,
 };
 use zstd::stream::copy_decode;
@@ -116,7 +117,9 @@ pub fn get_messages(
                                 action_state: ActionState::default(),
                                 input_map: options.input.clone(),
                             })
-                            .insert(*inventory);
+                            .insert(*inventory)
+                            .insert(CollidesWithWorld)
+                            .insert(Velocity(Vec3::ZERO));
                     } else {
                         if init {
                             toast

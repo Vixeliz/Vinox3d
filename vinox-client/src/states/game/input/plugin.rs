@@ -3,8 +3,8 @@ use bevy::prelude::*;
 use crate::states::components::GameState;
 
 use super::player::{
-    collision_movement_system, cursor_grab_system, interact, movement_input, spawn_camera,
-    ui_input, update_aabb, MouseSensitivity,
+    cursor_grab_system, handle_movement, interact, spawn_camera, ui_input, update_visual_position,
+    MouseSensitivity,
 };
 
 pub struct InputPlugin;
@@ -14,11 +14,10 @@ impl Plugin for InputPlugin {
         app.insert_resource(MouseSensitivity(1.0)).add_systems(
             (
                 spawn_camera,
-                movement_input,
+                handle_movement,
                 interact,
-                collision_movement_system,
+                update_visual_position,
                 cursor_grab_system.after(interact),
-                update_aabb,
                 ui_input,
             )
                 .in_set(OnUpdate(GameState::Game)),

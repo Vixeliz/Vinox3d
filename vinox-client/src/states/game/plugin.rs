@@ -2,6 +2,7 @@ use crate::states::components::{despawn_with, Game, GameActions, GameState};
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::prelude::*;
 use leafwing_input_manager::prelude::*;
+use vinox_common::physics::plugin::PhysicsPlugin;
 
 use super::{
     input::plugin::InputPlugin, networking::plugin::NetworkingPlugin,
@@ -17,9 +18,10 @@ impl Plugin for GamePlugin {
             .add_plugin(ChunkPlugin)
             .add_plugin(NetworkingPlugin)
             .add_plugin(InputPlugin)
+            .add_plugin(PhysicsPlugin)
             .add_plugin(UiPlugin)
-            // .add_plugin(LogDiagnosticsPlugin::default())
-            // .add_plugin(FrameTimeDiagnosticsPlugin::default())
+            .add_plugin(LogDiagnosticsPlugin::default())
+            .add_plugin(FrameTimeDiagnosticsPlugin::default())
             .add_system(despawn_with::<Game>.in_schedule(OnExit(GameState::Game)));
     }
 }

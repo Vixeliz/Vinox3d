@@ -21,7 +21,7 @@ pub struct CollisionInfo {
 
 // margin is how much you can be inside a block by and still collide with it (untested)
 pub fn aabb_vs_world(
-    aabb: Aabb,
+    aabb: &Aabb,
     chunks: &Query<&ChunkData>,
     velocity: Vec3,
     current_chunks: &CurrentChunks,
