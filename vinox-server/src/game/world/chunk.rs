@@ -9,7 +9,7 @@ use tokio::sync::mpsc::{Receiver, Sender};
 use vinox_common::world::chunks::{
     ecs::{CurrentChunks, RemoveChunk, SimulationRadius, ViewRadius},
     positions::{circle_points, ChunkPos},
-    storage::{ChunkData, HORIZONTAL_DISTANCE, VERTICAL_DISTANCE},
+    storage::{BlockTable, ChunkData, HORIZONTAL_DISTANCE, VERTICAL_DISTANCE},
 };
 
 use crate::game::networking::components::SentChunks;
@@ -183,16 +183,18 @@ pub fn process_queue(
     current_chunks: Res<CurrentChunks>,
     world_info: Res<WorldInfo>,
     mut chunks_to_save: ResMut<ChunksToSave>,
+    block_table: Res<BlockTable>,
 ) {
     let cloned_seed = world_info.seed;
     let task_pool = AsyncComputeTaskPool::get();
     for chunk_pos in chunk_queue.create.drain(..) {
         let cloned_sender = chunk_channel.tx.clone();
+        let cloned_table = block_table.clone();
         task_pool
             .spawn(async move {
                 cloned_sender
                     .send((
-                        ChunkData::from_raw(generate_chunk(*chunk_pos, cloned_seed)),
+                        ChunkData::from_raw(generate_chunk(*chunk_pos, cloned_seed, &cloned_table)),
                         chunk_pos,
                     ))
                     .await

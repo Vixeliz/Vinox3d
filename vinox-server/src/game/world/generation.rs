@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use vinox_common::{
     storage::blocks::descriptor::BlockDescriptor,
-    world::chunks::storage::{BlockData, ChunkData, RawChunk, CHUNK_SIZE},
+    world::chunks::storage::{BlockData, BlockTable, ChunkData, RawChunk, CHUNK_SIZE},
 };
 
 #[derive(Resource, Default, Serialize, Deserialize)]
@@ -25,6 +25,7 @@ pub fn add_grass(
     // >,
     noisefn: &FastNoise,
     pos: IVec3,
+    block_table: &BlockTable,
 ) {
     for z in 0..=CHUNK_SIZE - 1 {
         for y in 0..=CHUNK_SIZE - 1 {
@@ -38,13 +39,13 @@ pub fn add_grass(
                     if full_y as f32 > noise_val && raw_chunk.get_identifier(x, y, z) != "vinox:air"
                     {
                         let grass = BlockData::new("vinox".to_string(), "grass".to_string());
-                        raw_chunk.set(x, y, z, grass);
+                        raw_chunk.set(x, y, z, grass, block_table);
                     }
                 } else if raw_chunk.get_identifier(x, y + 1, z) == "vinox:air"
                     && raw_chunk.get_identifier(x, y, z) != "vinox:air"
                 {
                     let grass = BlockData::new("vinox".to_string(), "grass".to_string());
-                    raw_chunk.set(x, y, z, grass);
+                    raw_chunk.set(x, y, z, grass, block_table);
                 }
             }
         }
@@ -95,7 +96,7 @@ pub fn add_grass(
 
 // pub fn add_missing_blocks(raw_chunk: &mut RawChunk, to_be_placed: &ToBePlaced) {}
 
-pub fn generate_chunk(pos: IVec3, seed: u32) -> RawChunk {
+pub fn generate_chunk(pos: IVec3, seed: u32, block_table: &BlockTable) -> RawChunk {
     //TODO: Switch to using ron files to determine biomes and what blocks they should use. For now hardcoding a simplex noise
     // let ridged_noise: RidgedMulti<OpenSimplex> =
     //     RidgedMulti::new(seed).set_octaves(4).set_frequency(0.00622);
@@ -146,6 +147,7 @@ pub fn generate_chunk(pos: IVec3, seed: u32) -> RawChunk {
                         y,
                         z,
                         BlockData::new("vinox".to_string(), "dirt".to_string()),
+                        block_table,
                     );
                 } else {
                     raw_chunk.set(
@@ -153,11 +155,12 @@ pub fn generate_chunk(pos: IVec3, seed: u32) -> RawChunk {
                         y,
                         z,
                         BlockData::new("vinox".to_string(), "air".to_string()),
+                        block_table,
                     );
                 }
             }
         }
     }
-    add_grass(&mut raw_chunk, &noise, pos);
+    add_grass(&mut raw_chunk, &noise, pos, block_table);
     raw_chunk.to_raw()
 }

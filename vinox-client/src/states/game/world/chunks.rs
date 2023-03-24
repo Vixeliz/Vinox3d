@@ -1,6 +1,7 @@
 use std::{collections::HashSet, time::Duration};
+use tokio::sync::mpsc::{Receiver, Sender};
 
-use bevy::{ecs::system::SystemParam, math::Vec3Swizzles, prelude::*};
+use bevy::{ecs::system::SystemParam, math::Vec3Swizzles, prelude::*, tasks::AsyncComputeTaskPool};
 use bevy_tweening::{lens::TransformPositionLens, *};
 use vinox_common::world::chunks::{
     ecs::{CurrentChunks, RemoveChunk, SimulationRadius, ViewRadius},
@@ -172,6 +173,19 @@ pub fn unload_chunks(
     }
 }
 
+#[derive(Resource)]
+pub struct LightingChannel {
+    pub tx: Sender<(ChunkData, IVec3)>,
+    pub rx: Receiver<(ChunkData, IVec3)>,
+}
+
+impl Default for LightingChannel {
+    fn default() -> Self {
+        let (tx, rx) = tokio::sync::mpsc::channel(256);
+        Self { tx, rx }
+    }
+}
+
 pub fn destroy_chunks(mut commands: Commands, mut query_event: EventReader<TweenCompleted>) {
     for evt in query_event.iter() {
         if evt.user_data == 0 {
@@ -201,23 +215,35 @@ pub fn receive_chunks(
     player_chunk: Res<PlayerChunk>,
     view_radius: Res<ViewRadius>,
     block_table: Res<BlockTable>,
+    mut light_channel: ResMut<LightingChannel>,
 ) {
+    let task_pool = AsyncComputeTaskPool::get();
     for evt in event.iter() {
         if player_chunk.is_in_radius(evt.pos, &view_radius)
             && current_chunks.get_entity(ChunkPos(evt.pos)).is_none()
         {
-            let chunk_data = ChunkData::from_raw(evt.raw_chunk.clone());
-            let chunk_id = commands
-                .spawn(chunk_data.clone())
-                .insert(ChunkPos(evt.pos))
-                .id();
+            let mut chunk_data = ChunkData::from_raw(evt.raw_chunk.clone());
+            let cloned_sender = light_channel.tx.clone();
+            let cloned_table = block_table.clone();
+            let pos = evt.pos.clone();
+            task_pool
+                .spawn(async move {
+                    cloned_sender
+                        .send((chunk_data.complete_relight(&cloned_table), pos))
+                        .await
+                        .ok();
+                })
+                .detach();
+        }
+    }
+    while let Ok((chunk, pos)) = light_channel.rx.try_recv() {
+        let chunk_id = commands.spawn(chunk.clone()).insert(ChunkPos(pos)).id();
 
-            current_chunks.insert_entity(ChunkPos(evt.pos), chunk_id);
+        current_chunks.insert_entity(ChunkPos(pos), chunk_id);
 
-            // Don't mark chunks that won't create any blocks
-            if !chunk_data.is_empty(&block_table) {
-                commands.entity(chunk_id).insert(NeedsMesh);
-            }
+        // Don't mark chunks that won't create any blocks
+        if !chunk.is_empty(&block_table) {
+            commands.entity(chunk_id).insert(NeedsMesh);
         }
     }
 }
@@ -227,6 +253,7 @@ pub fn set_block(
     mut event: EventReader<SetBlockEvent>,
     current_chunks: Res<CurrentChunks>,
     mut chunks: Query<&mut ChunkData>,
+    block_table: Res<BlockTable>,
 ) {
     for evt in event.iter() {
         if let Some(chunk_entity) = current_chunks.get_entity(ChunkPos(evt.chunk_pos)) {
@@ -236,6 +263,7 @@ pub fn set_block(
                     evt.voxel_pos.y as usize,
                     evt.voxel_pos.z as usize,
                     evt.block_type.clone(),
+                    &block_table,
                 );
 
                 match evt.voxel_pos.x {
@@ -307,6 +335,7 @@ impl Plugin for ChunkPlugin {
             .insert_resource(ChunkQueue::default())
             .insert_resource(PlayerChunk::default())
             .insert_resource(PlayerBlock::default())
+            .insert_resource(LightingChannel::default())
             .insert_resource(ViewRadius {
                 horizontal: HORIZONTAL_DISTANCE as i32,
                 vertical: VERTICAL_DISTANCE as i32,

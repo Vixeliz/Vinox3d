@@ -11,7 +11,7 @@ use vinox_common::{
     world::chunks::{
         ecs::CurrentChunks,
         positions::{world_to_chunk, ChunkPos},
-        storage::ChunkData,
+        storage::{BlockTable, ChunkData},
     },
 };
 use zstd::stream::copy_encode;
@@ -51,6 +51,7 @@ pub fn get_messages(
     mut chunks: Query<&mut ChunkData>,
     current_chunks: Res<CurrentChunks>,
     mut chunks_to_save: ResMut<ChunksToSave>,
+    block_table: Res<BlockTable>,
 ) {
     let endpoint = server.endpoint_mut();
     for client_id in endpoint.clients() {
@@ -136,6 +137,7 @@ pub fn get_messages(
                                 voxel_pos[1] as usize,
                                 voxel_pos[2] as usize,
                                 block_type.clone(),
+                                &block_table,
                             );
                             chunks_to_save.push((ChunkPos(chunk_pos), chunk.to_raw()));
                             endpoint.try_broadcast_message(ServerMessage::SentBlock {

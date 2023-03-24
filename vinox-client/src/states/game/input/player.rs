@@ -643,6 +643,7 @@ pub fn interact(
                                                     voxel_pos.y as usize,
                                                     voxel_pos.z as usize,
                                                     place_item.unwrap(),
+                                                    &block_table,
                                                 );
                                                 client.connection_mut().try_send_message(
                                                     ClientMessage::SentBlock {
@@ -816,21 +817,8 @@ pub fn interact(
                                     voxel_pos.y as usize,
                                     voxel_pos.z as usize,
                                     BlockData::new("vinox".to_string(), "air".to_string()),
+                                    &block_table,
                                 );
-                                chunk.set_light(
-                                    ChunkData::linearize(
-                                        voxel_pos.x as usize,
-                                        voxel_pos.y as usize,
-                                        voxel_pos.z as usize,
-                                    ),
-                                    LightData {
-                                        r: 0,
-                                        g: 0,
-                                        b: 0,
-                                        a: 15,
-                                    },
-                                );
-                                chunk.calculate_light(&block_table);
                                 client.connection_mut().try_send_message(
                                     ClientMessage::SentBlock {
                                         chunk_pos: *chunk_pos,
