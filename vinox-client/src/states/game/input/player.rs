@@ -112,8 +112,9 @@ pub fn spawn_camera(
                     directional_light_color: Color::WHITE,
                     directional_light_exponent: 30.0,
                     falloff: FogFalloff::Linear {
-                        start: 10.0,
-                        end: 20.0,
+                        start: (HORIZONTAL_DISTANCE * CHUNK_SIZE) as f32
+                            - (CHUNK_SIZE * (HORIZONTAL_DISTANCE / 2)) as f32,
+                        end: (HORIZONTAL_DISTANCE * CHUNK_SIZE) as f32 + (CHUNK_SIZE * 2) as f32,
                     },
                     ..Default::default()
                 },
