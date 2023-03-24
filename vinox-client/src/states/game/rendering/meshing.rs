@@ -594,7 +594,7 @@ impl Material for BasicMaterial {
 #[derive(Bundle)]
 pub struct RenderedChunk {
     #[bundle]
-    pub mesh: MaterialMeshBundle<BasicMaterial>,
+    pub mesh: PbrBundle,
     pub aabb: Aabb,
 }
 
@@ -1049,19 +1049,19 @@ pub struct MeshedChunk {
 
 #[derive(Resource, Default)]
 pub struct ChunkMaterial {
-    opaque: Handle<BasicMaterial>,
-    transparent: Handle<BasicMaterial>,
+    opaque: Handle<StandardMaterial>,
+    transparent: Handle<StandardMaterial>,
 }
 
 pub fn create_chunk_material(
-    mut materials: ResMut<Assets<BasicMaterial>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
     mut chunk_material: ResMut<ChunkMaterial>,
     texture_atlas: Res<Assets<TextureAtlas>>,
     loadable_assets: ResMut<LoadableAssets>,
 ) {
-    chunk_material.transparent = materials.add(BasicMaterial {
-        color: Color::WHITE,
-        color_texture: Some(
+    chunk_material.transparent = materials.add(StandardMaterial {
+        base_color: Color::WHITE,
+        base_color_texture: Some(
             texture_atlas
                 .get(&loadable_assets.block_atlas)
                 .unwrap()
@@ -1069,19 +1069,21 @@ pub fn create_chunk_material(
                 .clone(),
         ),
         alpha_mode: AlphaMode::Blend,
-        discard_pix: 0,
+        perceptual_roughness: 0.5,
+        ..Default::default() // discard_pix: 0,
     });
-    chunk_material.opaque = materials.add(BasicMaterial {
-        color: Color::WHITE,
-        color_texture: Some(
+    chunk_material.opaque = materials.add(StandardMaterial {
+        base_color: Color::WHITE,
+        base_color_texture: Some(
             texture_atlas
                 .get(&loadable_assets.block_atlas)
                 .unwrap()
                 .texture
                 .clone(),
         ),
-        alpha_mode: AlphaMode::Opaque,
-        discard_pix: 1,
+        alpha_mode: AlphaMode::Mask(0.5),
+        perceptual_roughness: 1.0,
+        ..Default::default() // discard_pix: 1,
     });
 }
 pub fn priority_player(
@@ -1187,7 +1189,7 @@ pub fn process_queue(
                                 (CHUNK_SIZE / 2) as f32,
                             ),
                         },
-                        mesh: MaterialMeshBundle {
+                        mesh: PbrBundle {
                             mesh: meshes.add(chunk.transparent_mesh.clone()),
                             material: chunk_material.transparent.clone(),
                             ..Default::default()
@@ -1212,7 +1214,7 @@ pub fn process_queue(
                             (CHUNK_SIZE / 2) as f32,
                         ),
                     },
-                    mesh: MaterialMeshBundle {
+                    mesh: PbrBundle {
                         mesh: meshes.add(chunk.chunk_mesh.clone()),
                         material: chunk_material.opaque.clone(),
                         transform: Transform::from_translation(chunk_pos),

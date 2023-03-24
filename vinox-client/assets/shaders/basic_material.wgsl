@@ -1,6 +1,8 @@
 #import bevy_pbr::mesh_view_bindings
+// #import bevy_pbr::mesh_types
 #import bevy_pbr::pbr_types
 #import bevy_pbr::mesh_bindings
+#import bevy_pbr::prepass_utils
 
 
 struct BasicMaterial {
@@ -43,9 +45,12 @@ struct FragmentInput {
 
 @fragment
 fn fragment(
+@builtin(position) frag_coord: vec4<f32>,
+@builtin(sample_index) sample_index: u32,
 in: FragmentInput,
 ) -> @location(0) vec4<f32> {
     var return_color = material.color * textureSample(base_color_texture, base_color_sampler, in.uv);
+    // let depth = prepass_normal(frag_coord, sample_index);
     if material.discard_pix == 1u & return_color.a < 0.5 {
         discard;
     }

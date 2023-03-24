@@ -24,7 +24,7 @@ use vinox_common::{
         positions::{relative_voxel_to_world, voxel_to_world, world_to_chunk, world_to_voxel},
         storage::{
             self, name_to_identifier, trim_geo_identifier, BlockData, BlockTable, ChunkData,
-            ItemTable, CHUNK_SIZE_ARR,
+            ItemTable, CHUNK_SIZE, CHUNK_SIZE_ARR, HORIZONTAL_DISTANCE,
         },
     },
 };
@@ -91,6 +91,10 @@ pub fn spawn_camera(
             Camera3dBundle {
                 projection: Projection::Perspective(perspective_projection),
                 frustum,
+                // camera: Camera {
+                //     hdr: true,
+                //     ..Default::default()
+                // },
                 ..default()
             }
         };
@@ -100,7 +104,20 @@ pub fn spawn_camera(
                 GlobalTransform::default(),
                 Transform::from_xyz(0.0, 1.0, 0.0),
             ));
-            c.spawn((FPSCamera::default(), camera));
+            c.spawn((
+                FPSCamera::default(),
+                camera,
+                FogSettings {
+                    color: Color::rgba(0.5, 0.8, 0.9, 1.0),
+                    directional_light_color: Color::WHITE,
+                    directional_light_exponent: 30.0,
+                    falloff: FogFalloff::Linear {
+                        start: 10.0,
+                        end: 20.0,
+                    },
+                    ..Default::default()
+                },
+            ));
         });
     }
 }
