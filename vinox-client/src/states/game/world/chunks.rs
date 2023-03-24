@@ -188,7 +188,6 @@ pub fn clear_unloaded_chunks(
 ) {
     for (chunk, entity) in chunks.iter() {
         if !player_chunk.is_in_radius(**chunk, &view_radius) {
-            println!("Beep boop");
             commands.entity(entity).insert(RemoveChunk);
         }
     }
