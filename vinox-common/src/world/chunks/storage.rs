@@ -14,8 +14,8 @@ use crate::storage::{
     items::descriptor::ItemDescriptor,
 };
 
-pub const HORIZONTAL_DISTANCE: usize = 20;
-pub const VERTICAL_DISTANCE: usize = 6;
+pub const HORIZONTAL_DISTANCE: usize = 16;
+pub const VERTICAL_DISTANCE: usize = 8;
 pub const CHUNK_SIZE: usize = 16;
 pub const CHUNK_SIZE_ARR: u32 = CHUNK_SIZE as u32 - 1;
 pub const TOTAL_CHUNK_SIZE: usize = (CHUNK_SIZE) * (CHUNK_SIZE) * (CHUNK_SIZE);

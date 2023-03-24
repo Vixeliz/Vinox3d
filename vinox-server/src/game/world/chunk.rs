@@ -24,14 +24,12 @@ pub struct LoadPoint(pub IVec3);
 
 impl LoadPoint {
     pub fn is_in_radius(&self, pos: IVec3, view_radius: &ViewRadius) -> bool {
-        !(pos
-            .xz()
-            .as_vec2()
-            .distance(self.xz().as_vec2())
-            .abs()
-            .floor() as i32
-            > view_radius.horizontal
-            || (pos.y - self.y).abs() > view_radius.vertical)
+        !(pos.x > (view_radius.horizontal + pos.x)
+            || pos.x < (-view_radius.horizontal + pos.x)
+            || pos.z > (view_radius.horizontal + pos.z)
+            || pos.z < (-view_radius.horizontal + pos.z)
+            || pos.y > (view_radius.vertical + pos.y)
+            || pos.y < (-view_radius.vertical + pos.y))
     }
 }
 
@@ -53,14 +51,17 @@ pub struct ChunkManager<'w, 's> {
 impl<'w, 's> ChunkManager<'w, 's> {
     pub fn get_chunk_positions(&mut self, chunk_pos: ChunkPos) -> Vec<ChunkPos> {
         let mut chunks = Vec::new();
-        for point in circle_points(&self.view_radius) {
-            for y in -self.view_radius.vertical..=self.view_radius.vertical {
-                let pos = *chunk_pos + IVec3::new(point.x, y, point.y);
-                chunks.push(ChunkPos(pos));
+        // for point in circle_points(&self.view_radius) {
+        for z in -self.view_radius.horizontal..=self.view_radius.horizontal {
+            for x in -self.view_radius.horizontal..=self.view_radius.horizontal {
+                for y in -self.view_radius.vertical..=self.view_radius.vertical {
+                    let pos = *chunk_pos + IVec3::new(x, y, z);
+                    chunks.push(ChunkPos(pos));
+                }
             }
         }
-        chunks
-            .sort_unstable_by_key(|key| (key.x - chunk_pos.x).abs() + (key.z - chunk_pos.z).abs());
+        // chunks
+        //     .sort_unstable_by_key(|key| (key.x - chunk_pos.x).abs() + (key.z - chunk_pos.z).abs());
         chunks
     }
     pub fn get_chunks_around_chunk(
