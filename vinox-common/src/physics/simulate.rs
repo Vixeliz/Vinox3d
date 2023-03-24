@@ -1,6 +1,6 @@
 use bevy::{
     math::Vec3A,
-    prelude::{Component, Entity, Query, Res, Vec3, With, Without},
+    prelude::{Component, Entity, EventWriter, IVec3, Query, Res, Vec3, With, Without},
     render::primitives::Aabb,
     time::Time,
 };
@@ -19,6 +19,13 @@ pub struct CollidesWithWorld;
 #[derive(Component)]
 pub struct Velocity(pub Vec3);
 
+#[derive(Debug)]
+pub struct VoxelCollisionEvent {
+    pub entity: Entity,
+    pub voxel_pos: IVec3,
+    pub normal: Vec3,
+}
+
 pub fn move_no_collide(
     mut moving_entities: Query<(Entity, &mut Aabb, &Velocity), Without<CollidesWithWorld>>,
     time: Res<Time>,
@@ -34,8 +41,9 @@ pub fn move_and_collide(
     chunks: Query<&ChunkData>,
     current_chunks: Res<CurrentChunks>,
     block_table: Res<BlockTable>,
+    mut collision_event_writer: EventWriter<VoxelCollisionEvent>,
 ) {
-    for (_entity, mut aabb, mut velocity) in moving_entities.iter_mut() {
+    for (entity, mut aabb, mut velocity) in moving_entities.iter_mut() {
         // Do not simulate outside of loaded chunks
         if current_chunks
             .get_entity(ChunkPos(world_to_chunk(Vec3::from(aabb.center))))
@@ -92,7 +100,7 @@ pub fn move_and_collide(
             });
             v_after = movement;
             max_move = movement.abs();
-            for col in aabb_collisions.iter() {
+            for col in aabb_collisions {
                 if col.normal.x != 0.0 {
                     max_move.x = f32::min(max_move.x, col.dist);
                     v_after.x = 0.0;
@@ -103,6 +111,11 @@ pub fn move_and_collide(
                     max_move.z = f32::min(max_move.z, col.dist);
                     v_after.z = 0.0;
                 }
+                collision_event_writer.send(VoxelCollisionEvent {
+                    entity,
+                    voxel_pos: col.voxel_pos,
+                    normal: col.normal,
+                });
             }
         }
         velocity.0 = v_after / time.delta().as_secs_f32();

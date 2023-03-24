@@ -3,8 +3,8 @@ use bevy::prelude::*;
 use crate::states::components::GameState;
 
 use super::player::{
-    cursor_grab_system, handle_movement, interact, spawn_camera, ui_input, update_visual_position,
-    MouseSensitivity,
+    cursor_grab_system, handle_movement, interact, listen_for_dirt, spawn_camera, ui_input,
+    update_visual_position, MouseSensitivity,
 };
 
 pub struct InputPlugin;
@@ -17,6 +17,7 @@ impl Plugin for InputPlugin {
                 handle_movement,
                 interact,
                 update_visual_position,
+                listen_for_dirt,
                 cursor_grab_system.after(interact),
                 ui_input,
             )

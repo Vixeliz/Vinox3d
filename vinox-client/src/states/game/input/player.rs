@@ -15,7 +15,10 @@ use bevy_quinnet::client::Client;
 use vinox_common::{
     ecs::bundles::Inventory,
     networking::protocol::ClientMessage,
-    physics::{collision::raycast::raycast_world, simulate::Velocity},
+    physics::{
+        collision::raycast::raycast_world,
+        simulate::{Velocity, VoxelCollisionEvent},
+    },
     storage::{blocks::descriptor::BlockGeometry, items::descriptor::ItemData},
     world::chunks::{
         ecs::CurrentChunks,
