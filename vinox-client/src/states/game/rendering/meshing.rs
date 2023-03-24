@@ -22,7 +22,7 @@ use tokio::sync::mpsc::{Receiver, Sender};
 use vinox_common::{
     storage::geometry::descriptor::GeometryDescriptor,
     world::chunks::{
-        ecs::CurrentChunks,
+        ecs::{ChunkManager, CurrentChunks},
         positions::{voxel_to_world, world_to_global_voxel, ChunkPos},
         storage::{self, BlockTable, ChunkData, RenderedBlockData, VoxelVisibility, CHUNK_SIZE},
     },
@@ -31,7 +31,7 @@ use vinox_common::{
 use crate::states::{
     assets::load::LoadableAssets,
     components::GameOptions,
-    game::world::chunks::{ChunkManager, PlayerBlock, PlayerChunk},
+    game::world::chunks::{PlayerBlock, PlayerChunk},
 };
 
 use super::chunk::ChunkBoundary;

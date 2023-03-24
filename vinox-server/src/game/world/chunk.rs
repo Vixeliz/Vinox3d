@@ -7,12 +7,10 @@ use bevy::{
 };
 use tokio::sync::mpsc::{Receiver, Sender};
 use vinox_common::world::chunks::{
-    ecs::{CurrentChunks, RemoveChunk, SimulationRadius, ViewRadius},
+    ecs::{ChunkManager, CurrentChunks, RemoveChunk, SentChunks, SimulationRadius, ViewRadius},
     positions::{circle_points, ChunkPos},
     storage::{BlockTable, ChunkData, HORIZONTAL_DISTANCE, VERTICAL_DISTANCE},
 };
-
-use crate::game::networking::components::SentChunks;
 
 use super::{
     generation::generate_chunk,
@@ -37,51 +35,6 @@ impl LoadPoint {
 pub struct ChunkQueue {
     pub create: Vec<ChunkPos>,
     pub remove: Vec<ChunkPos>,
-}
-
-#[derive(SystemParam)]
-pub struct ChunkManager<'w, 's> {
-    // commands: Commands<'w, 's>,
-    current_chunks: ResMut<'w, CurrentChunks>,
-    // chunk_queue: ResMut<'w, ChunkQueue>,
-    view_radius: Res<'w, ViewRadius>,
-    chunk_query: Query<'w, 's, &'static ChunkData>,
-}
-
-impl<'w, 's> ChunkManager<'w, 's> {
-    pub fn get_chunk_positions(&mut self, chunk_pos: ChunkPos) -> Vec<ChunkPos> {
-        let mut chunks = Vec::new();
-        // for point in circle_points(&self.view_radius) {
-        for z in -self.view_radius.horizontal..=self.view_radius.horizontal {
-            for x in -self.view_radius.horizontal..=self.view_radius.horizontal {
-                for y in -self.view_radius.vertical..=self.view_radius.vertical {
-                    let pos = *chunk_pos + IVec3::new(x, y, z);
-                    chunks.push(ChunkPos(pos));
-                }
-            }
-        }
-        // chunks
-        //     .sort_unstable_by_key(|key| (key.x - chunk_pos.x).abs() + (key.z - chunk_pos.z).abs());
-        chunks
-    }
-    pub fn get_chunks_around_chunk(
-        &mut self,
-        pos: ChunkPos,
-        sent_chunks: &SentChunks,
-    ) -> Vec<(&ChunkData, ChunkPos)> {
-        let mut res = Vec::new();
-        for chunk_pos in self.get_chunk_positions(pos).iter() {
-            if !sent_chunks.chunks.contains(chunk_pos) {
-                if let Some(entity) = self.current_chunks.get_entity(*chunk_pos) {
-                    if let Ok(chunk) = self.chunk_query.get(entity) {
-                        res.push((chunk, *chunk_pos));
-                    }
-                }
-            }
-        }
-
-        res
-    }
 }
 
 pub fn generate_chunks_world(

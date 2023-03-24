@@ -9,19 +9,16 @@ use vinox_common::{
     ecs::bundles::{ClientName, Inventory, PlayerBundleBuilder},
     networking::protocol::{ClientMessage, NetworkedEntities, Player, ServerMessage},
     world::chunks::{
-        ecs::CurrentChunks,
+        ecs::{ChunkManager, CurrentChunks, SentChunks},
         positions::{world_to_chunk, ChunkPos},
         storage::{BlockTable, ChunkData},
     },
 };
 use zstd::stream::copy_encode;
 
-use crate::game::world::{
-    chunk::{ChunkManager, LoadPoint},
-    storage::ChunksToSave,
-};
+use crate::game::world::{chunk::LoadPoint, storage::ChunksToSave};
 
-use super::components::{ChunkLimit, SentChunks, ServerLobby};
+use super::components::{ChunkLimit, ServerLobby};
 
 pub fn connections(
     mut server: ResMut<Server>,
@@ -202,7 +199,7 @@ pub fn send_chunks(
                 let load_point = LoadPoint(chunk_pos);
                 commands.entity(*player_entity).insert(load_point.clone());
                 for chunk in chunk_manager
-                    .get_chunks_around_chunk(ChunkPos(chunk_pos), &sent_chunks)
+                    .get_chunks_around_chunk(ChunkPos(chunk_pos), Some(&sent_chunks))
                     .choose_multiple(&mut rng, **chunk_limit)
                 {
                     let raw_chunk = chunk.0.to_raw();
