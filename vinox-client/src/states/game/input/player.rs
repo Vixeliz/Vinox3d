@@ -14,7 +14,7 @@ use bevy::{
 use bevy_quinnet::client::Client;
 use vinox_common::{
     collision::aabb::aabb_vs_world,
-    collision::raycast::raycast_world,
+    collision::{aabb::aabbs_intersecting, raycast::raycast_world},
     ecs::bundles::Inventory,
     networking::protocol::ClientMessage,
     storage::{blocks::descriptor::BlockGeometry, items::descriptor::ItemData},
@@ -885,7 +885,7 @@ pub fn collision_movement_system(
             let mut v_after = movement;
             let mut max_move = v_after.abs();
             let margin: f32 = 0.01;
-            if let Some(aabb_collisions) = aabb_vs_world(
+            if let Some(mut aabb_collisions) = aabb_vs_world(
                 player_aabb.clone(),
                 &chunks,
                 v_after,
@@ -893,16 +893,52 @@ pub fn collision_movement_system(
                 &block_table,
                 margin,
             ) {
-                for col in aabb_collisions {
-                    let margin_dist = col.dist;
+                for col in aabb_collisions.iter() {
                     if col.normal.x != 0.0 {
-                        max_move.x = f32::min(max_move.x, margin_dist);
+                        max_move.x = f32::min(max_move.x, col.dist);
                         v_after.x = 0.0;
                     } else if col.normal.y != 0.0 {
-                        max_move.y = f32::min(max_move.y, margin_dist);
+                        max_move.y = f32::min(max_move.y, col.dist);
                         v_after.y = 0.0;
                     } else if col.normal.z != 0.0 {
-                        max_move.z = f32::min(max_move.z, margin_dist);
+                        max_move.z = f32::min(max_move.z, col.dist);
+                        v_after.z = 0.0;
+                    }
+                }
+                aabb_collisions.retain(|col| {
+                    let v_filt;
+                    if col.normal.y != 0.0 {
+                        v_filt = Vec3::new(v_after.x, movement.y, v_after.z);
+                    } else if col.normal.x != 0.0 {
+                        v_filt = Vec3::new(movement.x, v_after.y, v_after.z);
+                    } else {
+                        v_filt = Vec3::new(v_after.x, v_after.y, movement.z);
+                    }
+                    let hypth_aabb = Aabb {
+                        center: player_aabb.center
+                            + Vec3A::from(
+                                Vec3::new(
+                                    max_move.x * movement.x.signum(),
+                                    max_move.y * movement.y.signum(),
+                                    max_move.z * movement.z.signum(),
+                                ) + v_filt,
+                            ),
+                        half_extents: player_aabb.half_extents,
+                    };
+                    let intersects = aabbs_intersecting(&hypth_aabb, &col.collider_aabb);
+                    return intersects;
+                });
+                v_after = movement;
+                max_move = movement.abs();
+                for col in aabb_collisions.iter() {
+                    if col.normal.x != 0.0 {
+                        max_move.x = f32::min(max_move.x, col.dist);
+                        v_after.x = 0.0;
+                    } else if col.normal.y != 0.0 {
+                        max_move.y = f32::min(max_move.y, col.dist);
+                        v_after.y = 0.0;
+                    } else if col.normal.z != 0.0 {
+                        max_move.z = f32::min(max_move.z, col.dist);
                         v_after.z = 0.0;
                     }
                 }

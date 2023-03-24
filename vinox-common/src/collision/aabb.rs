@@ -16,6 +16,7 @@ pub struct CollisionInfo {
     pub voxel_pos: IVec3,
     pub normal: Vec3,
     pub dist: f32,
+    pub collider_aabb: Aabb,
 }
 
 // margin is how much you can be inside a block by and still collide with it (untested)
@@ -152,6 +153,7 @@ pub fn aabb_vs_world(
                                     voxel_pos,
                                     normal,
                                     dist,
+                                    collider_aabb: block_aabb,
                                 });
                             }
                         }
@@ -191,7 +193,9 @@ pub fn aabb_vs_world(
 }
 
 #[inline]
-fn aabbs_intersecting(a: &Aabb, b: &Aabb) -> bool {
+// Returns if two AABBs are inside each other.
+// Returns false if exactly touching but not inside.
+pub fn aabbs_intersecting(a: &Aabb, b: &Aabb) -> bool {
     let amin = a.min();
     let amax = a.max();
     let bmin = b.min();
