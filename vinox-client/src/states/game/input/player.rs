@@ -9,7 +9,7 @@ use bevy::{
         camera::CameraProjection,
         primitives::{Aabb, Frustum},
     },
-    window::{CursorGrabMode, PrimaryWindow},
+    window::{CursorGrabMode, PresentMode, PrimaryWindow},
 };
 use bevy_quinnet::client::Client;
 use vinox_common::{
@@ -37,6 +37,7 @@ use crate::states::{
         ui::{dropdown::ConsoleOpen, plugin::InUi},
         world::chunks::ControlledPlayer,
     },
+    menu::ui::InOptions,
 };
 
 #[derive(Component)]
@@ -52,6 +53,55 @@ impl Default for FPSCamera {
             phi: 0.0,
             theta: FRAC_PI_2,
             velocity: Vec3::ZERO,
+        }
+    }
+}
+
+pub fn update_input(
+    mut commands: Commands,
+    mut player_query: Query<Entity, With<ControlledPlayer>>,
+    options: Res<GameOptions>,
+) {
+    if let Ok(entity) = player_query.get_single_mut() {
+        if options.is_changed() {
+            commands
+                .entity(entity)
+                .insert(InputManagerBundle::<GameActions> {
+                    action_state: ActionState::default(),
+                    input_map: options.input.clone(),
+                });
+        }
+    }
+}
+
+pub fn update_vsync(options: Res<GameOptions>, mut windows: Query<&mut Window>) {
+    if options.is_changed() {
+        let mut window = windows.single_mut();
+        window.present_mode = if options.vsync {
+            PresentMode::AutoVsync
+        } else {
+            PresentMode::AutoNoVsync
+        };
+    }
+}
+
+pub fn update_fov(mut camera: Query<(&mut Projection, &mut Frustum)>, options: Res<GameOptions>) {
+    if let Ok((mut projection, mut frustum)) = camera.get_single_mut() {
+        if options.is_changed() {
+            let perspective_projection = PerspectiveProjection {
+                fov: options.fov.to_radians(),
+                near: 0.001,
+                far: 1000.0,
+                aspect_ratio: 1.0,
+            };
+            let view_projection = perspective_projection.get_projection_matrix();
+            *frustum = Frustum::from_view_projection(
+                &view_projection,
+                // &Vec3::ZERO,
+                // &Vec3::Z,
+                // perspective_projection.far(),
+            );
+            *projection = Projection::Perspective(perspective_projection);
         }
     }
 }
@@ -930,6 +980,7 @@ pub fn cursor_grab_system(
     mut is_open: ResMut<ConsoleOpen>,
     btn: Res<Input<MouseButton>>,
     key: Res<Input<KeyCode>>,
+    mut in_options: ResMut<InOptions>,
 ) {
     let mut window = windows.single_mut();
     if let Ok((mut inventory, action_state)) = inventory.get_single_mut() {
@@ -961,12 +1012,16 @@ pub fn cursor_grab_system(
             if window.cursor.grab_mode == CursorGrabMode::None {
                 window.cursor.grab_mode = CursorGrabMode::Locked;
                 window.cursor.visible = false;
+                if **in_options {
+                    **in_options = !**in_options;
+                }
             } else {
                 let window_center: Option<Vec2> =
                     Some(Vec2::new(window.width() / 2.0, window.height() / 2.0));
                 window.set_cursor_position(window_center);
                 window.cursor.grab_mode = CursorGrabMode::None;
                 window.cursor.visible = true;
+                **in_options = !**in_options;
             }
             if **in_ui {
                 **is_open = false;
