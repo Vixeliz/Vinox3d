@@ -68,7 +68,6 @@ pub fn switch(
             warn!("{:?} did not resolve to an `Image` asset.", asset_server.get_handle_path(item));
             continue;
                     };
-
                         texture_atlas_builder.add_texture(item.clone(), texture);
                     }
                 }
