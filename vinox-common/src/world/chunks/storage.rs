@@ -473,9 +473,18 @@ impl ChunkData {
         voxel: BlockData,
         block_table: &BlockTable,
     ) {
+        self.voxels.set(Self::linearize(x, y, z), voxel);
+        self.change_count += 1;
+        self.set_dirty(true);
+
+        if self.change_count > 500 {
+            self.voxels.trim();
+            self.change_count = 0;
+        }
         let descriptor = block_table.get(&self.get_identifier(x, y, z)).unwrap();
+        let self_light = self.get_light(Self::linearize(x, y, z));
         if let Some(light) = descriptor.light {
-            if self.get_light(Self::linearize(x, y, z)).a != light {
+            if self_light.a != light {
                 if light != 0 {
                     self.set_light(
                         Self::linearize(x, y, z),
@@ -488,7 +497,8 @@ impl ChunkData {
                     );
                     self.calculate_light(block_table);
                 } else {
-                    self.remove_light(Self::linearize(x, y, z));
+                    self.remove_light(Self::linearize(x, y, z), self_light);
+                    self.calculate_remove_light();
                     self.set_light(
                         Self::linearize(x, y, z),
                         LightData {
@@ -498,12 +508,12 @@ impl ChunkData {
                             a: 0,
                         },
                     );
-                    self.calculate_remove_light();
-                    self.calculate_light(block_table);
+                    // self.calculate_light(block_table);
                 }
             }
         } else {
-            self.remove_light(Self::linearize(x, y, z));
+            self.remove_light(Self::linearize(x, y, z), self_light);
+            self.calculate_remove_light();
             self.set_light(
                 Self::linearize(x, y, z),
                 LightData {
@@ -513,16 +523,7 @@ impl ChunkData {
                     a: 0,
                 },
             );
-            self.calculate_remove_light();
-            self.calculate_light(block_table);
-        }
-        self.voxels.set(Self::linearize(x, y, z), voxel);
-        self.change_count += 1;
-        self.set_dirty(true);
-
-        if self.change_count > 500 {
-            self.voxels.trim();
-            self.change_count = 0;
+            // self.calculate_light(block_table);
         }
     }
 
@@ -613,8 +614,10 @@ impl ChunkData {
         self.light.queue.push(LightNode { index: idx });
         self.light.light[idx].0 = light
     }
-    pub fn remove_light(&mut self, idx: usize) {
-        self.light.remove_queue.push(LightNode { index: idx });
+    pub fn remove_light(&mut self, idx: usize, light: LightData) {
+        self.light
+            .remove_queue
+            .push((LightNode { index: idx }, light));
     }
     pub fn get_sunlight(&self, idx: usize) -> LightData {
         self.light.light[idx].1
@@ -733,19 +736,31 @@ impl ChunkData {
     pub fn calculate_remove_light(&mut self) {
         while !self.light.remove_queue.is_empty() {
             if let Some(node) = self.light.remove_queue.last() {
-                let index = node.index;
+                let index = node.0.index;
+                let light_level = node.1;
                 self.light.remove_queue.pop();
 
                 let (x, y, z) = ChunkData::delinearize(index);
 
-                let light_level = self.get_light(index);
                 if x as i32 - 1 != -1 {
                     let neighbor_index = ChunkData::linearize(x - 1, y, z);
                     let neigh_light = self.get_light(neighbor_index);
                     if neigh_light.a != 0 && neigh_light.a < light_level.a {
-                        self.light.remove_queue.push(LightNode {
-                            index: neighbor_index,
-                        });
+                        self.set_light(
+                            neighbor_index,
+                            LightData {
+                                r: 0,
+                                g: 0,
+                                b: 0,
+                                a: 0,
+                            },
+                        );
+                        self.light.remove_queue.push((
+                            LightNode {
+                                index: neighbor_index,
+                            },
+                            neigh_light,
+                        ));
                     } else if neigh_light.a >= light_level.a {
                         self.light.queue.push(LightNode {
                             index: neighbor_index,
@@ -756,9 +771,21 @@ impl ChunkData {
                     let neighbor_index = ChunkData::linearize(x + 1, y, z);
                     let neigh_light = self.get_light(neighbor_index);
                     if neigh_light.a != 0 && neigh_light.a < light_level.a {
-                        self.light.remove_queue.push(LightNode {
-                            index: neighbor_index,
-                        });
+                        self.set_light(
+                            neighbor_index,
+                            LightData {
+                                r: 0,
+                                g: 0,
+                                b: 0,
+                                a: 0,
+                            },
+                        );
+                        self.light.remove_queue.push((
+                            LightNode {
+                                index: neighbor_index,
+                            },
+                            neigh_light,
+                        ));
                     } else if neigh_light.a >= light_level.a {
                         self.light.queue.push(LightNode {
                             index: neighbor_index,
@@ -769,9 +796,21 @@ impl ChunkData {
                     let neighbor_index = ChunkData::linearize(x, y, z - 1);
                     let neigh_light = self.get_light(neighbor_index);
                     if neigh_light.a != 0 && neigh_light.a < light_level.a {
-                        self.light.remove_queue.push(LightNode {
-                            index: neighbor_index,
-                        });
+                        self.set_light(
+                            neighbor_index,
+                            LightData {
+                                r: 0,
+                                g: 0,
+                                b: 0,
+                                a: 0,
+                            },
+                        );
+                        self.light.remove_queue.push((
+                            LightNode {
+                                index: neighbor_index,
+                            },
+                            neigh_light,
+                        ));
                     } else if neigh_light.a >= light_level.a {
                         self.light.queue.push(LightNode {
                             index: neighbor_index,
@@ -782,9 +821,21 @@ impl ChunkData {
                     let neighbor_index = ChunkData::linearize(x, y, z + 1);
                     let neigh_light = self.get_light(neighbor_index);
                     if neigh_light.a != 0 && neigh_light.a < light_level.a {
-                        self.light.remove_queue.push(LightNode {
-                            index: neighbor_index,
-                        });
+                        self.set_light(
+                            neighbor_index,
+                            LightData {
+                                r: 0,
+                                g: 0,
+                                b: 0,
+                                a: 0,
+                            },
+                        );
+                        self.light.remove_queue.push((
+                            LightNode {
+                                index: neighbor_index,
+                            },
+                            neigh_light,
+                        ));
                     } else if neigh_light.a >= light_level.a {
                         self.light.queue.push(LightNode {
                             index: neighbor_index,
@@ -795,9 +846,21 @@ impl ChunkData {
                     let neighbor_index = ChunkData::linearize(x, y - 1, z);
                     let neigh_light = self.get_light(neighbor_index);
                     if neigh_light.a != 0 && neigh_light.a < light_level.a {
-                        self.light.remove_queue.push(LightNode {
-                            index: neighbor_index,
-                        });
+                        self.set_light(
+                            neighbor_index,
+                            LightData {
+                                r: 0,
+                                g: 0,
+                                b: 0,
+                                a: 0,
+                            },
+                        );
+                        self.light.remove_queue.push((
+                            LightNode {
+                                index: neighbor_index,
+                            },
+                            neigh_light,
+                        ));
                     } else if neigh_light.a >= light_level.a {
                         self.light.queue.push(LightNode {
                             index: neighbor_index,
@@ -805,12 +868,24 @@ impl ChunkData {
                     }
                 }
                 if y as i32 + 1 != CHUNK_SIZE as i32 {
-                    let neighbor_index = ChunkData::linearize(x, y - 1, z);
+                    let neighbor_index = ChunkData::linearize(x, y + 1, z);
                     let neigh_light = self.get_light(neighbor_index);
                     if neigh_light.a != 0 && neigh_light.a < light_level.a {
-                        self.light.remove_queue.push(LightNode {
-                            index: neighbor_index,
-                        });
+                        self.set_light(
+                            neighbor_index,
+                            LightData {
+                                r: 0,
+                                g: 0,
+                                b: 0,
+                                a: 0,
+                            },
+                        );
+                        self.light.remove_queue.push((
+                            LightNode {
+                                index: neighbor_index,
+                            },
+                            neigh_light,
+                        ));
                     } else if neigh_light.a >= light_level.a {
                         self.light.queue.push(LightNode {
                             index: neighbor_index,
