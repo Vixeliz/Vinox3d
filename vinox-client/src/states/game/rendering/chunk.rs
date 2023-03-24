@@ -220,5 +220,6 @@ pub fn get_rend(
         exclusive_direction: block_data.exclusive_direction.unwrap_or(false),
         tex_variance,
         blocks: geo_data.unwrap().blocks,
+        light: chunk.get_light(ChunkData::linearize(x, y, z)),
     }
 }

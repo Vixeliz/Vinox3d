@@ -781,6 +781,7 @@ fn full_mesh(
     let mut normals = Vec::new();
     let mut uvs = Vec::new();
     let mut ao = Vec::new();
+    let mut light = Vec::new();
     for face in buffer.iter_with_ao(raw_chunk) {
         indices.extend_from_slice(&face.indices(positions.len() as u32));
         positions.extend_from_slice(&face.positions(1.0)); // Voxel size is 1m
@@ -794,6 +795,21 @@ fn full_mesh(
             (Axis::Z, false) => 5,
             (Axis::Z, true) => 4,
         };
+        let matched_neighbor = match (face.side.axis, face.side.positive) {
+            (Axis::X, false) => (face.voxel()[0] - 1, face.voxel()[1], face.voxel()[2]),
+            (Axis::X, true) => (face.voxel()[0] + 1, face.voxel()[1], face.voxel()[2]),
+            (Axis::Y, false) => (face.voxel()[0], face.voxel()[1] - 1, face.voxel()[2]),
+            (Axis::Y, true) => (face.voxel()[0], face.voxel()[1] + 1, face.voxel()[2]),
+            (Axis::Z, false) => (face.voxel()[0], face.voxel()[1], face.voxel()[2] - 1),
+            (Axis::Z, true) => (face.voxel()[0], face.voxel()[1], face.voxel()[2] + 1),
+        };
+        let light_val = raw_chunk.voxels()
+            [ChunkBoundary::linearize(matched_neighbor.0, matched_neighbor.1, matched_neighbor.2)]
+        .light
+        .clone()
+        .a;
+
+        light.extend_from_slice(&[light_val, light_val, light_val, light_val]);
 
         uvs.extend_from_slice(
             &face.uvs(
@@ -813,12 +829,22 @@ fn full_mesh(
         );
     }
     let final_ao = ao_convert(ao);
+    let mut final_color = Vec::new();
+    for (idx, color) in final_ao.iter().enumerate() {
+        let light_level = light[idx];
+        final_color.extend_from_slice(&[[
+            color[0] * light_level as f32,
+            color[1] * light_level as f32,
+            color[2] * light_level as f32,
+            color[3],
+        ]]);
+    }
     let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
     mesh.set_indices(Some(Indices::U32(indices)));
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions.clone());
     mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
     mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
-    mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, final_ao);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, final_color);
     buffer.clear();
     //Transparent Mesh
     generate_mesh(raw_chunk, false, &mut buffer);

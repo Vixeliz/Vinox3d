@@ -20,6 +20,7 @@ use vinox_common::{
     storage::{blocks::descriptor::BlockGeometry, items::descriptor::ItemData},
     world::chunks::{
         ecs::CurrentChunks,
+        light::LightData,
         positions::ChunkPos,
         positions::{relative_voxel_to_world, voxel_to_world, world_to_chunk, world_to_voxel},
         storage::{
@@ -816,6 +817,20 @@ pub fn interact(
                                     voxel_pos.z as usize,
                                     BlockData::new("vinox".to_string(), "air".to_string()),
                                 );
+                                chunk.set_light(
+                                    ChunkData::linearize(
+                                        voxel_pos.x as usize,
+                                        voxel_pos.y as usize,
+                                        voxel_pos.z as usize,
+                                    ),
+                                    LightData {
+                                        r: 0,
+                                        g: 0,
+                                        b: 0,
+                                        a: 15,
+                                    },
+                                );
+                                chunk.calculate_light(&block_table);
                                 client.connection_mut().try_send_message(
                                     ClientMessage::SentBlock {
                                         chunk_pos: *chunk_pos,
