@@ -3,7 +3,12 @@ use std::collections::HashMap;
 use bevy::{ecs::system::SystemParam, prelude::*};
 use rustc_hash::FxHashSet;
 
-use super::{positions::ChunkPos, storage::ChunkData};
+use crate::storage::blocks::descriptor::BlockDescriptor;
+
+use super::{
+    positions::{global_voxel_positions, ChunkPos},
+    storage::{BlockData, BlockTable, ChunkData, CHUNK_SIZE_ARR},
+};
 
 #[derive(Component, Default)]
 pub struct RemoveChunk;
@@ -55,11 +60,12 @@ pub struct SimulationRadius {
 
 #[derive(SystemParam)]
 pub struct ChunkManager<'w, 's> {
-    // commands: Commands<'w, 's>,
+    commands: Commands<'w, 's>,
     pub current_chunks: ResMut<'w, CurrentChunks>,
     // chunk_queue: ResMut<'w, ChunkQueue>,
     pub view_radius: Res<'w, ViewRadius>,
-    pub chunk_query: Query<'w, 's, &'static ChunkData>,
+    pub chunk_query: Query<'w, 's, &'static mut ChunkData>,
+    pub block_table: Res<'w, BlockTable>,
 }
 
 #[derive(Component, Clone)]
@@ -67,7 +73,133 @@ pub struct SentChunks {
     pub chunks: FxHashSet<ChunkPos>,
 }
 
+#[derive(Component, Default)]
+pub struct ChunkUpdate;
+
 impl<'w, 's> ChunkManager<'w, 's> {
+    pub fn get_chunk(&self, enity: Entity) -> Option<ChunkData> {
+        if let Ok(chunk) = self.chunk_query.get(enity) {
+            return Some(chunk.clone());
+        }
+        None
+    }
+    pub fn set_block(&mut self, voxel_pos: IVec3, block: BlockData) {
+        let (chunk_pos, local_pos) = global_voxel_positions(voxel_pos);
+        if let Some(chunk_entity) = self.current_chunks.get_entity(ChunkPos(chunk_pos)) {
+            if let Ok(mut chunk) = self.chunk_query.get_mut(chunk_entity) {
+                chunk.set(
+                    local_pos.x as usize,
+                    local_pos.y as usize,
+                    local_pos.z as usize,
+                    block,
+                    &self.block_table,
+                );
+                match local_pos.x {
+                    0 => {
+                        if let Some(neighbor_chunk) = self
+                            .current_chunks
+                            .get_entity(ChunkPos(chunk_pos + IVec3::new(-1, 0, 0)))
+                        {
+                            self.commands.entity(neighbor_chunk).insert(ChunkUpdate);
+                        }
+                    }
+                    CHUNK_SIZE_ARR => {
+                        if let Some(neighbor_chunk) = self
+                            .current_chunks
+                            .get_entity(ChunkPos(chunk_pos + IVec3::new(1, 0, 0)))
+                        {
+                            self.commands.entity(neighbor_chunk).insert(ChunkUpdate);
+                        }
+                    }
+                    _ => {}
+                }
+                match local_pos.y {
+                    0 => {
+                        if let Some(neighbor_chunk) = self
+                            .current_chunks
+                            .get_entity(ChunkPos(chunk_pos + IVec3::new(0, -1, 0)))
+                        {
+                            self.commands.entity(neighbor_chunk).insert(ChunkUpdate);
+                        }
+                    }
+                    CHUNK_SIZE_ARR => {
+                        if let Some(neighbor_chunk) = self
+                            .current_chunks
+                            .get_entity(ChunkPos(chunk_pos + IVec3::new(0, 1, 0)))
+                        {
+                            self.commands.entity(neighbor_chunk).insert(ChunkUpdate);
+                        }
+                    }
+                    _ => {}
+                }
+                match local_pos.z {
+                    0 => {
+                        if let Some(neighbor_chunk) = self
+                            .current_chunks
+                            .get_entity(ChunkPos(chunk_pos + IVec3::new(0, 0, -1)))
+                        {
+                            self.commands.entity(neighbor_chunk).insert(ChunkUpdate);
+                        }
+                    }
+                    CHUNK_SIZE_ARR => {
+                        if let Some(neighbor_chunk) = self
+                            .current_chunks
+                            .get_entity(ChunkPos(chunk_pos + IVec3::new(0, 0, 1)))
+                        {
+                            self.commands.entity(neighbor_chunk).insert(ChunkUpdate);
+                        }
+                    }
+                    _ => {}
+                }
+                self.commands.entity(chunk_entity).insert(ChunkUpdate);
+            }
+        }
+    }
+
+    pub fn get_descriptor(&self, voxel_pos: IVec3) -> Option<BlockDescriptor> {
+        let (chunk_pos, local_pos) = global_voxel_positions(voxel_pos);
+        if let Some(chunk_entity) = self.current_chunks.get_entity(ChunkPos(chunk_pos)) {
+            if let Ok(chunk) = self.chunk_query.get(chunk_entity) {
+                return self
+                    .block_table
+                    .get(&chunk.get_identifier(
+                        local_pos.x as usize,
+                        local_pos.y as usize,
+                        local_pos.z as usize,
+                    ))
+                    .cloned();
+            }
+        }
+        None
+    }
+
+    pub fn get_identifier(&self, voxel_pos: IVec3) -> Option<String> {
+        let (chunk_pos, local_pos) = global_voxel_positions(voxel_pos);
+        if let Some(chunk_entity) = self.current_chunks.get_entity(ChunkPos(chunk_pos)) {
+            if let Ok(chunk) = self.chunk_query.get(chunk_entity) {
+                return Some(chunk.get_identifier(
+                    local_pos.x as usize,
+                    local_pos.y as usize,
+                    local_pos.z as usize,
+                ));
+            }
+        }
+        None
+    }
+
+    pub fn get_block(&self, voxel_pos: IVec3) -> Option<BlockData> {
+        let (chunk_pos, local_pos) = global_voxel_positions(voxel_pos);
+        if let Some(chunk_entity) = self.current_chunks.get_entity(ChunkPos(chunk_pos)) {
+            if let Ok(chunk) = self.chunk_query.get(chunk_entity) {
+                return Some(chunk.get(
+                    local_pos.x as usize,
+                    local_pos.y as usize,
+                    local_pos.z as usize,
+                ));
+            }
+        }
+        None
+    }
     pub fn get_chunk_positions(&mut self, chunk_pos: ChunkPos) -> Vec<ChunkPos> {
         let mut chunks = Vec::new();
         for z in -self.view_radius.horizontal..=self.view_radius.horizontal {

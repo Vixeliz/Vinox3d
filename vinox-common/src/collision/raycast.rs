@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::world::chunks::{
-    ecs::CurrentChunks,
+    ecs::{ChunkManager, CurrentChunks},
     positions::{world_to_global_voxel, world_to_voxel, ChunkPos},
     storage::{BlockTable, ChunkData},
 };
@@ -10,9 +10,10 @@ pub fn raycast_world(
     origin: Vec3,
     direction: Vec3,
     radius: f32,
-    chunks: &Query<&mut ChunkData>,
-    current_chunks: &CurrentChunks,
-    block_table: &BlockTable,
+    // chunks: &Query<&mut ChunkData>,
+    // current_chunks: &CurrentChunks,
+    // block_table: &BlockTable,
+    chunk_manager: &ChunkManager,
 ) -> Option<(ChunkPos, UVec3, Vec3, f32)> {
     // TMax needs the fractional part of origin to work.
     let mut tmax = Vec3::new(
@@ -44,19 +45,10 @@ pub fn raycast_world(
             break;
         }
         let (chunk_pos, voxel_pos) = world_to_voxel(current_block);
-        if let Some(chunk_entity) = current_chunks.get_entity(ChunkPos(chunk_pos)) {
-            if let Ok(chunk) = chunks.get(chunk_entity) {
-                if !chunk
-                    .get(
-                        voxel_pos.x as usize,
-                        voxel_pos.y as usize,
-                        voxel_pos.z as usize,
-                    )
-                    .is_empty(block_table)
-                {
-                    let toi = lastmax * direction.length();
-                    return Some((ChunkPos(chunk_pos), voxel_pos, face, toi));
-                }
+        if let Some(block) = chunk_manager.get_block(world_to_global_voxel(current_block)) {
+            if !block.is_empty(&chunk_manager.block_table) {
+                let toi = lastmax * direction.length();
+                return Some((ChunkPos(chunk_pos), voxel_pos, face, toi));
             }
         }
 

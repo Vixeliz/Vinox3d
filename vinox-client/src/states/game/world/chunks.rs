@@ -4,8 +4,8 @@ use tokio::sync::mpsc::{Receiver, Sender};
 use bevy::{ecs::system::SystemParam, math::Vec3Swizzles, prelude::*, tasks::AsyncComputeTaskPool};
 use bevy_tweening::{lens::TransformPositionLens, *};
 use vinox_common::world::chunks::{
-    ecs::{CurrentChunks, RemoveChunk, SimulationRadius, ViewRadius},
-    positions::{circle_points, world_to_chunk, ChunkPos},
+    ecs::{ChunkManager, CurrentChunks, RemoveChunk, SimulationRadius, ViewRadius},
+    positions::{circle_points, voxel_to_global_voxel, world_to_chunk, ChunkPos},
     storage::{
         BlockData, BlockTable, ChunkData, RawChunk, CHUNK_SIZE, CHUNK_SIZE_ARR,
         HORIZONTAL_DISTANCE, VERTICAL_DISTANCE,
@@ -14,7 +14,7 @@ use vinox_common::world::chunks::{
 
 use crate::states::{
     components::GameState,
-    game::rendering::meshing::{build_mesh, priority_mesh, NeedsMesh, PriorityMesh},
+    game::rendering::meshing::{build_mesh, priority_mesh, NeedsMesh},
 };
 
 #[derive(Component)]
@@ -191,75 +191,16 @@ pub fn receive_chunks(
 pub fn set_block(
     mut commands: Commands,
     mut event: EventReader<SetBlockEvent>,
-    current_chunks: Res<CurrentChunks>,
-    mut chunks: Query<&mut ChunkData>,
-    block_table: Res<BlockTable>,
+    // current_chunks: Res<CurrentChunks>,
+    // mut chunks: Query<&mut ChunkData>,
+    // block_table: Res<BlockTable>,
+    mut chunk_manager: ChunkManager,
 ) {
     for evt in event.iter() {
-        if let Some(chunk_entity) = current_chunks.get_entity(ChunkPos(evt.chunk_pos)) {
-            if let Ok(mut chunk) = chunks.get_mut(chunk_entity) {
-                chunk.set(
-                    evt.voxel_pos.x as usize,
-                    evt.voxel_pos.y as usize,
-                    evt.voxel_pos.z as usize,
-                    evt.block_type.clone(),
-                    &block_table,
-                );
-
-                match evt.voxel_pos.x {
-                    0 => {
-                        if let Some(neighbor_chunk) = current_chunks
-                            .get_entity(ChunkPos(evt.chunk_pos + IVec3::new(-1, 0, 0)))
-                        {
-                            commands.entity(neighbor_chunk).insert(PriorityMesh);
-                        }
-                    }
-                    CHUNK_SIZE_ARR => {
-                        if let Some(neighbor_chunk) =
-                            current_chunks.get_entity(ChunkPos(evt.chunk_pos + IVec3::new(1, 0, 0)))
-                        {
-                            commands.entity(neighbor_chunk).insert(PriorityMesh);
-                        }
-                    }
-                    _ => {}
-                }
-                match evt.voxel_pos.y {
-                    0 => {
-                        if let Some(neighbor_chunk) = current_chunks
-                            .get_entity(ChunkPos(evt.chunk_pos + IVec3::new(0, -1, 0)))
-                        {
-                            commands.entity(neighbor_chunk).insert(PriorityMesh);
-                        }
-                    }
-                    CHUNK_SIZE_ARR => {
-                        if let Some(neighbor_chunk) =
-                            current_chunks.get_entity(ChunkPos(evt.chunk_pos + IVec3::new(0, 1, 0)))
-                        {
-                            commands.entity(neighbor_chunk).insert(PriorityMesh);
-                        }
-                    }
-                    _ => {}
-                }
-                match evt.voxel_pos.z {
-                    0 => {
-                        if let Some(neighbor_chunk) = current_chunks
-                            .get_entity(ChunkPos(evt.chunk_pos + IVec3::new(0, 0, -1)))
-                        {
-                            commands.entity(neighbor_chunk).insert(PriorityMesh);
-                        }
-                    }
-                    CHUNK_SIZE_ARR => {
-                        if let Some(neighbor_chunk) =
-                            current_chunks.get_entity(ChunkPos(evt.chunk_pos + IVec3::new(0, 0, 1)))
-                        {
-                            commands.entity(neighbor_chunk).insert(PriorityMesh);
-                        }
-                    }
-                    _ => {}
-                }
-            }
-            commands.entity(chunk_entity).insert(PriorityMesh);
-        }
+        chunk_manager.set_block(
+            voxel_to_global_voxel(evt.voxel_pos, evt.chunk_pos),
+            evt.block_type.clone(),
+        );
     }
 }
 

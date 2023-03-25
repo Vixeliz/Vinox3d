@@ -22,7 +22,7 @@ use tokio::sync::mpsc::{Receiver, Sender};
 use vinox_common::{
     storage::geometry::descriptor::GeometryDescriptor,
     world::chunks::{
-        ecs::{ChunkManager, CurrentChunks},
+        ecs::{ChunkManager, ChunkUpdate, CurrentChunks},
         positions::{voxel_to_world, world_to_global_voxel, ChunkPos},
         storage::{self, BlockTable, ChunkData, RenderedBlockData, VoxelVisibility, CHUNK_SIZE},
     },
@@ -607,9 +607,6 @@ pub struct MeshQueue {
 #[derive(Component, Default)]
 pub struct NeedsMesh;
 
-#[derive(Component, Default)]
-pub struct PriorityMesh;
-
 #[derive(Resource)]
 pub struct PriorityMeshChannel {
     pub tx: Sender<MeshedChunk>,
@@ -1011,22 +1008,24 @@ pub fn process_priority_queue(
 
 pub fn priority_mesh(
     mut commands: Commands,
-    chunks: Query<(&ChunkData, &ChunkPos), With<PriorityMesh>>,
+    chunks: Query<&ChunkPos, With<ChunkUpdate>>,
     chunk_manager: ChunkManager,
     mut chunk_queue: ResMut<MeshQueue>,
 ) {
     for chunk in chunks.iter() {
-        if let Some(neighbors) = chunk_manager.get_neighbors(*chunk.1) {
+        if let Some(neighbors) = chunk_manager.get_neighbors(*chunk) {
             if let Ok(neighbors) = neighbors.try_into() {
-                chunk_queue
-                    .priority
-                    .push((**chunk.1, chunk.0.clone(), Box::new(Array(neighbors))));
-                commands
-                    .entity(chunk_manager.current_chunks.get_entity(*chunk.1).unwrap())
-                    .remove::<PriorityMesh>();
-                commands
-                    .entity(chunk_manager.current_chunks.get_entity(*chunk.1).unwrap())
-                    .remove::<NeedsMesh>();
+                if let Some(chunk_entity) = chunk_manager.current_chunks.get_entity(*chunk) {
+                    if let Some(chunk_data) = chunk_manager.get_chunk(chunk_entity) {
+                        chunk_queue.priority.push((
+                            **chunk,
+                            chunk_data,
+                            Box::new(Array(neighbors)),
+                        ));
+                        commands.entity(chunk_entity).remove::<ChunkUpdate>();
+                        commands.entity(chunk_entity).remove::<NeedsMesh>();
+                    }
+                }
             }
         }
     }
@@ -1035,7 +1034,7 @@ pub fn priority_mesh(
 pub fn build_mesh(
     mut commands: Commands,
     mut chunk_queue: ResMut<MeshQueue>,
-    chunks: Query<(&ChunkData, &ChunkPos), With<NeedsMesh>>,
+    chunks: Query<&ChunkPos, With<NeedsMesh>>,
     chunk_manager: ChunkManager,
     player_chunk: Res<PlayerChunk>,
     options: Res<GameOptions>,
@@ -1043,24 +1042,25 @@ pub fn build_mesh(
     for (count, chunk) in chunks
         .iter()
         .sorted_unstable_by_key(|key| {
-            FloatOrd(key.1.as_vec3().distance(player_chunk.chunk_pos.as_vec3()))
+            FloatOrd(key.as_vec3().distance(player_chunk.chunk_pos.as_vec3()))
         })
         .enumerate()
     {
         if count > options.meshes_frame {
             return;
         }
-        if chunk_manager.current_chunks.all_neighbors_exist(*chunk.1) {
-            if let Some(neighbors) = chunk_manager.get_neighbors(*chunk.1) {
+        if chunk_manager.current_chunks.all_neighbors_exist(*chunk) {
+            if let Some(neighbors) = chunk_manager.get_neighbors(*chunk) {
                 if let Ok(neighbors) = neighbors.try_into() {
-                    if let Some(chunk_entity) = chunk_manager.current_chunks.get_entity(*chunk.1) {
-                        chunk_queue.mesh.push((
-                            **chunk.1,
-                            chunk.0.clone(),
-                            Box::new(Array(neighbors)),
-                        ));
-
-                        commands.entity(chunk_entity).remove::<NeedsMesh>();
+                    if let Some(chunk_entity) = chunk_manager.current_chunks.get_entity(*chunk) {
+                        if let Some(chunk_data) = chunk_manager.get_chunk(chunk_entity) {
+                            chunk_queue.mesh.push((
+                                **chunk,
+                                chunk_data,
+                                Box::new(Array(neighbors)),
+                            ));
+                            commands.entity(chunk_entity).remove::<NeedsMesh>();
+                        }
                     }
                 }
             }
@@ -1122,7 +1122,7 @@ pub fn priority_player(
 ) {
     if let Some(chunk_entity) = current_chunks.get_entity(ChunkPos(player_chunk.chunk_pos)) {
         if chunks.get(chunk_entity).is_err() {
-            commands.entity(chunk_entity).insert(PriorityMesh);
+            commands.entity(chunk_entity).insert(ChunkUpdate);
         }
     }
 }

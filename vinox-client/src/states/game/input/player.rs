@@ -19,10 +19,10 @@ use vinox_common::{
     networking::protocol::ClientMessage,
     storage::{blocks::descriptor::BlockGeometry, items::descriptor::ItemData},
     world::chunks::{
-        ecs::CurrentChunks,
+        ecs::{ChunkManager, CurrentChunks},
         light::LightData,
-        positions::ChunkPos,
         positions::{relative_voxel_to_world, voxel_to_world, world_to_chunk, world_to_voxel},
+        positions::{voxel_to_global_voxel, ChunkPos},
         storage::{
             self, name_to_identifier, trim_geo_identifier, BlockData, BlockTable, ChunkData,
             ItemTable, CHUNK_SIZE, CHUNK_SIZE_ARR, HORIZONTAL_DISTANCE,
@@ -34,7 +34,6 @@ use crate::states::{
     components::{GameActions, GameOptions},
     game::{
         networking::syncing::HighLightCube,
-        rendering::meshing::{NeedsMesh, PriorityMesh},
         ui::{dropdown::ConsoleOpen, plugin::InUi},
         world::chunks::ControlledPlayer,
     },
@@ -286,9 +285,10 @@ pub fn interact(
         (&mut Transform, &mut Visibility),
         (With<HighLightCube>, Without<ControlledPlayer>),
     >,
-    mut chunks: Query<&mut ChunkData>,
-    current_chunks: Res<CurrentChunks>,
-    block_table: Res<BlockTable>,
+    // mut chunks: Query<&mut ChunkData>,
+    // current_chunks: Res<CurrentChunks>,
+    // block_table: Res<BlockTable>,
+    mut chunk_manager: ChunkManager,
     item_table: Res<ItemTable>,
     mut temp_bar: Local<Option<usize>>,
     mut item_type: Local<BlockGeometry>,
@@ -493,406 +493,225 @@ pub fn interact(
                 camera_transform.translation(),
                 camera_transform.forward(),
                 50.0,
-                &chunks,
-                &current_chunks,
-                &block_table,
+                &chunk_manager,
             );
             if let Some((chunk_pos, voxel_pos, normal, _)) = hit {
                 let point = voxel_to_world(voxel_pos.as_vec3().as_uvec3(), *chunk_pos);
 
-                if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos) {
-                    if let Ok((mut block_transform, mut block_visibility)) =
-                        cube_position.get_single_mut()
-                    {
-                        if *block_visibility == Visibility::Hidden {
-                            *block_visibility = Visibility::Visible;
-                        }
-                        block_transform.translation = point + Vec3::splat(0.5);
+                if let Ok((mut block_transform, mut block_visibility)) =
+                    cube_position.get_single_mut()
+                {
+                    if *block_visibility == Visibility::Hidden {
+                        *block_visibility = Visibility::Visible;
                     }
-                    if mouse_left || (mouse_right && place_item.is_some()) {
-                        if let Ok(mut chunk) = chunks.get_mut(chunk_entity) {
-                            if mouse_right {
-                                if item_data.unwrap_or_default().stack_size == 1 {
-                                    inventory.hotbar[*cur_bar][*cur_item] = None;
-                                } else if let Some(item) =
-                                    inventory.hotbar[*cur_bar][*cur_item].as_mut()
-                                {
-                                    item.stack_size -= 1;
-                                }
+                    block_transform.translation = point + Vec3::splat(0.5);
+                }
+                if mouse_left || (mouse_right && place_item.is_some()) {
+                    if mouse_right {
+                        if item_data.unwrap_or_default().stack_size == 1 {
+                            inventory.hotbar[*cur_bar][*cur_item] = None;
+                        } else if let Some(item) = inventory.hotbar[*cur_bar][*cur_item].as_mut() {
+                            item.stack_size -= 1;
+                        }
 
-                                if (point.x <= player_transform.translation.x - 0.5
-                                    || point.x >= player_transform.translation.x + 0.5)
-                                    || (point.z <= player_transform.translation.z - 0.5
-                                        || point.z >= player_transform.translation.z + 0.5)
-                                    || (point.y <= player_transform.translation.y - 1.0
-                                        || point.y >= player_transform.translation.y + 1.0)
+                        if (point.x <= player_transform.translation.x - 0.5
+                            || point.x >= player_transform.translation.x + 0.5)
+                            || (point.z <= player_transform.translation.z - 0.5
+                                || point.z >= player_transform.translation.z + 0.5)
+                            || (point.y <= player_transform.translation.y - 1.0
+                                || point.y >= player_transform.translation.y + 1.0)
+                        {
+                            let (chunk_pos, voxel_pos) = world_to_voxel(relative_voxel_to_world(
+                                voxel_pos.as_vec3().as_ivec3() + normal.as_ivec3(),
+                                *chunk_pos,
+                            ));
+                            if let Some(mut modified_item) = place_item.clone() {
+                                modified_item.name = if chunk_manager
+                                    .block_table
+                                    .get(&name_to_identifier(
+                                        modified_item.namespace.clone(),
+                                        item_type.geo_new_block(modified_item.name.clone()),
+                                    ))
+                                    .is_some()
                                 {
-                                    let (chunk_pos, voxel_pos) =
-                                        world_to_voxel(relative_voxel_to_world(
-                                            voxel_pos.as_vec3().as_ivec3() + normal.as_ivec3(),
-                                            *chunk_pos,
-                                        ));
-                                    if let Some(chunk_entity) =
-                                        current_chunks.get_entity(ChunkPos(chunk_pos))
+                                    item_type.geo_new_block(modified_item.name.clone())
+                                } else {
+                                    place_item.clone().unwrap().name
+                                };
+                                let normal = normal.as_ivec3();
+                                if chunk_manager
+                                    .block_table
+                                    .get(&name_to_identifier(
+                                        modified_item.namespace.clone(),
+                                        modified_item.name.clone(),
+                                    ))
+                                    .unwrap()
+                                    .has_direction
+                                    .unwrap_or(false)
+                                {
+                                    match normal.x {
+                                        -1 => {
+                                            modified_item.direction = Some(storage::Direction::West)
+                                        }
+                                        1 => {
+                                            modified_item.direction = Some(storage::Direction::East)
+                                        }
+                                        _ => {}
+                                    }
+                                    match normal.y {
+                                        -1 => {
+                                            modified_item.top = Some(true);
+                                        }
+                                        1 => {
+                                            modified_item.top = Some(false);
+                                        }
+                                        _ => {
+                                            // modified_item.top = Some(false);
+                                            // Stairs need tops and bottoms
+                                        }
+                                    }
+                                    match normal.z {
+                                        -1 => {
+                                            modified_item.direction =
+                                                Some(storage::Direction::South)
+                                        }
+                                        1 => {
+                                            modified_item.direction =
+                                                Some(storage::Direction::North)
+                                        }
+                                        _ => {}
+                                    }
+
+                                    if !chunk_manager
+                                        .block_table
+                                        .get(&name_to_identifier(
+                                            modified_item.namespace.clone(),
+                                            modified_item.name.clone(),
+                                        ))
+                                        .unwrap()
+                                        .exclusive_direction
+                                        .unwrap_or(false)
                                     {
-                                        if let Some(mut modified_item) = place_item.clone() {
-                                            modified_item.name = if block_table
-                                                .get(&name_to_identifier(
-                                                    modified_item.namespace.clone(),
-                                                    item_type
-                                                        .geo_new_block(modified_item.name.clone()),
-                                                ))
-                                                .is_some()
-                                            {
-                                                item_type.geo_new_block(modified_item.name.clone())
+                                        if modified_item.direction.is_none() {
+                                            let difference = player_transform.translation - point;
+                                            if difference.x > difference.z {
+                                                if difference.x < 0.0 {
+                                                    modified_item.direction =
+                                                        Some(storage::Direction::West)
+                                                } else {
+                                                    modified_item.direction =
+                                                        Some(storage::Direction::East)
+                                                }
+                                            } else if difference.z < 0.0 {
+                                                modified_item.direction =
+                                                    Some(storage::Direction::South)
                                             } else {
-                                                place_item.clone().unwrap().name
-                                            };
-                                            if let Ok(mut chunk) = chunks.get_mut(chunk_entity) {
-                                                let normal = normal.as_ivec3();
-                                                if block_table
-                                                    .get(&name_to_identifier(
-                                                        modified_item.namespace.clone(),
-                                                        modified_item.name.clone(),
-                                                    ))
-                                                    .unwrap()
-                                                    .has_direction
-                                                    .unwrap_or(false)
-                                                {
-                                                    match normal.x {
-                                                        -1 => {
-                                                            modified_item.direction =
-                                                                Some(storage::Direction::West)
-                                                        }
-                                                        1 => {
-                                                            modified_item.direction =
-                                                                Some(storage::Direction::East)
-                                                        }
-                                                        _ => {}
-                                                    }
-                                                    match normal.y {
-                                                        -1 => {
-                                                            modified_item.top = Some(true);
-                                                        }
-                                                        1 => {
-                                                            modified_item.top = Some(false);
-                                                        }
-                                                        _ => {
-                                                            // modified_item.top = Some(false);
-                                                            // Stairs need tops and bottoms
-                                                        }
-                                                    }
-                                                    match normal.z {
-                                                        -1 => {
-                                                            modified_item.direction =
-                                                                Some(storage::Direction::South)
-                                                        }
-                                                        1 => {
-                                                            modified_item.direction =
-                                                                Some(storage::Direction::North)
-                                                        }
-                                                        _ => {}
-                                                    }
-
-                                                    if !block_table
-                                                        .get(&name_to_identifier(
-                                                            modified_item.namespace.clone(),
-                                                            modified_item.name.clone(),
-                                                        ))
-                                                        .unwrap()
-                                                        .exclusive_direction
-                                                        .unwrap_or(false)
-                                                    {
-                                                        if modified_item.direction.is_none() {
-                                                            let difference = player_transform
-                                                                .translation
-                                                                - point;
-                                                            if difference.x > difference.z {
-                                                                if difference.x < 0.0 {
-                                                                    modified_item.direction = Some(
-                                                                        storage::Direction::West,
-                                                                    )
-                                                                } else {
-                                                                    modified_item.direction = Some(
-                                                                        storage::Direction::East,
-                                                                    )
-                                                                }
-                                                            } else if difference.z < 0.0 {
-                                                                modified_item.direction =
-                                                                    Some(storage::Direction::South)
-                                                            } else {
-                                                                modified_item.direction =
-                                                                    Some(storage::Direction::North)
-                                                            }
-                                                        }
-                                                        if modified_item.top.is_none() {
-                                                            let difference = player_transform
-                                                                .translation
-                                                                - point;
-                                                            if difference.y > 0.0 {
-                                                                modified_item.top = Some(true);
-                                                            } else {
-                                                                modified_item.top = Some(false);
-                                                            }
-                                                        }
-                                                    }
-                                                }
-
-                                                chunk.set(
-                                                    voxel_pos.x as usize,
-                                                    voxel_pos.y as usize,
-                                                    voxel_pos.z as usize,
-                                                    place_item.unwrap(),
-                                                    &block_table,
-                                                );
-                                                client.connection_mut().try_send_message(
-                                                    ClientMessage::SentBlock {
-                                                        chunk_pos,
-                                                        voxel_pos: [
-                                                            voxel_pos.x as u8,
-                                                            voxel_pos.y as u8,
-                                                            voxel_pos.z as u8,
-                                                        ],
-                                                        block_type: modified_item,
-                                                    },
-                                                );
-                                                match voxel_pos.x {
-                                                    0 => {
-                                                        if let Some(neighbor_chunk) = current_chunks
-                                                            .get_entity(ChunkPos(
-                                                                chunk_pos + IVec3::new(-1, 0, 0),
-                                                            ))
-                                                        {
-                                                            commands
-                                                                .entity(neighbor_chunk)
-                                                                .remove::<NeedsMesh>();
-                                                            commands
-                                                                .entity(neighbor_chunk)
-                                                                .insert(PriorityMesh);
-                                                        }
-                                                    }
-                                                    CHUNK_SIZE_ARR => {
-                                                        if let Some(neighbor_chunk) = current_chunks
-                                                            .get_entity(ChunkPos(
-                                                                chunk_pos + IVec3::new(1, 0, 0),
-                                                            ))
-                                                        {
-                                                            commands
-                                                                .entity(neighbor_chunk)
-                                                                .remove::<NeedsMesh>();
-                                                            commands
-                                                                .entity(neighbor_chunk)
-                                                                .insert(PriorityMesh);
-                                                        }
-                                                    }
-                                                    _ => {}
-                                                }
-                                                match voxel_pos.y {
-                                                    0 => {
-                                                        if let Some(neighbor_chunk) = current_chunks
-                                                            .get_entity(ChunkPos(
-                                                                chunk_pos + IVec3::new(0, -1, 0),
-                                                            ))
-                                                        {
-                                                            commands
-                                                                .entity(neighbor_chunk)
-                                                                .remove::<NeedsMesh>();
-                                                            commands
-                                                                .entity(neighbor_chunk)
-                                                                .insert(PriorityMesh);
-                                                        }
-                                                    }
-                                                    CHUNK_SIZE_ARR => {
-                                                        if let Some(neighbor_chunk) = current_chunks
-                                                            .get_entity(ChunkPos(
-                                                                chunk_pos + IVec3::new(0, 1, 0),
-                                                            ))
-                                                        {
-                                                            commands
-                                                                .entity(neighbor_chunk)
-                                                                .remove::<NeedsMesh>();
-                                                            commands
-                                                                .entity(neighbor_chunk)
-                                                                .insert(PriorityMesh);
-                                                        }
-                                                    }
-                                                    _ => {}
-                                                }
-                                                match voxel_pos.z {
-                                                    0 => {
-                                                        if let Some(neighbor_chunk) = current_chunks
-                                                            .get_entity(ChunkPos(
-                                                                chunk_pos + IVec3::new(0, 0, -1),
-                                                            ))
-                                                        {
-                                                            commands
-                                                                .entity(neighbor_chunk)
-                                                                .remove::<NeedsMesh>();
-                                                            commands
-                                                                .entity(neighbor_chunk)
-                                                                .insert(PriorityMesh);
-                                                        }
-                                                    }
-                                                    CHUNK_SIZE_ARR => {
-                                                        if let Some(neighbor_chunk) = current_chunks
-                                                            .get_entity(ChunkPos(
-                                                                chunk_pos + IVec3::new(0, 0, 1),
-                                                            ))
-                                                        {
-                                                            commands
-                                                                .entity(neighbor_chunk)
-                                                                .remove::<NeedsMesh>();
-                                                            commands
-                                                                .entity(neighbor_chunk)
-                                                                .insert(PriorityMesh);
-                                                        }
-                                                    }
-                                                    _ => {}
-                                                }
-                                                commands.entity(chunk_entity).insert(PriorityMesh);
+                                                modified_item.direction =
+                                                    Some(storage::Direction::North)
+                                            }
+                                        }
+                                        if modified_item.top.is_none() {
+                                            let difference = player_transform.translation - point;
+                                            if difference.y > 0.0 {
+                                                modified_item.top = Some(true);
+                                            } else {
+                                                modified_item.top = Some(false);
                                             }
                                         }
                                     }
                                 }
-                            } else if mouse_left {
-                                let identifier = chunk.get_identifier(
-                                    voxel_pos.x as usize,
-                                    voxel_pos.y as usize,
-                                    voxel_pos.z as usize,
-                                );
-                                let identifier = trim_geo_identifier(identifier);
-                                if let Some(item_def) = item_table.get(&identifier) {
-                                    if let Some((section, row_index, item_index, stack_size)) =
-                                        inventory.get_first_item(item_def)
-                                    {
-                                        match section {
-                                            "inventory" => {
-                                                inventory.slots[row_index][item_index] =
-                                                    Some(ItemData {
-                                                        name: item_def.name.clone(),
-                                                        namespace: item_def.namespace.clone(),
-                                                        stack_size: stack_size + 1,
-                                                        ..Default::default()
-                                                    });
-                                            }
-                                            "hotbar" => {
-                                                inventory.hotbar[row_index][item_index] =
-                                                    Some(ItemData {
-                                                        name: item_def.name.clone(),
-                                                        namespace: item_def.namespace.clone(),
-                                                        stack_size: stack_size + 1,
-                                                        ..Default::default()
-                                                    });
-                                            }
-                                            _ => {}
-                                        }
-                                    } else if let Some((section, row_index, item_index)) =
-                                        inventory.get_first_slot()
-                                    {
-                                        match section {
-                                            "inventory" => {
-                                                inventory.slots[row_index][item_index] =
-                                                    Some(ItemData {
-                                                        name: item_def.name.clone(),
-                                                        namespace: item_def.namespace.clone(),
-                                                        stack_size: 1,
-                                                        ..Default::default()
-                                                    });
-                                            }
-                                            "hotbar" => {
-                                                inventory.hotbar[row_index][item_index] =
-                                                    Some(ItemData {
-                                                        name: item_def.name.clone(),
-                                                        namespace: item_def.namespace.clone(),
-                                                        stack_size: 1,
-                                                        ..Default::default()
-                                                    });
-                                            }
-                                            _ => {}
-                                        }
-                                    }
-                                }
-                                chunk.set(
-                                    voxel_pos.x as usize,
-                                    voxel_pos.y as usize,
-                                    voxel_pos.z as usize,
-                                    BlockData::new("vinox".to_string(), "air".to_string()),
-                                    &block_table,
+
+                                chunk_manager.set_block(
+                                    voxel_to_global_voxel(voxel_pos, chunk_pos),
+                                    place_item.unwrap(),
                                 );
                                 client.connection_mut().try_send_message(
                                     ClientMessage::SentBlock {
-                                        chunk_pos: *chunk_pos,
+                                        chunk_pos,
                                         voxel_pos: [
                                             voxel_pos.x as u8,
                                             voxel_pos.y as u8,
                                             voxel_pos.z as u8,
                                         ],
-                                        block_type: BlockData::new(
-                                            "vinox".to_string(),
-                                            "air".to_string(),
-                                        ),
+                                        block_type: modified_item,
                                     },
                                 );
-
-                                match voxel_pos.x {
-                                    0 => {
-                                        if let Some(neighbor_chunk) = current_chunks
-                                            .get_entity(ChunkPos(*chunk_pos + IVec3::new(-1, 0, 0)))
-                                        {
-                                            commands.entity(neighbor_chunk).remove::<NeedsMesh>();
-                                            commands.entity(neighbor_chunk).insert(PriorityMesh);
-                                        }
-                                    }
-                                    CHUNK_SIZE_ARR => {
-                                        if let Some(neighbor_chunk) = current_chunks
-                                            .get_entity(ChunkPos(*chunk_pos + IVec3::new(1, 0, 0)))
-                                        {
-                                            commands.entity(neighbor_chunk).remove::<NeedsMesh>();
-                                            commands.entity(neighbor_chunk).insert(PriorityMesh);
-                                        }
-                                    }
-                                    _ => {}
-                                }
-                                match voxel_pos.y {
-                                    0 => {
-                                        if let Some(neighbor_chunk) = current_chunks
-                                            .get_entity(ChunkPos(*chunk_pos + IVec3::new(0, -1, 0)))
-                                        {
-                                            commands.entity(neighbor_chunk).remove::<NeedsMesh>();
-                                            commands.entity(neighbor_chunk).insert(PriorityMesh);
-                                        }
-                                    }
-                                    CHUNK_SIZE_ARR => {
-                                        if let Some(neighbor_chunk) = current_chunks
-                                            .get_entity(ChunkPos(*chunk_pos + IVec3::new(0, 1, 0)))
-                                        {
-                                            commands.entity(neighbor_chunk).remove::<NeedsMesh>();
-                                            commands.entity(neighbor_chunk).insert(PriorityMesh);
-                                        }
-                                    }
-                                    _ => {}
-                                }
-                                match voxel_pos.z {
-                                    0 => {
-                                        if let Some(neighbor_chunk) = current_chunks
-                                            .get_entity(ChunkPos(*chunk_pos + IVec3::new(0, 0, -1)))
-                                        {
-                                            commands.entity(neighbor_chunk).remove::<NeedsMesh>();
-                                            commands.entity(neighbor_chunk).insert(PriorityMesh);
-                                        }
-                                    }
-                                    CHUNK_SIZE_ARR => {
-                                        if let Some(neighbor_chunk) = current_chunks
-                                            .get_entity(ChunkPos(*chunk_pos + IVec3::new(0, 0, 1)))
-                                        {
-                                            commands.entity(neighbor_chunk).remove::<NeedsMesh>();
-                                            commands.entity(neighbor_chunk).insert(PriorityMesh);
-                                        }
-                                    }
-                                    _ => {}
-                                }
-                                commands.entity(chunk_entity).insert(PriorityMesh);
                             }
+                        }
+                    } else if mouse_left {
+                        if let Some(identifier) = chunk_manager
+                            .get_identifier(voxel_to_global_voxel(voxel_pos, *chunk_pos))
+                        {
+                            let identifier = trim_geo_identifier(identifier);
+                            if let Some(item_def) = item_table.get(&identifier) {
+                                if let Some((section, row_index, item_index, stack_size)) =
+                                    inventory.get_first_item(item_def)
+                                {
+                                    match section {
+                                        "inventory" => {
+                                            inventory.slots[row_index][item_index] =
+                                                Some(ItemData {
+                                                    name: item_def.name.clone(),
+                                                    namespace: item_def.namespace.clone(),
+                                                    stack_size: stack_size + 1,
+                                                    ..Default::default()
+                                                });
+                                        }
+                                        "hotbar" => {
+                                            inventory.hotbar[row_index][item_index] =
+                                                Some(ItemData {
+                                                    name: item_def.name.clone(),
+                                                    namespace: item_def.namespace.clone(),
+                                                    stack_size: stack_size + 1,
+                                                    ..Default::default()
+                                                });
+                                        }
+                                        _ => {}
+                                    }
+                                } else if let Some((section, row_index, item_index)) =
+                                    inventory.get_first_slot()
+                                {
+                                    match section {
+                                        "inventory" => {
+                                            inventory.slots[row_index][item_index] =
+                                                Some(ItemData {
+                                                    name: item_def.name.clone(),
+                                                    namespace: item_def.namespace.clone(),
+                                                    stack_size: 1,
+                                                    ..Default::default()
+                                                });
+                                        }
+                                        "hotbar" => {
+                                            inventory.hotbar[row_index][item_index] =
+                                                Some(ItemData {
+                                                    name: item_def.name.clone(),
+                                                    namespace: item_def.namespace.clone(),
+                                                    stack_size: 1,
+                                                    ..Default::default()
+                                                });
+                                        }
+                                        _ => {}
+                                    }
+                                }
+                            }
+                            chunk_manager.set_block(
+                                voxel_to_global_voxel(voxel_pos, *chunk_pos),
+                                BlockData::new("vinox".to_string(), "air".to_string()),
+                            );
+                            client
+                                .connection_mut()
+                                .try_send_message(ClientMessage::SentBlock {
+                                    chunk_pos: *chunk_pos,
+                                    voxel_pos: [
+                                        voxel_pos.x as u8,
+                                        voxel_pos.y as u8,
+                                        voxel_pos.z as u8,
+                                    ],
+                                    block_type: BlockData::new(
+                                        "vinox".to_string(),
+                                        "air".to_string(),
+                                    ),
+                                });
                         }
                     }
                 }
