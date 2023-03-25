@@ -654,6 +654,7 @@ impl ChunkData {
     }
     //TODO: Use bit shifting to pack all values into one
     pub fn calculate_light(&mut self, block_table: &BlockTable) {
+        // Use match statement to set a few variables depending on color
         while !self.light.queue.is_empty() {
             if let Some(node) = self.light.queue.last() {
                 let index = node.index;
@@ -767,10 +768,464 @@ impl ChunkData {
             }
         }
     }
-    pub fn calculate_chunk_lights(chunks: &mut [Mut<'_, ChunkData>; 27], block_table: &BlockTable) {
-        let chunk = chunks[26].as_mut();
-        chunk.calculate_remove_light();
-        chunk.calculate_light(block_table);
+    pub fn calculate_chunk_lights(
+        neighbors: &mut [Mut<'_, ChunkData>; 27],
+        block_table: &BlockTable,
+    ) {
+        // let chunk = chunks[26].as_mut();
+        while !neighbors[26].light.queue.is_empty() {
+            if let Some(node) = neighbors[26].light.queue.last() {
+                let index = node.index;
+                let light_level = neighbors[26].get_light(index);
+                neighbors[26].light.queue.pop();
+
+                for i in 0..6 {
+                    let (x, y, z) = ChunkData::delinearize(index);
+                    let (x, y, z) = match i {
+                        0 => (x - 1, y, z),
+                        1 => (x + 1, y, z),
+                        2 => (x, y - 1, z),
+                        3 => (x, y + 1, z),
+                        4 => (x, y, z - 1),
+                        5 => (x, y, z + 1),
+                        _ => (0, 0, 0),
+                    };
+                    const MAX: usize = CHUNK_SIZE;
+                    const BOUND: usize = MAX + 1;
+                    let (neighbor_light, is_empty, neighbor_index, index) = match (x, y, z) {
+                        (0, 0, 0) => (
+                            neighbors[0].get_light(ChunkData::linearize(MAX - 1, MAX - 1, MAX - 1)),
+                            neighbors[0]
+                                .get(MAX - 1, MAX - 1, MAX - 1)
+                                .is_true_empty(block_table),
+                            ChunkData::linearize(MAX - 1, MAX - 1, MAX - 1),
+                            0,
+                        ),
+                        (0, 0, 1..=MAX) => (
+                            neighbors[1].get_light(ChunkData::linearize(MAX - 1, MAX - 1, z - 1)),
+                            neighbors[1]
+                                .get(MAX - 1, MAX - 1, z - 1)
+                                .is_true_empty(block_table),
+                            ChunkData::linearize(MAX - 1, MAX - 1, z - 1),
+                            1,
+                        ),
+                        (0, 0, BOUND) => (
+                            neighbors[2].get_light(ChunkData::linearize(MAX - 1, MAX - 1, 0)),
+                            neighbors[2]
+                                .get(MAX - 1, MAX - 1, 0)
+                                .is_true_empty(block_table),
+                            ChunkData::linearize(MAX - 1, MAX - 1, 0),
+                            2,
+                        ),
+                        (0, 1..=MAX, 0) => (
+                            neighbors[3].get_light(ChunkData::linearize(MAX - 1, y - 1, MAX - 1)),
+                            neighbors[3]
+                                .get(MAX - 1, y - 1, MAX - 1)
+                                .is_true_empty(block_table),
+                            ChunkData::linearize(MAX - 1, y - 1, MAX - 1),
+                            3,
+                        ),
+                        (0, 1..=MAX, 1..=MAX) => (
+                            neighbors[4].get_light(ChunkData::linearize(MAX - 1, y - 1, z - 1)),
+                            neighbors[4]
+                                .get(MAX - 1, y - 1, z - 1)
+                                .is_true_empty(block_table),
+                            ChunkData::linearize(MAX - 1, y - 1, z - 1),
+                            4,
+                        ),
+                        (0, 1..=MAX, BOUND) => (
+                            neighbors[5].get_light(ChunkData::linearize(MAX - 1, y - 1, 0)),
+                            neighbors[5]
+                                .get(MAX - 1, y - 1, 0)
+                                .is_true_empty(block_table),
+                            ChunkData::linearize(MAX - 1, y - 1, 0),
+                            5,
+                        ),
+                        (0, BOUND, 0) => (
+                            neighbors[6].get_light(ChunkData::linearize(MAX - 1, 0, MAX - 1)),
+                            neighbors[6]
+                                .get(MAX - 1, 0, MAX - 1)
+                                .is_true_empty(block_table),
+                            ChunkData::linearize(MAX - 1, 0, MAX - 1),
+                            6,
+                        ),
+                        (0, BOUND, 1..=MAX) => (
+                            neighbors[7].get_light(ChunkData::linearize(MAX - 1, 0, z - 1)),
+                            neighbors[7]
+                                .get(MAX - 1, 0, z - 1)
+                                .is_true_empty(block_table),
+                            ChunkData::linearize(MAX - 1, 0, z - 1),
+                            7,
+                        ),
+                        (0, BOUND, BOUND) => (
+                            neighbors[8].get_light(ChunkData::linearize(MAX - 1, 0, 0)),
+                            neighbors[8].get(MAX - 1, 0, 0).is_true_empty(block_table),
+                            ChunkData::linearize(MAX - 1, 0, 0),
+                            8,
+                        ),
+                        (1..=MAX, 0, 0) => (
+                            neighbors[9].get_light(ChunkData::linearize(x - 1, MAX - 1, MAX - 1)),
+                            neighbors[9]
+                                .get(x - 1, MAX - 1, MAX - 1)
+                                .is_true_empty(block_table),
+                            ChunkData::linearize(x - 1, MAX - 1, MAX - 1),
+                            9,
+                        ),
+                        (1..=MAX, 0, 1..=MAX) => (
+                            neighbors[10].get_light(ChunkData::linearize(x - 1, MAX - 1, z - 1)),
+                            neighbors[10]
+                                .get(x - 1, MAX - 1, z - 1)
+                                .is_true_empty(block_table),
+                            ChunkData::linearize(x - 1, MAX - 1, z - 1),
+                            10,
+                        ),
+                        (1..=MAX, 0, BOUND) => (
+                            neighbors[11].get_light(ChunkData::linearize(x - 1, MAX - 1, 0)),
+                            neighbors[11]
+                                .get(x - 1, MAX - 1, 0)
+                                .is_true_empty(block_table),
+                            ChunkData::linearize(x - 1, MAX - 1, 0),
+                            11,
+                        ),
+                        (1..=MAX, 1..=MAX, 0) => (
+                            neighbors[12].get_light(ChunkData::linearize(x - 1, y - 1, MAX - 1)),
+                            neighbors[12]
+                                .get(x - 1, y - 1, MAX - 1)
+                                .is_true_empty(block_table),
+                            ChunkData::linearize(x - 1, y - 1, MAX - 1),
+                            12,
+                        ),
+                        (1..=MAX, 1..=MAX, 1..=MAX) => (
+                            neighbors[26].get_light(ChunkData::linearize(x - 1, y - 1, z - 1)),
+                            neighbors[26]
+                                .get(x - 1, y - 1, z - 1)
+                                .is_true_empty(block_table),
+                            ChunkData::linearize(x - 1, y - 1, z - 1),
+                            26,
+                        ),
+                        (1..=MAX, 1..=MAX, BOUND) => (
+                            neighbors[13].get_light(ChunkData::linearize(x - 1, y - 1, 0)),
+                            neighbors[13]
+                                .get(x - 1, y - 1, 0)
+                                .is_true_empty(block_table),
+                            ChunkData::linearize(x - 1, y - 1, 0),
+                            13,
+                        ),
+                        (1..=MAX, BOUND, 0) => (
+                            neighbors[14].get_light(ChunkData::linearize(x - 1, 0, MAX - 1)),
+                            neighbors[14]
+                                .get(x - 1, 0, MAX - 1)
+                                .is_true_empty(block_table),
+                            ChunkData::linearize(x - 1, 0, MAX - 1),
+                            14,
+                        ),
+                        (1..=MAX, BOUND, 1..=MAX) => (
+                            neighbors[15].get_light(ChunkData::linearize(x - 1, 0, z - 1)),
+                            neighbors[15]
+                                .get(x - 1, 0, z - 1)
+                                .is_true_empty(block_table),
+                            ChunkData::linearize(x - 1, 0, z - 1),
+                            15,
+                        ),
+                        (1..=MAX, BOUND, BOUND) => (
+                            neighbors[16].get_light(ChunkData::linearize(x - 1, 0, 0)),
+                            neighbors[16].get(x - 1, 0, 0).is_true_empty(block_table),
+                            ChunkData::linearize(x - 1, 0, 0),
+                            16,
+                        ),
+                        (BOUND, 0, 0) => (
+                            neighbors[17].get_light(ChunkData::linearize(0, MAX - 1, MAX - 1)),
+                            neighbors[17]
+                                .get(0, MAX - 1, MAX - 1)
+                                .is_true_empty(block_table),
+                            ChunkData::linearize(0, MAX - 1, MAX - 1),
+                            17,
+                        ),
+                        (BOUND, 0, 1..=MAX) => (
+                            neighbors[18].get_light(ChunkData::linearize(0, MAX - 1, z - 1)),
+                            neighbors[18]
+                                .get(0, MAX - 1, z - 1)
+                                .is_true_empty(block_table),
+                            ChunkData::linearize(0, MAX - 1, z - 1),
+                            18,
+                        ),
+                        (BOUND, 0, BOUND) => (
+                            neighbors[19].get_light(ChunkData::linearize(0, MAX - 1, 0)),
+                            neighbors[19].get(0, MAX - 1, 0).is_true_empty(block_table),
+                            ChunkData::linearize(0, MAX - 1, 0),
+                            19,
+                        ),
+                        (BOUND, 1..=MAX, 0) => (
+                            neighbors[20].get_light(ChunkData::linearize(0, y - 1, MAX - 1)),
+                            neighbors[20]
+                                .get(0, y - 1, MAX - 1)
+                                .is_true_empty(block_table),
+                            ChunkData::linearize(0, y - 1, MAX - 1),
+                            20,
+                        ),
+                        (BOUND, 1..=MAX, 1..=MAX) => (
+                            neighbors[21].get_light(ChunkData::linearize(0, y - 1, z - 1)),
+                            neighbors[21]
+                                .get(0, y - 1, z - 1)
+                                .is_true_empty(block_table),
+                            ChunkData::linearize(0, y - 1, z - 1),
+                            21,
+                        ),
+                        (BOUND, 1..=MAX, BOUND) => (
+                            neighbors[22].get_light(ChunkData::linearize(0, y - 1, 0)),
+                            neighbors[22].get(0, y - 1, 0).is_true_empty(block_table),
+                            ChunkData::linearize(0, y - 1, 0),
+                            22,
+                        ),
+                        (BOUND, BOUND, 0) => (
+                            neighbors[23].get_light(ChunkData::linearize(0, 0, MAX - 1)),
+                            neighbors[23].get(0, 0, MAX - 1).is_true_empty(block_table),
+                            ChunkData::linearize(0, 0, MAX - 1),
+                            23,
+                        ),
+                        (BOUND, BOUND, 1..=MAX) => (
+                            neighbors[24].get_light(ChunkData::linearize(0, 0, z - 1)),
+                            neighbors[24].get(0, 0, z - 1).is_true_empty(block_table),
+                            ChunkData::linearize(0, 0, z - 1),
+                            24,
+                        ),
+                        (BOUND, BOUND, BOUND) => (
+                            neighbors[25].get_light(ChunkData::linearize(0, 0, 0)),
+                            neighbors[25].get(0, 0, 0).is_true_empty(block_table),
+                            ChunkData::linearize(0, 0, 0),
+                            25,
+                        ),
+
+                        (_, _, _) => (LightData::default(), false, 0, 0),
+                    };
+                    if is_empty && neighbor_light.a + 2 < light_level.a {
+                        neighbors[index].set_light(
+                            neighbor_index,
+                            LightData {
+                                r: neighbor_light.r,
+                                g: neighbor_light.g,
+                                b: neighbor_light.b,
+                                a: light_level.a - 1,
+                            },
+                        );
+                    }
+                }
+            }
+        }
+        //         let light_level = chunks[26].get_light(index);
+        //         if x as i32 - 1 != -1 {
+        //             let neighbor_index = ChunkData::linearize(x - 1, y, z);
+        //             let neighbor_light = chunks[26].get_light(neighbor_index);
+        //             if chunks[26].get(x - 1, y, z).is_true_empty(block_table)
+        //                 && neighbor_light.a + 2 < light_level.a
+        //             {
+        //                 chunks[26].set_light(
+        //                     neighbor_index,
+        //                     LightData {
+        //                         r: neighbor_light.r,
+        //                         g: neighbor_light.g,
+        //                         b: neighbor_light.b,
+        //                         a: light_level.a - 1,
+        //                     },
+        //                 );
+        //             }
+        //         } else {
+        //             let neighbor_index = ChunkData::linearize(CHUNK_SIZE_ARR as usize, y, z);
+        //             let neighbor_light = chunks[4].get_light(neighbor_index);
+        //             if chunks[4]
+        //                 .get(CHUNK_SIZE_ARR as usize, y, z)
+        //                 .is_true_empty(block_table)
+        //                 && neighbor_light.a + 2 < light_level.a
+        //             {
+        //                 chunks[4].set_light(
+        //                     neighbor_index,
+        //                     LightData {
+        //                         r: neighbor_light.r,
+        //                         g: neighbor_light.g,
+        //                         b: neighbor_light.b,
+        //                         a: light_level.a - 1,
+        //                     },
+        //                 );
+        //             }
+        //         }
+        //         if x as i32 + 1 != CHUNK_SIZE as i32 {
+        //             let neighbor_index = ChunkData::linearize(x + 1, y, z);
+        //             let neighbor_light = chunks[26].get_light(neighbor_index);
+        //             if chunks[26].get(x + 1, y, z).is_true_empty(block_table)
+        //                 && neighbor_light.a + 2 < light_level.a
+        //             {
+        //                 chunks[26].set_light(
+        //                     neighbor_index,
+        //                     LightData {
+        //                         r: neighbor_light.r,
+        //                         g: neighbor_light.g,
+        //                         b: neighbor_light.b,
+        //                         a: light_level.a - 1,
+        //                     },
+        //                 );
+        //             }
+        //         } else {
+        //             let neighbor_index = ChunkData::linearize(0, y, z);
+        //             let neighbor_light = chunks[21].get_light(neighbor_index);
+        //             if chunks[21].get(0, y, z).is_true_empty(block_table)
+        //                 && neighbor_light.a + 2 < light_level.a
+        //             {
+        //                 chunks[21].set_light(
+        //                     neighbor_index,
+        //                     LightData {
+        //                         r: neighbor_light.r,
+        //                         g: neighbor_light.g,
+        //                         b: neighbor_light.b,
+        //                         a: light_level.a - 1,
+        //                     },
+        //                 );
+        //             }
+        //         }
+        //         if y as i32 - 1 != -1 {
+        //             let neighbor_index = ChunkData::linearize(x, y - 1, z);
+        //             let neighbor_light = chunks[26].get_light(neighbor_index);
+        //             if chunks[26].get(x, y - 1, z).is_true_empty(block_table)
+        //                 && neighbor_light.a + 2 < light_level.a
+        //             {
+        //                 chunks[26].set_light(
+        //                     neighbor_index,
+        //                     LightData {
+        //                         r: neighbor_light.r,
+        //                         g: neighbor_light.g,
+        //                         b: neighbor_light.b,
+        //                         a: light_level.a - 1,
+        //                     },
+        //                 );
+        //             }
+        //         } else {
+        //             let neighbor_index = ChunkData::linearize(x, CHUNK_SIZE_ARR as usize, z);
+        //             let neighbor_light = chunks[15].get_light(neighbor_index);
+        //             if chunks[15]
+        //                 .get(x, CHUNK_SIZE_ARR as usize, z)
+        //                 .is_true_empty(block_table)
+        //                 && neighbor_light.a + 2 < light_level.a
+        //             {
+        //                 chunks[15].set_light(
+        //                     neighbor_index,
+        //                     LightData {
+        //                         r: neighbor_light.r,
+        //                         g: neighbor_light.g,
+        //                         b: neighbor_light.b,
+        //                         a: light_level.a - 1,
+        //                     },
+        //                 );
+        //             }
+        //         }
+        //         if y as i32 + 1 != CHUNK_SIZE as i32 {
+        //             let neighbor_index = ChunkData::linearize(x, y + 1, z);
+        //             let neighbor_light = chunks[26].get_light(neighbor_index);
+        //             if chunks[26].get(x, y + 1, z).is_true_empty(block_table)
+        //                 && neighbor_light.a + 2 < light_level.a
+        //             {
+        //                 chunks[26].set_light(
+        //                     neighbor_index,
+        //                     LightData {
+        //                         r: neighbor_light.r,
+        //                         g: neighbor_light.g,
+        //                         b: neighbor_light.b,
+        //                         a: light_level.a - 1,
+        //                     },
+        //                 );
+        //             }
+        //         } else {
+        //             let neighbor_index = ChunkData::linearize(x, 0, z);
+        //             let neighbor_light = chunks[10].get_light(neighbor_index);
+        //             if chunks[10].get(x, 0, z).is_true_empty(block_table)
+        //                 && neighbor_light.a + 2 < light_level.a
+        //             {
+        //                 chunks[10].set_light(
+        //                     neighbor_index,
+        //                     LightData {
+        //                         r: neighbor_light.r,
+        //                         g: neighbor_light.g,
+        //                         b: neighbor_light.b,
+        //                         a: light_level.a - 1,
+        //                     },
+        //                 );
+        //             }
+        //         }
+        //         if z as i32 - 1 != -1 {
+        //             let neighbor_index = ChunkData::linearize(x, y, z - 1);
+        //             let neighbor_light = chunks[26].get_light(neighbor_index);
+        //             if chunks[26].get(x, y, z - 1).is_true_empty(block_table)
+        //                 && neighbor_light.a + 2 < light_level.a
+        //             {
+        //                 chunks[26].set_light(
+        //                     neighbor_index,
+        //                     LightData {
+        //                         r: neighbor_light.r,
+        //                         g: neighbor_light.g,
+        //                         b: neighbor_light.b,
+        //                         a: light_level.a - 1,
+        //                     },
+        //                 );
+        //             }
+        //         } else {
+        //             let neighbor_index = ChunkData::linearize(x, y, CHUNK_SIZE_ARR as usize);
+        //             let neighbor_light = chunks[12].get_light(neighbor_index);
+        //             if chunks[12]
+        //                 .get(x, y, CHUNK_SIZE_ARR as usize)
+        //                 .is_true_empty(block_table)
+        //                 && neighbor_light.a + 2 < light_level.a
+        //             {
+        //                 chunks[12].set_light(
+        //                     neighbor_index,
+        //                     LightData {
+        //                         r: neighbor_light.r,
+        //                         g: neighbor_light.g,
+        //                         b: neighbor_light.b,
+        //                         a: light_level.a - 1,
+        //                     },
+        //                 );
+        //             }
+        //         }
+        //         if z as i32 + 1 != CHUNK_SIZE as i32 {
+        //             let neighbor_index = ChunkData::linearize(x, y, z + 1);
+        //             let neighbor_light = chunks[26].get_light(neighbor_index);
+        //             if chunks[26].get(x, y, z + 1).is_true_empty(block_table)
+        //                 && neighbor_light.a + 2 < light_level.a
+        //             {
+        //                 chunks[26].set_light(
+        //                     neighbor_index,
+        //                     LightData {
+        //                         r: neighbor_light.r,
+        //                         g: neighbor_light.g,
+        //                         b: neighbor_light.b,
+        //                         a: light_level.a - 1,
+        //                     },
+        //                 );
+        //             }
+        //         } else {
+        //             let neighbor_index = ChunkData::linearize(x, y, 0);
+        //             let neighbor_light = chunks[13].get_light(neighbor_index);
+        //             if chunks[13].get(x, y, 0).is_true_empty(block_table)
+        //                 && neighbor_light.a + 2 < light_level.a
+        //             {
+        //                 chunks[13].set_light(
+        //                     neighbor_index,
+        //                     LightData {
+        //                         r: neighbor_light.r,
+        //                         g: neighbor_light.g,
+        //                         b: neighbor_light.b,
+        //                         a: light_level.a - 1,
+        //                     },
+        //                 );
+        //             }
+        //         }
+        //     }
+        // }
+
+        for neighbor in neighbors {
+            neighbor.calculate_remove_light();
+            neighbor.calculate_light(block_table);
+        }
+        // chunk.calculate_remove_light();
+        // chunk.calculate_light(block_table);
     }
     pub fn calculate_all_remove_lights(&mut self) {
         self.calculate_remove_light();

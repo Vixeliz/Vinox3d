@@ -273,32 +273,32 @@ impl ChunkPos {
                 self.x.wrapping_sub(1),
                 self.y.wrapping_sub(1),
                 self.z.wrapping_sub(1),
-            ),
-            ChunkPos::new(self.x.wrapping_sub(1), self.y.wrapping_sub(1), self.z),
-            ChunkPos::new(self.x.wrapping_sub(1), self.y.wrapping_sub(1), self.z + 1),
-            ChunkPos::new(self.x.wrapping_sub(1), self.y, self.z.wrapping_sub(1)),
-            ChunkPos::new(self.x.wrapping_sub(1), self.y, self.z),
-            ChunkPos::new(self.x.wrapping_sub(1), self.y, self.z + 1),
-            ChunkPos::new(self.x.wrapping_sub(1), self.y + 1, self.z.wrapping_sub(1)),
-            ChunkPos::new(self.x.wrapping_sub(1), self.y + 1, self.z),
-            ChunkPos::new(self.x.wrapping_sub(1), self.y + 1, self.z + 1),
-            ChunkPos::new(self.x, self.y.wrapping_sub(1), self.z.wrapping_sub(1)),
-            ChunkPos::new(self.x, self.y.wrapping_sub(1), self.z),
-            ChunkPos::new(self.x, self.y.wrapping_sub(1), self.z + 1),
-            ChunkPos::new(self.x, self.y, self.z.wrapping_sub(1)),
-            ChunkPos::new(self.x, self.y, self.z + 1),
-            ChunkPos::new(self.x, self.y + 1, self.z.wrapping_sub(1)),
-            ChunkPos::new(self.x, self.y + 1, self.z),
-            ChunkPos::new(self.x, self.y + 1, self.z + 1),
-            ChunkPos::new(self.x + 1, self.y.wrapping_sub(1), self.z.wrapping_sub(1)),
-            ChunkPos::new(self.x + 1, self.y.wrapping_sub(1), self.z),
-            ChunkPos::new(self.x + 1, self.y.wrapping_sub(1), self.z + 1),
-            ChunkPos::new(self.x + 1, self.y, self.z.wrapping_sub(1)),
-            ChunkPos::new(self.x + 1, self.y, self.z),
-            ChunkPos::new(self.x + 1, self.y, self.z + 1),
-            ChunkPos::new(self.x + 1, self.y + 1, self.z.wrapping_sub(1)),
-            ChunkPos::new(self.x + 1, self.y + 1, self.z),
-            ChunkPos::new(self.x + 1, self.y + 1, self.z + 1),
+            ), //0
+            ChunkPos::new(self.x.wrapping_sub(1), self.y.wrapping_sub(1), self.z), // 1
+            ChunkPos::new(self.x.wrapping_sub(1), self.y.wrapping_sub(1), self.z + 1), //2
+            ChunkPos::new(self.x.wrapping_sub(1), self.y, self.z.wrapping_sub(1)), // 3
+            ChunkPos::new(self.x.wrapping_sub(1), self.y, self.z),                 // 4
+            ChunkPos::new(self.x.wrapping_sub(1), self.y, self.z + 1),             // 5
+            ChunkPos::new(self.x.wrapping_sub(1), self.y + 1, self.z.wrapping_sub(1)), // 6
+            ChunkPos::new(self.x.wrapping_sub(1), self.y + 1, self.z),             // 7
+            ChunkPos::new(self.x.wrapping_sub(1), self.y + 1, self.z + 1),         // 8
+            ChunkPos::new(self.x, self.y.wrapping_sub(1), self.z.wrapping_sub(1)), // 9
+            ChunkPos::new(self.x, self.y.wrapping_sub(1), self.z),                 // 10
+            ChunkPos::new(self.x, self.y.wrapping_sub(1), self.z + 1),             // 11
+            ChunkPos::new(self.x, self.y, self.z.wrapping_sub(1)),                 // 12
+            ChunkPos::new(self.x, self.y, self.z + 1),                             // 13
+            ChunkPos::new(self.x, self.y + 1, self.z.wrapping_sub(1)),             // 14
+            ChunkPos::new(self.x, self.y + 1, self.z),                             // 15
+            ChunkPos::new(self.x, self.y + 1, self.z + 1),                         // 16
+            ChunkPos::new(self.x + 1, self.y.wrapping_sub(1), self.z.wrapping_sub(1)), // 17
+            ChunkPos::new(self.x + 1, self.y.wrapping_sub(1), self.z),             // 18
+            ChunkPos::new(self.x + 1, self.y.wrapping_sub(1), self.z + 1),         // 19
+            ChunkPos::new(self.x + 1, self.y, self.z.wrapping_sub(1)),             // 20
+            ChunkPos::new(self.x + 1, self.y, self.z),                             // 21
+            ChunkPos::new(self.x + 1, self.y, self.z + 1),                         // 22
+            ChunkPos::new(self.x + 1, self.y + 1, self.z.wrapping_sub(1)),         // 23
+            ChunkPos::new(self.x + 1, self.y + 1, self.z),                         // 24
+            ChunkPos::new(self.x + 1, self.y + 1, self.z + 1),                     // 25
         ]
     }
 
