@@ -122,7 +122,7 @@ impl<'w, 's> ChunkManager<'w, 's> {
         }
         LightData::default()
     }
-    pub fn update_light(&mut self, chunk_pos: ChunkPos) {
+    pub fn update_light(&mut self, chunk_pos: ChunkPos, block_table: BlockTable) {
         let mut res = Vec::with_capacity(26);
         for chunk_entity in self.current_chunks.get_all_neighbors(chunk_pos) {
             res.push(chunk_entity);
@@ -132,7 +132,7 @@ impl<'w, 's> ChunkManager<'w, 's> {
         if let Some(neighbors) = res {
             if let Ok(neighbors) = neighbors.try_into() {
                 if let Ok(mut neighbors) = self.chunk_query.get_many_mut::<27>(neighbors) {
-                    ChunkData::calculate_chunk_lights(&mut neighbors);
+                    ChunkData::calculate_chunk_lights(&mut neighbors, &block_table);
                 }
             }
         }
@@ -148,7 +148,7 @@ impl<'w, 's> ChunkManager<'w, 's> {
                     block,
                     &self.block_table,
                 );
-                self.update_light(ChunkPos(chunk_pos));
+                self.update_light(ChunkPos(chunk_pos), self.block_table.clone());
                 match local_pos.x {
                     0 => {
                         if let Some(neighbor_chunk) = self

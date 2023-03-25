@@ -14,7 +14,10 @@ use crate::storage::{
     items::descriptor::ItemDescriptor,
 };
 
-use super::light::{LightChunk, LightData, LightNode};
+use super::{
+    light::{LightChunk, LightData, LightNode},
+    positions::ChunkPos,
+};
 
 pub const HORIZONTAL_DISTANCE: usize = 16;
 pub const VERTICAL_DISTANCE: usize = 8;
@@ -508,17 +511,17 @@ impl ChunkData {
             if self_light != light {
                 if light != LightData::default() {
                     self.set_light(Self::linearize(x, y, z), light);
-                    self.calculate_all_light(block_table);
+                    // self.calculate_all_light(block_table);
                 } else {
                     self.remove_light(Self::linearize(x, y, z), self_light);
-                    self.calculate_all_remove_lights();
+                    // self.calculate_all_remove_lights();
                     self.set_light(Self::linearize(x, y, z), light);
-                    self.calculate_all_light(block_table);
+                    // self.calculate_all_light(block_table);
                 }
             }
         } else {
             self.remove_light(Self::linearize(x, y, z), self_light);
-            self.calculate_all_remove_lights();
+            // self.calculate_all_remove_lights();
             self.set_light(
                 Self::linearize(x, y, z),
                 LightData {
@@ -528,7 +531,7 @@ impl ChunkData {
                     a: 0,
                 },
             );
-            self.calculate_all_light(block_table);
+            // self.calculate_all_light(block_table);
         }
     }
 
@@ -539,27 +542,27 @@ impl ChunkData {
         }
     }
     pub fn complete_relight(&mut self, block_table: &BlockTable) -> ChunkData {
-        for x in 0..CHUNK_SIZE {
-            for y in 0..CHUNK_SIZE {
-                for z in 0..CHUNK_SIZE {
-                    let index = Self::linearize(x, y, z);
-                    if let Some(block) = block_table.get(&self.get_identifier(x, y, z)) {
-                        if let Some(light) = block.light {
-                            self.set_light(
-                                index,
-                                LightData {
-                                    r: light.0,
-                                    g: light.1,
-                                    b: light.2,
-                                    a: light.3,
-                                },
-                            );
-                        }
-                    }
-                }
-            }
-        }
-        self.calculate_all_light(block_table);
+        // for x in 0..CHUNK_SIZE {
+        //     for y in 0..CHUNK_SIZE {
+        //         for z in 0..CHUNK_SIZE {
+        //             let index = Self::linearize(x, y, z);
+        //             if let Some(block) = block_table.get(&self.get_identifier(x, y, z)) {
+        //                 if let Some(light) = block.light {
+        //                     self.set_light(
+        //                         index,
+        //                         LightData {
+        //                             r: light.0,
+        //                             g: light.1,
+        //                             b: light.2,
+        //                             a: light.3,
+        //                         },
+        //                     );
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
+        // self.calculate_all_light(block_table);
         self.clone()
     }
     pub fn is_empty(&self, block_table: &BlockTable) -> bool {
@@ -764,7 +767,11 @@ impl ChunkData {
             }
         }
     }
-    pub fn calculate_chunk_lights(chunks: &mut [Mut<'_, ChunkData>; 27]) {}
+    pub fn calculate_chunk_lights(chunks: &mut [Mut<'_, ChunkData>; 27], block_table: &BlockTable) {
+        let chunk = chunks[26].as_mut();
+        chunk.calculate_remove_light();
+        chunk.calculate_light(block_table);
+    }
     pub fn calculate_all_remove_lights(&mut self) {
         self.calculate_remove_light();
         // self.calculate_remove_light_red();
