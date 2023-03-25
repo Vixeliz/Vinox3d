@@ -20,7 +20,7 @@ use serde_big_array::Array;
 use std::{ops::Deref, time::Duration};
 use tokio::sync::mpsc::{Receiver, Sender};
 use vinox_common::{
-    storage::geometry::descriptor::GeometryDescriptor,
+    storage::geometry::descriptor::{BlockGeo, GeometryDescriptor},
     world::chunks::{
         ecs::{ChunkManager, ChunkUpdate, CurrentChunks, NeedsMesh, PriorityMesh},
         positions::{voxel_to_world, world_to_global_voxel, ChunkPos},
@@ -238,14 +238,14 @@ pub(crate) fn ao_value(side1: bool, corner: bool, side2: bool) -> u32 {
 
 pub(crate) fn side_aos(neighbors: [RenderedBlockData; 8]) -> [u32; 4] {
     let ns = [
-        neighbors[0].visibility == OPAQUE,
-        neighbors[1].visibility == OPAQUE,
-        neighbors[2].visibility == OPAQUE,
-        neighbors[3].visibility == OPAQUE,
-        neighbors[4].visibility == OPAQUE,
-        neighbors[5].visibility == OPAQUE,
-        neighbors[6].visibility == OPAQUE,
-        neighbors[7].visibility == OPAQUE,
+        neighbors[0].visibility == OPAQUE && neighbors[0].geo == BlockGeo::default(),
+        neighbors[1].visibility == OPAQUE && neighbors[1].geo == BlockGeo::default(),
+        neighbors[2].visibility == OPAQUE && neighbors[2].geo == BlockGeo::default(),
+        neighbors[3].visibility == OPAQUE && neighbors[3].geo == BlockGeo::default(),
+        neighbors[4].visibility == OPAQUE && neighbors[4].geo == BlockGeo::default(),
+        neighbors[5].visibility == OPAQUE && neighbors[5].geo == BlockGeo::default(),
+        neighbors[6].visibility == OPAQUE && neighbors[6].geo == BlockGeo::default(),
+        neighbors[7].visibility == OPAQUE && neighbors[7].geo == BlockGeo::default(),
     ];
 
     [

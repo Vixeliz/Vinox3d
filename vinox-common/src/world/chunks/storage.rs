@@ -162,6 +162,21 @@ impl BlockData {
             .unwrap_or_default()
             == VoxelVisibility::Empty
     }
+    pub fn is_true_empty(&self, block_table: &BlockTable) -> bool {
+        let descriptor = block_table
+            .get(&name_to_identifier(
+                self.namespace.clone(),
+                self.name.clone(),
+            ))
+            .unwrap();
+        !(descriptor.visibility.unwrap_or_default() == VoxelVisibility::Opaque
+            && descriptor
+                .geometry
+                .clone()
+                .unwrap_or_default()
+                .get_geo_namespace()
+                == "vinox:block")
+    }
 }
 
 impl Default for BlockData {
@@ -647,7 +662,7 @@ impl ChunkData {
                 if x as i32 - 1 != -1 {
                     let neighbor_index = ChunkData::linearize(x - 1, y, z);
                     let neighbor_light = self.get_light(neighbor_index);
-                    if self.get(x - 1, y, z).is_empty(block_table)
+                    if self.get(x - 1, y, z).is_true_empty(block_table)
                         && neighbor_light.a + 2 < light_level.a
                     {
                         self.set_light(
@@ -664,7 +679,7 @@ impl ChunkData {
                 if x as i32 + 1 != CHUNK_SIZE as i32 {
                     let neighbor_index = ChunkData::linearize(x + 1, y, z);
                     let neighbor_light = self.get_light(neighbor_index);
-                    if self.get(x + 1, y, z).is_empty(block_table)
+                    if self.get(x + 1, y, z).is_true_empty(block_table)
                         && neighbor_light.a + 2 < light_level.a
                     {
                         self.set_light(
@@ -681,7 +696,7 @@ impl ChunkData {
                 if y as i32 - 1 != -1 {
                     let neighbor_index = ChunkData::linearize(x, y - 1, z);
                     let neighbor_light = self.get_light(neighbor_index);
-                    if self.get(x, y - 1, z).is_empty(block_table)
+                    if self.get(x, y - 1, z).is_true_empty(block_table)
                         && neighbor_light.a + 2 < light_level.a
                     {
                         self.set_light(
@@ -698,7 +713,7 @@ impl ChunkData {
                 if y as i32 + 1 != CHUNK_SIZE as i32 {
                     let neighbor_index = ChunkData::linearize(x, y + 1, z);
                     let neighbor_light = self.get_light(neighbor_index);
-                    if self.get(x, y + 1, z).is_empty(block_table)
+                    if self.get(x, y + 1, z).is_true_empty(block_table)
                         && neighbor_light.a + 2 < light_level.a
                     {
                         self.set_light(
@@ -715,7 +730,7 @@ impl ChunkData {
                 if z as i32 - 1 != -1 {
                     let neighbor_index = ChunkData::linearize(x, y, z - 1);
                     let neighbor_light = self.get_light(neighbor_index);
-                    if self.get(x, y, z - 1).is_empty(block_table)
+                    if self.get(x, y, z - 1).is_true_empty(block_table)
                         && neighbor_light.a + 2 < light_level.a
                     {
                         self.set_light(
@@ -732,7 +747,7 @@ impl ChunkData {
                 if z as i32 + 1 != CHUNK_SIZE as i32 {
                     let neighbor_index = ChunkData::linearize(x, y, z + 1);
                     let neighbor_light = self.get_light(neighbor_index);
-                    if self.get(x, y, z + 1).is_empty(block_table)
+                    if self.get(x, y, z + 1).is_true_empty(block_table)
                         && neighbor_light.a + 2 < light_level.a
                     {
                         self.set_light(
@@ -761,7 +776,7 @@ impl ChunkData {
                 if x as i32 - 1 != -1 {
                     let neighbor_index = ChunkData::linearize(x - 1, y, z);
                     let neighbor_light = self.get_light(neighbor_index);
-                    if self.get(x - 1, y, z).is_empty(block_table)
+                    if self.get(x - 1, y, z).is_true_empty(block_table)
                         && neighbor_light.r + 2 < light_level.r
                     {
                         self.set_light(
@@ -778,7 +793,7 @@ impl ChunkData {
                 if x as i32 + 1 != CHUNK_SIZE as i32 {
                     let neighbor_index = ChunkData::linearize(x + 1, y, z);
                     let neighbor_light = self.get_light(neighbor_index);
-                    if self.get(x + 1, y, z).is_empty(block_table)
+                    if self.get(x + 1, y, z).is_true_empty(block_table)
                         && neighbor_light.r + 2 < light_level.r
                     {
                         self.set_light(
@@ -795,7 +810,7 @@ impl ChunkData {
                 if y as i32 - 1 != -1 {
                     let neighbor_index = ChunkData::linearize(x, y - 1, z);
                     let neighbor_light = self.get_light(neighbor_index);
-                    if self.get(x, y - 1, z).is_empty(block_table)
+                    if self.get(x, y - 1, z).is_true_empty(block_table)
                         && neighbor_light.r + 2 < light_level.r
                     {
                         self.set_light(
@@ -812,7 +827,7 @@ impl ChunkData {
                 if y as i32 + 1 != CHUNK_SIZE as i32 {
                     let neighbor_index = ChunkData::linearize(x, y + 1, z);
                     let neighbor_light = self.get_light(neighbor_index);
-                    if self.get(x, y + 1, z).is_empty(block_table)
+                    if self.get(x, y + 1, z).is_true_empty(block_table)
                         && neighbor_light.r + 2 < light_level.r
                     {
                         self.set_light(
@@ -829,7 +844,7 @@ impl ChunkData {
                 if z as i32 - 1 != -1 {
                     let neighbor_index = ChunkData::linearize(x, y, z - 1);
                     let neighbor_light = self.get_light(neighbor_index);
-                    if self.get(x, y, z - 1).is_empty(block_table)
+                    if self.get(x, y, z - 1).is_true_empty(block_table)
                         && neighbor_light.r + 2 < light_level.r
                     {
                         self.set_light(
@@ -846,7 +861,7 @@ impl ChunkData {
                 if z as i32 + 1 != CHUNK_SIZE as i32 {
                     let neighbor_index = ChunkData::linearize(x, y, z + 1);
                     let neighbor_light = self.get_light(neighbor_index);
-                    if self.get(x, y, z + 1).is_empty(block_table)
+                    if self.get(x, y, z + 1).is_true_empty(block_table)
                         && neighbor_light.r + 2 < light_level.r
                     {
                         self.set_light(
@@ -875,7 +890,7 @@ impl ChunkData {
                 if x as i32 - 1 != -1 {
                     let neighbor_index = ChunkData::linearize(x - 1, y, z);
                     let neighbor_light = self.get_light(neighbor_index);
-                    if self.get(x - 1, y, z).is_empty(block_table)
+                    if self.get(x - 1, y, z).is_true_empty(block_table)
                         && neighbor_light.g + 2 < light_level.g
                     {
                         self.set_light(
@@ -892,7 +907,7 @@ impl ChunkData {
                 if x as i32 + 1 != CHUNK_SIZE as i32 {
                     let neighbor_index = ChunkData::linearize(x + 1, y, z);
                     let neighbor_light = self.get_light(neighbor_index);
-                    if self.get(x + 1, y, z).is_empty(block_table)
+                    if self.get(x + 1, y, z).is_true_empty(block_table)
                         && neighbor_light.g + 2 < light_level.g
                     {
                         self.set_light(
@@ -909,7 +924,7 @@ impl ChunkData {
                 if y as i32 - 1 != -1 {
                     let neighbor_index = ChunkData::linearize(x, y - 1, z);
                     let neighbor_light = self.get_light(neighbor_index);
-                    if self.get(x, y - 1, z).is_empty(block_table)
+                    if self.get(x, y - 1, z).is_true_empty(block_table)
                         && neighbor_light.g + 2 < light_level.g
                     {
                         self.set_light(
@@ -926,7 +941,7 @@ impl ChunkData {
                 if y as i32 + 1 != CHUNK_SIZE as i32 {
                     let neighbor_index = ChunkData::linearize(x, y + 1, z);
                     let neighbor_light = self.get_light(neighbor_index);
-                    if self.get(x, y + 1, z).is_empty(block_table)
+                    if self.get(x, y + 1, z).is_true_empty(block_table)
                         && neighbor_light.g + 2 < light_level.g
                     {
                         self.set_light(
@@ -943,7 +958,7 @@ impl ChunkData {
                 if z as i32 - 1 != -1 {
                     let neighbor_index = ChunkData::linearize(x, y, z - 1);
                     let neighbor_light = self.get_light(neighbor_index);
-                    if self.get(x, y, z - 1).is_empty(block_table)
+                    if self.get(x, y, z - 1).is_true_empty(block_table)
                         && neighbor_light.g + 2 < light_level.g
                     {
                         self.set_light(
@@ -960,7 +975,7 @@ impl ChunkData {
                 if z as i32 + 1 != CHUNK_SIZE as i32 {
                     let neighbor_index = ChunkData::linearize(x, y, z + 1);
                     let neighbor_light = self.get_light(neighbor_index);
-                    if self.get(x, y, z + 1).is_empty(block_table)
+                    if self.get(x, y, z + 1).is_true_empty(block_table)
                         && neighbor_light.g + 2 < light_level.g
                     {
                         self.set_light(
@@ -989,7 +1004,7 @@ impl ChunkData {
                 if x as i32 - 1 != -1 {
                     let neighbor_index = ChunkData::linearize(x - 1, y, z);
                     let neighbor_light = self.get_light(neighbor_index);
-                    if self.get(x - 1, y, z).is_empty(block_table)
+                    if self.get(x - 1, y, z).is_true_empty(block_table)
                         && neighbor_light.b + 2 < light_level.b
                     {
                         self.set_light(
@@ -1006,7 +1021,7 @@ impl ChunkData {
                 if x as i32 + 1 != CHUNK_SIZE as i32 {
                     let neighbor_index = ChunkData::linearize(x + 1, y, z);
                     let neighbor_light = self.get_light(neighbor_index);
-                    if self.get(x + 1, y, z).is_empty(block_table)
+                    if self.get(x + 1, y, z).is_true_empty(block_table)
                         && neighbor_light.b + 2 < light_level.b
                     {
                         self.set_light(
@@ -1023,7 +1038,7 @@ impl ChunkData {
                 if y as i32 - 1 != -1 {
                     let neighbor_index = ChunkData::linearize(x, y - 1, z);
                     let neighbor_light = self.get_light(neighbor_index);
-                    if self.get(x, y - 1, z).is_empty(block_table)
+                    if self.get(x, y - 1, z).is_true_empty(block_table)
                         && neighbor_light.b + 2 < light_level.b
                     {
                         self.set_light(
@@ -1040,7 +1055,7 @@ impl ChunkData {
                 if y as i32 + 1 != CHUNK_SIZE as i32 {
                     let neighbor_index = ChunkData::linearize(x, y + 1, z);
                     let neighbor_light = self.get_light(neighbor_index);
-                    if self.get(x, y + 1, z).is_empty(block_table)
+                    if self.get(x, y + 1, z).is_true_empty(block_table)
                         && neighbor_light.b + 2 < light_level.b
                     {
                         self.set_light(
@@ -1057,7 +1072,7 @@ impl ChunkData {
                 if z as i32 - 1 != -1 {
                     let neighbor_index = ChunkData::linearize(x, y, z - 1);
                     let neighbor_light = self.get_light(neighbor_index);
-                    if self.get(x, y, z - 1).is_empty(block_table)
+                    if self.get(x, y, z - 1).is_true_empty(block_table)
                         && neighbor_light.b + 2 < light_level.b
                     {
                         self.set_light(
@@ -1074,7 +1089,7 @@ impl ChunkData {
                 if z as i32 + 1 != CHUNK_SIZE as i32 {
                     let neighbor_index = ChunkData::linearize(x, y, z + 1);
                     let neighbor_light = self.get_light(neighbor_index);
-                    if self.get(x, y, z + 1).is_empty(block_table)
+                    if self.get(x, y, z + 1).is_true_empty(block_table)
                         && neighbor_light.b + 2 < light_level.b
                     {
                         self.set_light(

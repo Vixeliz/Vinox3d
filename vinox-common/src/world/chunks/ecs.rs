@@ -3,7 +3,9 @@ use std::collections::HashMap;
 use bevy::{ecs::system::SystemParam, prelude::*};
 use rustc_hash::FxHashSet;
 
-use crate::storage::blocks::descriptor::BlockDescriptor;
+use crate::{
+    storage::blocks::descriptor::BlockDescriptor, world::chunks::storage::TOTAL_CHUNK_SIZE,
+};
 
 use super::{
     positions::{global_voxel_positions, ChunkPos},
@@ -306,17 +308,230 @@ pub fn update_priority_chunk_lights(
     mut chunks: Query<(&mut ChunkData, &ChunkPos, Entity), With<PriorityChunkUpdate>>,
     chunk_query: Query<&ChunkData, Without<PriorityChunkUpdate>>,
     current_chunks: Res<CurrentChunks>,
+    block_table: Res<BlockTable>,
 ) {
-    for (chunk, chunk_pos, entity) in chunks.iter() {
+    for (mut chunk, chunk_pos, entity) in chunks.iter_mut() {
         let mut neighbors = Vec::with_capacity(26);
-        for neighbor_pos in chunk_pos.neighbors() {
-            if let Some(chunk_entity) = current_chunks.get_entity(neighbor_pos) {
-                if let Ok(chunk) = chunk_query.get(chunk_entity) {
-                    neighbors.push((chunk.clone(), neighbor_pos));
+        if current_chunks.all_neighbors_exist(*chunk_pos) {
+            for neighbor_pos in chunk_pos.neighbors() {
+                if let Some(chunk_entity) = current_chunks.get_entity(neighbor_pos) {
+                    if let Ok(chunk) = chunk_query.get(chunk_entity) {
+                        neighbors.push((chunk.clone(), neighbor_pos));
+                    }
                 }
             }
+
+            const MAX: usize = CHUNK_SIZE;
+            const BOUND: usize = MAX + 1;
+            for x in 0..CHUNK_SIZE {
+                for y in 0..CHUNK_SIZE {
+                    for z in 0..CHUNK_SIZE {
+                        match (x, y, z) {
+                            (0, 0, 0) => {
+                                let light = neighbors[0].0.get_light(ChunkData::linearize(
+                                    MAX - 1,
+                                    MAX - 1,
+                                    MAX - 1,
+                                ));
+                                chunk.set_light(ChunkData::linearize(x, y, z), light);
+                            }
+                            (0, 0, 1..=MAX) => {
+                                let light = neighbors[1].0.get_light(ChunkData::linearize(
+                                    MAX - 1,
+                                    MAX - 1,
+                                    z - 1,
+                                ));
+                                chunk.set_light(ChunkData::linearize(x, y, z), light);
+                            }
+                            (0, 0, BOUND) => {
+                                let light = neighbors[2].0.get_light(ChunkData::linearize(
+                                    MAX - 1,
+                                    MAX - 1,
+                                    0,
+                                ));
+                                chunk.set_light(ChunkData::linearize(x, y, z), light);
+                            }
+                            (0, 1..=MAX, 0) => {
+                                let light = neighbors[3].0.get_light(ChunkData::linearize(
+                                    MAX - 1,
+                                    y - 1,
+                                    MAX - 1,
+                                ));
+                                chunk.set_light(ChunkData::linearize(x, y, z), light);
+                            }
+                            (0, 1..=MAX, 1..=MAX) => {
+                                let light = neighbors[4].0.get_light(ChunkData::linearize(
+                                    MAX - 1,
+                                    y - 1,
+                                    z - 1,
+                                ));
+                                chunk.set_light(ChunkData::linearize(x, y, z), light);
+                            }
+                            (0, 1..=MAX, BOUND) => {
+                                let light = neighbors[5].0.get_light(ChunkData::linearize(
+                                    MAX - 1,
+                                    y - 1,
+                                    0,
+                                ));
+                                chunk.set_light(ChunkData::linearize(x, y, z), light);
+                            }
+                            (0, BOUND, 0) => {
+                                let light = neighbors[6].0.get_light(ChunkData::linearize(
+                                    MAX - 1,
+                                    0,
+                                    MAX - 1,
+                                ));
+                                chunk.set_light(ChunkData::linearize(x, y, z), light);
+                            }
+                            (0, BOUND, 1..=MAX) => {
+                                let light = neighbors[7].0.get_light(ChunkData::linearize(
+                                    MAX - 1,
+                                    0,
+                                    z - 1,
+                                ));
+                                chunk.set_light(ChunkData::linearize(x, y, z), light);
+                            }
+                            (0, BOUND, BOUND) => {
+                                let light =
+                                    neighbors[8]
+                                        .0
+                                        .get_light(ChunkData::linearize(MAX - 1, 0, 0));
+                                chunk.set_light(ChunkData::linearize(x, y, z), light);
+                            }
+                            (1..=MAX, 0, 0) => {
+                                let light = neighbors[9].0.get_light(ChunkData::linearize(
+                                    x - 1,
+                                    MAX - 1,
+                                    MAX - 1,
+                                ));
+                                chunk.set_light(ChunkData::linearize(x, y, z), light);
+                            }
+                            (1..=MAX, 0, 1..=MAX) => {
+                                let light = neighbors[10].0.get_light(ChunkData::linearize(
+                                    x - 1,
+                                    MAX - 1,
+                                    z - 1,
+                                ));
+                                chunk.set_light(ChunkData::linearize(x, y, z), light);
+                            }
+                            (1..=MAX, 0, BOUND) => {
+                                let light = neighbors[11].0.get_light(ChunkData::linearize(
+                                    x - 1,
+                                    MAX - 1,
+                                    0,
+                                ));
+                                chunk.set_light(ChunkData::linearize(x, y, z), light);
+                            }
+                            (1..=MAX, 1..=MAX, 0) => {
+                                let light = neighbors[12].0.get_light(ChunkData::linearize(
+                                    x - 1,
+                                    y - 1,
+                                    MAX - 1,
+                                ));
+                                chunk.set_light(ChunkData::linearize(x, y, z), light);
+                            }
+                            // (1..=MAX, 1..=MAX, 1..=MAX) => {
+                            //     let light =&center, x - 1, y - 1, z - 1;
+                            // }
+                            (1..=MAX, 1..=MAX, BOUND) => {
+                                let light = neighbors[13].0.get_light(ChunkData::linearize(
+                                    x - 1,
+                                    y - 1,
+                                    0,
+                                ));
+                                chunk.set_light(ChunkData::linearize(x, y, z), light);
+                            }
+                            (1..=MAX, BOUND, 0) => {
+                                let light = neighbors[14].0.get_light(ChunkData::linearize(
+                                    x - 1,
+                                    0,
+                                    MAX - 1,
+                                ));
+                                chunk.set_light(ChunkData::linearize(x, y, z), light);
+                            }
+                            (1..=MAX, BOUND, 1..=MAX) => {
+                                let light = neighbors[15].0.get_light(ChunkData::linearize(
+                                    x - 1,
+                                    0,
+                                    z - 1,
+                                ));
+                                chunk.set_light(ChunkData::linearize(x, y, z), light);
+                            }
+                            (1..=MAX, BOUND, BOUND) => {
+                                let light =
+                                    neighbors[16].0.get_light(ChunkData::linearize(x - 1, 0, 0));
+                                chunk.set_light(ChunkData::linearize(x, y, z), light);
+                            }
+                            (BOUND, 0, 0) => {
+                                let light = neighbors[17].0.get_light(ChunkData::linearize(
+                                    0,
+                                    MAX - 1,
+                                    MAX - 1,
+                                ));
+                                chunk.set_light(ChunkData::linearize(x, y, z), light);
+                            }
+                            (BOUND, 0, 1..=MAX) => {
+                                let light = neighbors[18].0.get_light(ChunkData::linearize(
+                                    0,
+                                    MAX - 1,
+                                    z - 1,
+                                ));
+                                chunk.set_light(ChunkData::linearize(x, y, z), light);
+                            }
+                            (BOUND, 0, BOUND) => {
+                                let light =
+                                    neighbors[19]
+                                        .0
+                                        .get_light(ChunkData::linearize(0, MAX - 1, 0));
+                                chunk.set_light(ChunkData::linearize(x, y, z), light);
+                            }
+                            (BOUND, 1..=MAX, 0) => {
+                                let light = neighbors[20].0.get_light(ChunkData::linearize(
+                                    0,
+                                    y - 1,
+                                    MAX - 1,
+                                ));
+                                chunk.set_light(ChunkData::linearize(x, y, z), light);
+                            }
+                            (BOUND, 1..=MAX, 1..=MAX) => {
+                                let light = neighbors[21].0.get_light(ChunkData::linearize(
+                                    0,
+                                    y - 1,
+                                    z - 1,
+                                ));
+                                chunk.set_light(ChunkData::linearize(x, y, z), light);
+                            }
+                            (BOUND, 1..=MAX, BOUND) => {
+                                let light =
+                                    neighbors[22].0.get_light(ChunkData::linearize(0, y - 1, 0));
+                                chunk.set_light(ChunkData::linearize(x, y, z), light);
+                            }
+                            (BOUND, BOUND, 0) => {
+                                let light =
+                                    neighbors[23]
+                                        .0
+                                        .get_light(ChunkData::linearize(0, 0, MAX - 1));
+                                chunk.set_light(ChunkData::linearize(x, y, z), light);
+                            }
+                            (BOUND, BOUND, 1..=MAX) => {
+                                let light =
+                                    neighbors[24].0.get_light(ChunkData::linearize(0, 0, z - 1));
+                                chunk.set_light(ChunkData::linearize(x, y, z), light);
+                            }
+                            (BOUND, BOUND, BOUND) => {
+                                let light =
+                                    neighbors[25].0.get_light(ChunkData::linearize(0, 0, 0));
+                                chunk.set_light(ChunkData::linearize(x, y, z), light);
+                            }
+
+                            (_, _, _) => {}
+                        }
+                    }
+                }
+            }
+            chunk.calculate_all_light(&block_table);
+            commands.entity(entity).remove::<PriorityChunkUpdate>();
+            commands.entity(entity).insert(PriorityMesh);
         }
-        commands.entity(entity).remove::<PriorityChunkUpdate>();
-        commands.entity(entity).insert(PriorityMesh);
     }
 }
