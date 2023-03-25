@@ -130,6 +130,12 @@ impl<'w, 's> ChunkManager<'w, 's> {
         res.push(self.current_chunks.get_entity(chunk_pos).unwrap());
         let res = if res.len() == 27 { Some(res) } else { None };
         if let Some(neighbors) = res {
+            for neighbor_entity in neighbors.iter() {
+                self.commands
+                    .entity(*neighbor_entity)
+                    .insert(PriorityChunkUpdate);
+            }
+
             if let Ok(neighbors) = neighbors.try_into() {
                 if let Ok(mut neighbors) = self.chunk_query.get_many_mut::<27>(neighbors) {
                     ChunkData::calculate_chunk_lights(&mut neighbors, &block_table);
