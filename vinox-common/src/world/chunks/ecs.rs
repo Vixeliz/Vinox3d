@@ -7,7 +7,7 @@ use crate::storage::blocks::descriptor::BlockDescriptor;
 
 use super::{
     positions::{global_voxel_positions, ChunkPos},
-    storage::{BlockData, BlockTable, ChunkData, CHUNK_SIZE_ARR},
+    storage::{BlockData, BlockTable, ChunkData, CHUNK_SIZE, CHUNK_SIZE_ARR},
 };
 
 #[derive(Component, Default)]
@@ -76,6 +76,15 @@ pub struct SentChunks {
 #[derive(Component, Default)]
 pub struct ChunkUpdate;
 
+#[derive(Component, Default)]
+pub struct NeedsMesh;
+
+#[derive(Component, Default)]
+pub struct PriorityChunkUpdate;
+
+#[derive(Component, Default)]
+pub struct PriorityMesh;
+
 impl<'w, 's> ChunkManager<'w, 's> {
     pub fn get_chunk(&self, enity: Entity) -> Option<ChunkData> {
         if let Ok(chunk) = self.chunk_query.get(enity) {
@@ -100,7 +109,9 @@ impl<'w, 's> ChunkManager<'w, 's> {
                             .current_chunks
                             .get_entity(ChunkPos(chunk_pos + IVec3::new(-1, 0, 0)))
                         {
-                            self.commands.entity(neighbor_chunk).insert(ChunkUpdate);
+                            self.commands
+                                .entity(neighbor_chunk)
+                                .insert(PriorityChunkUpdate);
                         }
                     }
                     CHUNK_SIZE_ARR => {
@@ -108,7 +119,9 @@ impl<'w, 's> ChunkManager<'w, 's> {
                             .current_chunks
                             .get_entity(ChunkPos(chunk_pos + IVec3::new(1, 0, 0)))
                         {
-                            self.commands.entity(neighbor_chunk).insert(ChunkUpdate);
+                            self.commands
+                                .entity(neighbor_chunk)
+                                .insert(PriorityChunkUpdate);
                         }
                     }
                     _ => {}
@@ -119,7 +132,9 @@ impl<'w, 's> ChunkManager<'w, 's> {
                             .current_chunks
                             .get_entity(ChunkPos(chunk_pos + IVec3::new(0, -1, 0)))
                         {
-                            self.commands.entity(neighbor_chunk).insert(ChunkUpdate);
+                            self.commands
+                                .entity(neighbor_chunk)
+                                .insert(PriorityChunkUpdate);
                         }
                     }
                     CHUNK_SIZE_ARR => {
@@ -127,7 +142,9 @@ impl<'w, 's> ChunkManager<'w, 's> {
                             .current_chunks
                             .get_entity(ChunkPos(chunk_pos + IVec3::new(0, 1, 0)))
                         {
-                            self.commands.entity(neighbor_chunk).insert(ChunkUpdate);
+                            self.commands
+                                .entity(neighbor_chunk)
+                                .insert(PriorityChunkUpdate);
                         }
                     }
                     _ => {}
@@ -138,7 +155,9 @@ impl<'w, 's> ChunkManager<'w, 's> {
                             .current_chunks
                             .get_entity(ChunkPos(chunk_pos + IVec3::new(0, 0, -1)))
                         {
-                            self.commands.entity(neighbor_chunk).insert(ChunkUpdate);
+                            self.commands
+                                .entity(neighbor_chunk)
+                                .insert(PriorityChunkUpdate);
                         }
                     }
                     CHUNK_SIZE_ARR => {
@@ -146,12 +165,16 @@ impl<'w, 's> ChunkManager<'w, 's> {
                             .current_chunks
                             .get_entity(ChunkPos(chunk_pos + IVec3::new(0, 0, 1)))
                         {
-                            self.commands.entity(neighbor_chunk).insert(ChunkUpdate);
+                            self.commands
+                                .entity(neighbor_chunk)
+                                .insert(PriorityChunkUpdate);
                         }
                     }
                     _ => {}
                 }
-                self.commands.entity(chunk_entity).insert(ChunkUpdate);
+                self.commands
+                    .entity(chunk_entity)
+                    .insert(PriorityChunkUpdate);
             }
         }
     }
@@ -253,5 +276,47 @@ impl<'w, 's> ChunkManager<'w, 's> {
         } else {
             None
         }
+    }
+}
+
+// Chunk Update is for common update stuff such as lights.
+// Needs mesh is for the client and can be ignored when put on server components
+pub fn update_chunk_lights(
+    mut commands: Commands,
+    mut chunks: Query<(&mut ChunkData, &ChunkPos, Entity), With<ChunkUpdate>>,
+    chunk_query: Query<&ChunkData, Without<ChunkUpdate>>,
+    current_chunks: Res<CurrentChunks>,
+) {
+    for (chunk, chunk_pos, entity) in chunks.iter() {
+        let mut neighbors = Vec::with_capacity(26);
+        for neighbor_pos in chunk_pos.neighbors() {
+            if let Some(chunk_entity) = current_chunks.get_entity(neighbor_pos) {
+                if let Ok(chunk) = chunk_query.get(chunk_entity) {
+                    neighbors.push((chunk.clone(), neighbor_pos));
+                }
+            }
+        }
+        commands.entity(entity).remove::<ChunkUpdate>();
+        commands.entity(entity).insert(NeedsMesh);
+    }
+}
+
+pub fn update_priority_chunk_lights(
+    mut commands: Commands,
+    mut chunks: Query<(&mut ChunkData, &ChunkPos, Entity), With<PriorityChunkUpdate>>,
+    chunk_query: Query<&ChunkData, Without<PriorityChunkUpdate>>,
+    current_chunks: Res<CurrentChunks>,
+) {
+    for (chunk, chunk_pos, entity) in chunks.iter() {
+        let mut neighbors = Vec::with_capacity(26);
+        for neighbor_pos in chunk_pos.neighbors() {
+            if let Some(chunk_entity) = current_chunks.get_entity(neighbor_pos) {
+                if let Ok(chunk) = chunk_query.get(chunk_entity) {
+                    neighbors.push((chunk.clone(), neighbor_pos));
+                }
+            }
+        }
+        commands.entity(entity).remove::<PriorityChunkUpdate>();
+        commands.entity(entity).insert(PriorityMesh);
     }
 }

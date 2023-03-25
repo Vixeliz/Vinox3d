@@ -4,7 +4,10 @@ use tokio::sync::mpsc::{Receiver, Sender};
 use bevy::{ecs::system::SystemParam, math::Vec3Swizzles, prelude::*, tasks::AsyncComputeTaskPool};
 use bevy_tweening::{lens::TransformPositionLens, *};
 use vinox_common::world::chunks::{
-    ecs::{ChunkManager, CurrentChunks, RemoveChunk, SimulationRadius, ViewRadius},
+    ecs::{
+        update_chunk_lights, update_priority_chunk_lights, ChunkManager, CurrentChunks, NeedsMesh,
+        RemoveChunk, SimulationRadius, ViewRadius,
+    },
     positions::{circle_points, voxel_to_global_voxel, world_to_chunk, ChunkPos},
     storage::{
         BlockData, BlockTable, ChunkData, RawChunk, CHUNK_SIZE, CHUNK_SIZE_ARR,
@@ -14,7 +17,7 @@ use vinox_common::world::chunks::{
 
 use crate::states::{
     components::GameState,
-    game::rendering::meshing::{build_mesh, priority_mesh, NeedsMesh},
+    game::rendering::meshing::{build_mesh, priority_mesh},
 };
 
 #[derive(Component)]
@@ -239,13 +242,23 @@ impl Plugin for ChunkPlugin {
                     .in_set(OnUpdate(GameState::Game)),
             )
             .add_system(
-                build_mesh
+                update_chunk_lights
                     .after(clear_unloaded_chunks)
                     .in_set(OnUpdate(GameState::Game)),
             )
             .add_system(
-                priority_mesh
+                update_priority_chunk_lights
                     .after(clear_unloaded_chunks)
+                    .in_set(OnUpdate(GameState::Game)),
+            )
+            .add_system(
+                build_mesh
+                    .after(update_chunk_lights)
+                    .in_set(OnUpdate(GameState::Game)),
+            )
+            .add_system(
+                priority_mesh
+                    .after(update_chunk_lights)
                     .in_set(OnUpdate(GameState::Game)),
             )
             .add_system(

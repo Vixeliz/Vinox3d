@@ -22,7 +22,7 @@ use tokio::sync::mpsc::{Receiver, Sender};
 use vinox_common::{
     storage::geometry::descriptor::GeometryDescriptor,
     world::chunks::{
-        ecs::{ChunkManager, ChunkUpdate, CurrentChunks},
+        ecs::{ChunkManager, ChunkUpdate, CurrentChunks, NeedsMesh, PriorityMesh},
         positions::{voxel_to_world, world_to_global_voxel, ChunkPos},
         storage::{self, BlockTable, ChunkData, RenderedBlockData, VoxelVisibility, CHUNK_SIZE},
     },
@@ -604,9 +604,6 @@ pub struct MeshQueue {
     pub priority: Vec<(IVec3, ChunkData, Box<Array<ChunkData, 26>>)>,
 }
 
-#[derive(Component, Default)]
-pub struct NeedsMesh;
-
 #[derive(Resource)]
 pub struct PriorityMeshChannel {
     pub tx: Sender<MeshedChunk>,
@@ -1008,7 +1005,7 @@ pub fn process_priority_queue(
 
 pub fn priority_mesh(
     mut commands: Commands,
-    chunks: Query<&ChunkPos, With<ChunkUpdate>>,
+    chunks: Query<&ChunkPos, With<PriorityMesh>>,
     chunk_manager: ChunkManager,
     mut chunk_queue: ResMut<MeshQueue>,
 ) {
@@ -1022,7 +1019,7 @@ pub fn priority_mesh(
                             chunk_data,
                             Box::new(Array(neighbors)),
                         ));
-                        commands.entity(chunk_entity).remove::<ChunkUpdate>();
+                        commands.entity(chunk_entity).remove::<PriorityMesh>();
                         commands.entity(chunk_entity).remove::<NeedsMesh>();
                     }
                 }
@@ -1122,7 +1119,7 @@ pub fn priority_player(
 ) {
     if let Some(chunk_entity) = current_chunks.get_entity(ChunkPos(player_chunk.chunk_pos)) {
         if chunks.get(chunk_entity).is_err() {
-            commands.entity(chunk_entity).insert(ChunkUpdate);
+            commands.entity(chunk_entity).insert(PriorityMesh);
         }
     }
 }
