@@ -15,10 +15,7 @@ use bevy_quinnet::client::Client;
 use vinox_common::{
     ecs::bundles::Inventory,
     networking::protocol::ClientMessage,
-    physics::{
-        collision::raycast::raycast_world,
-        simulate::{Velocity, VoxelCollisionEvent},
-    },
+    physics::{collision::raycast::raycast_world, simulate::Velocity},
     storage::{blocks::descriptor::BlockGeometry, items::descriptor::ItemData},
     world::chunks::{
         ecs::CurrentChunks,
@@ -763,6 +760,10 @@ pub fn interact(
                                         }
                                     }
                                 }
+                                println!(
+                                    "Broke block at {}",
+                                    voxel_to_world(voxel_pos, chunk_pos.0),
+                                );
                                 chunk.set(
                                     voxel_pos.x as usize,
                                     voxel_pos.y as usize,
