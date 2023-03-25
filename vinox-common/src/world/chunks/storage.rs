@@ -790,7 +790,7 @@ impl ChunkData {
                         _ => (0, 0, 0),
                     };
                     let (x, y, z) = (x + 1, y + 1, z + 1);
-                    const MAX: usize = CHUNK_SIZE_ARR as usize;
+                    const MAX: usize = CHUNK_SIZE as usize;
                     const BOUND: usize = MAX + 1;
                     let (neighbor_light, is_empty, neighbor_index, index) = match (x, y, z) {
                         (0, 0, 0) => (
@@ -1040,7 +1040,7 @@ impl ChunkData {
                         _ => (0, 0, 0),
                     };
                     let (x, y, z) = (x + 1, y + 1, z + 1);
-                    const MAX: usize = CHUNK_SIZE_ARR as usize;
+                    const MAX: usize = CHUNK_SIZE as usize;
                     const BOUND: usize = MAX + 1;
                     let (neighbor_light, is_empty, neighbor_index, index) = match (x, y, z) {
                         (0, 0, 0) => (
