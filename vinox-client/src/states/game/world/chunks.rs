@@ -81,35 +81,38 @@ pub fn update_player_location(
 }
 pub fn unload_chunks(
     mut commands: Commands,
-    remove_chunks: Query<(&ChunkPos, Entity), With<RemoveChunk>>,
+    remove_chunks: Query<&ChunkPos, With<RemoveChunk>>,
     mut current_chunks: ResMut<CurrentChunks>,
 ) {
-    for (chunk, chunk_entity) in remove_chunks.iter() {
+    for chunk in remove_chunks.iter() {
+        if let Some(chunk_entity) = current_chunks.remove_entity(*chunk) {
+            commands.entity(chunk_entity).despawn_recursive();
+        }
         // if current_chunks.get_entity(*chunk).is_some() {
-        let tween = Tween::new(
-            EaseFunction::QuadraticInOut,
-            Duration::from_secs(1),
-            TransformPositionLens {
-                end: Vec3::new(
-                    (chunk.x * (CHUNK_SIZE) as i32) as f32,
-                    ((chunk.y * (CHUNK_SIZE) as i32) as f32) - CHUNK_SIZE as f32,
-                    (chunk.z * (CHUNK_SIZE) as i32) as f32,
-                ),
+        // let tween = Tween::new(
+        //     EaseFunction::QuadraticInOut,
+        //     Duration::from_secs(1),
+        //     TransformPositionLens {
+        //         end: Vec3::new(
+        //             (chunk.x * (CHUNK_SIZE) as i32) as f32,
+        //             ((chunk.y * (CHUNK_SIZE) as i32) as f32) - CHUNK_SIZE as f32,
+        //             (chunk.z * (CHUNK_SIZE) as i32) as f32,
+        //         ),
 
-                start: Vec3::new(
-                    (chunk.x * (CHUNK_SIZE) as i32) as f32,
-                    (chunk.y * (CHUNK_SIZE) as i32) as f32,
-                    (chunk.z * (CHUNK_SIZE) as i32) as f32,
-                ),
-            },
-        )
-        .with_repeat_count(RepeatCount::Finite(1))
-        .with_completed_event(0);
-        commands.entity(chunk_entity).insert(Animator::new(tween));
-        commands.entity(chunk_entity).remove::<RemoveChunk>();
-        commands.entity(chunk_entity).remove::<ChunkData>();
-        current_chunks.remove_entity(*chunk).ok_or(0).ok();
-        // }
+        //         start: Vec3::new(
+        //             (chunk.x * (CHUNK_SIZE) as i32) as f32,
+        //             (chunk.y * (CHUNK_SIZE) as i32) as f32,
+        //             (chunk.z * (CHUNK_SIZE) as i32) as f32,
+        //         ),
+        //     },
+        // )
+        // .with_repeat_count(RepeatCount::Finite(1))
+        // .with_completed_event(0);
+        // commands.entity(chunk_entity).insert(Animator::new(tween));
+        // commands.entity(chunk_entity).remove::<RemoveChunk>();
+        // commands.entity(chunk_entity).remove::<ChunkData>();
+        // current_chunks.remove_entity(*chunk).ok_or(0).ok();
+        // // }
         // commands
         //     .entity(current_chunks.get_entity(*chunk).unwrap())
         //     .despawn_recursive();
