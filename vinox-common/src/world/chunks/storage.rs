@@ -772,7 +772,6 @@ impl ChunkData {
         neighbors: &mut [Mut<'_, ChunkData>; 27],
         block_table: &BlockTable,
     ) {
-        // let chunk = chunks[26].as_mut();
         while !neighbors[26].light.queue.is_empty() {
             if let Some(node) = neighbors[26].light.queue.last() {
                 let index = node.index;
@@ -791,7 +790,7 @@ impl ChunkData {
                         _ => (0, 0, 0),
                     };
                     let (x, y, z) = (x + 1, y + 1, z + 1);
-                    const MAX: usize = CHUNK_SIZE;
+                    const MAX: usize = CHUNK_SIZE_ARR as usize;
                     const BOUND: usize = MAX + 1;
                     let (neighbor_light, is_empty, neighbor_index, index) = match (x, y, z) {
                         (0, 0, 0) => (
