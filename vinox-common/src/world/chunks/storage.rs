@@ -792,211 +792,144 @@ impl ChunkData {
                     let (x, y, z) = (x + 1, y + 1, z + 1);
                     const MAX: usize = CHUNK_SIZE as usize;
                     const BOUND: usize = MAX + 1;
-                    let (neighbor_light, is_empty, neighbor_index, index) = match (x, y, z) {
+                    let (neighbor_light, neighbor_index, index) = match (x, y, z) {
                         (0, 0, 0) => (
                             neighbors[0].get_light(ChunkData::linearize(MAX - 1, MAX - 1, MAX - 1)),
-                            neighbors[0]
-                                .get(MAX - 1, MAX - 1, MAX - 1)
-                                .is_true_empty(block_table),
                             ChunkData::linearize(MAX - 1, MAX - 1, MAX - 1),
                             0,
                         ),
                         (0, 0, 1..=MAX) => (
                             neighbors[1].get_light(ChunkData::linearize(MAX - 1, MAX - 1, z - 1)),
-                            neighbors[1]
-                                .get(MAX - 1, MAX - 1, z - 1)
-                                .is_true_empty(block_table),
                             ChunkData::linearize(MAX - 1, MAX - 1, z - 1),
                             1,
                         ),
                         (0, 0, BOUND) => (
                             neighbors[2].get_light(ChunkData::linearize(MAX - 1, MAX - 1, 0)),
-                            neighbors[2]
-                                .get(MAX - 1, MAX - 1, 0)
-                                .is_true_empty(block_table),
                             ChunkData::linearize(MAX - 1, MAX - 1, 0),
                             2,
                         ),
                         (0, 1..=MAX, 0) => (
                             neighbors[3].get_light(ChunkData::linearize(MAX - 1, y - 1, MAX - 1)),
-                            neighbors[3]
-                                .get(MAX - 1, y - 1, MAX - 1)
-                                .is_true_empty(block_table),
                             ChunkData::linearize(MAX - 1, y - 1, MAX - 1),
                             3,
                         ),
                         (0, 1..=MAX, 1..=MAX) => (
                             neighbors[4].get_light(ChunkData::linearize(MAX - 1, y - 1, z - 1)),
-                            neighbors[4]
-                                .get(MAX - 1, y - 1, z - 1)
-                                .is_true_empty(block_table),
                             ChunkData::linearize(MAX - 1, y - 1, z - 1),
                             4,
                         ),
                         (0, 1..=MAX, BOUND) => (
                             neighbors[5].get_light(ChunkData::linearize(MAX - 1, y - 1, 0)),
-                            neighbors[5]
-                                .get(MAX - 1, y - 1, 0)
-                                .is_true_empty(block_table),
                             ChunkData::linearize(MAX - 1, y - 1, 0),
                             5,
                         ),
                         (0, BOUND, 0) => (
                             neighbors[6].get_light(ChunkData::linearize(MAX - 1, 0, MAX - 1)),
-                            neighbors[6]
-                                .get(MAX - 1, 0, MAX - 1)
-                                .is_true_empty(block_table),
                             ChunkData::linearize(MAX - 1, 0, MAX - 1),
                             6,
                         ),
                         (0, BOUND, 1..=MAX) => (
                             neighbors[7].get_light(ChunkData::linearize(MAX - 1, 0, z - 1)),
-                            neighbors[7]
-                                .get(MAX - 1, 0, z - 1)
-                                .is_true_empty(block_table),
                             ChunkData::linearize(MAX - 1, 0, z - 1),
                             7,
                         ),
                         (0, BOUND, BOUND) => (
                             neighbors[8].get_light(ChunkData::linearize(MAX - 1, 0, 0)),
-                            neighbors[8].get(MAX - 1, 0, 0).is_true_empty(block_table),
                             ChunkData::linearize(MAX - 1, 0, 0),
                             8,
                         ),
                         (1..=MAX, 0, 0) => (
                             neighbors[9].get_light(ChunkData::linearize(x - 1, MAX - 1, MAX - 1)),
-                            neighbors[9]
-                                .get(x - 1, MAX - 1, MAX - 1)
-                                .is_true_empty(block_table),
                             ChunkData::linearize(x - 1, MAX - 1, MAX - 1),
                             9,
                         ),
                         (1..=MAX, 0, 1..=MAX) => (
                             neighbors[10].get_light(ChunkData::linearize(x - 1, MAX - 1, z - 1)),
-                            neighbors[10]
-                                .get(x - 1, MAX - 1, z - 1)
-                                .is_true_empty(block_table),
                             ChunkData::linearize(x - 1, MAX - 1, z - 1),
                             10,
                         ),
                         (1..=MAX, 0, BOUND) => (
                             neighbors[11].get_light(ChunkData::linearize(x - 1, MAX - 1, 0)),
-                            neighbors[11]
-                                .get(x - 1, MAX - 1, 0)
-                                .is_true_empty(block_table),
                             ChunkData::linearize(x - 1, MAX - 1, 0),
                             11,
                         ),
                         (1..=MAX, 1..=MAX, 0) => (
                             neighbors[12].get_light(ChunkData::linearize(x - 1, y - 1, MAX - 1)),
-                            neighbors[12]
-                                .get(x - 1, y - 1, MAX - 1)
-                                .is_true_empty(block_table),
                             ChunkData::linearize(x - 1, y - 1, MAX - 1),
                             12,
                         ),
                         (1..=MAX, 1..=MAX, 1..=MAX) => (
                             neighbors[26].get_light(ChunkData::linearize(x - 1, y - 1, z - 1)),
-                            neighbors[26]
-                                .get(x - 1, y - 1, z - 1)
-                                .is_true_empty(block_table),
                             ChunkData::linearize(x - 1, y - 1, z - 1),
                             26,
                         ),
                         (1..=MAX, 1..=MAX, BOUND) => (
                             neighbors[13].get_light(ChunkData::linearize(x - 1, y - 1, 0)),
-                            neighbors[13]
-                                .get(x - 1, y - 1, 0)
-                                .is_true_empty(block_table),
                             ChunkData::linearize(x - 1, y - 1, 0),
                             13,
                         ),
                         (1..=MAX, BOUND, 0) => (
                             neighbors[14].get_light(ChunkData::linearize(x - 1, 0, MAX - 1)),
-                            neighbors[14]
-                                .get(x - 1, 0, MAX - 1)
-                                .is_true_empty(block_table),
                             ChunkData::linearize(x - 1, 0, MAX - 1),
                             14,
                         ),
                         (1..=MAX, BOUND, 1..=MAX) => (
                             neighbors[15].get_light(ChunkData::linearize(x - 1, 0, z - 1)),
-                            neighbors[15]
-                                .get(x - 1, 0, z - 1)
-                                .is_true_empty(block_table),
                             ChunkData::linearize(x - 1, 0, z - 1),
                             15,
                         ),
                         (1..=MAX, BOUND, BOUND) => (
                             neighbors[16].get_light(ChunkData::linearize(x - 1, 0, 0)),
-                            neighbors[16].get(x - 1, 0, 0).is_true_empty(block_table),
                             ChunkData::linearize(x - 1, 0, 0),
                             16,
                         ),
                         (BOUND, 0, 0) => (
                             neighbors[17].get_light(ChunkData::linearize(0, MAX - 1, MAX - 1)),
-                            neighbors[17]
-                                .get(0, MAX - 1, MAX - 1)
-                                .is_true_empty(block_table),
                             ChunkData::linearize(0, MAX - 1, MAX - 1),
                             17,
                         ),
                         (BOUND, 0, 1..=MAX) => (
                             neighbors[18].get_light(ChunkData::linearize(0, MAX - 1, z - 1)),
-                            neighbors[18]
-                                .get(0, MAX - 1, z - 1)
-                                .is_true_empty(block_table),
                             ChunkData::linearize(0, MAX - 1, z - 1),
                             18,
                         ),
                         (BOUND, 0, BOUND) => (
                             neighbors[19].get_light(ChunkData::linearize(0, MAX - 1, 0)),
-                            neighbors[19].get(0, MAX - 1, 0).is_true_empty(block_table),
                             ChunkData::linearize(0, MAX - 1, 0),
                             19,
                         ),
                         (BOUND, 1..=MAX, 0) => (
                             neighbors[20].get_light(ChunkData::linearize(0, y - 1, MAX - 1)),
-                            neighbors[20]
-                                .get(0, y - 1, MAX - 1)
-                                .is_true_empty(block_table),
                             ChunkData::linearize(0, y - 1, MAX - 1),
                             20,
                         ),
                         (BOUND, 1..=MAX, 1..=MAX) => (
                             neighbors[21].get_light(ChunkData::linearize(0, y - 1, z - 1)),
-                            neighbors[21]
-                                .get(0, y - 1, z - 1)
-                                .is_true_empty(block_table),
                             ChunkData::linearize(0, y - 1, z - 1),
                             21,
                         ),
                         (BOUND, 1..=MAX, BOUND) => (
                             neighbors[22].get_light(ChunkData::linearize(0, y - 1, 0)),
-                            neighbors[22].get(0, y - 1, 0).is_true_empty(block_table),
                             ChunkData::linearize(0, y - 1, 0),
                             22,
                         ),
                         (BOUND, BOUND, 0) => (
                             neighbors[23].get_light(ChunkData::linearize(0, 0, MAX - 1)),
-                            neighbors[23].get(0, 0, MAX - 1).is_true_empty(block_table),
                             ChunkData::linearize(0, 0, MAX - 1),
                             23,
                         ),
                         (BOUND, BOUND, 1..=MAX) => (
                             neighbors[24].get_light(ChunkData::linearize(0, 0, z - 1)),
-                            neighbors[24].get(0, 0, z - 1).is_true_empty(block_table),
                             ChunkData::linearize(0, 0, z - 1),
                             24,
                         ),
                         (BOUND, BOUND, BOUND) => (
                             neighbors[25].get_light(ChunkData::linearize(0, 0, 0)),
-                            neighbors[25].get(0, 0, 0).is_true_empty(block_table),
                             ChunkData::linearize(0, 0, 0),
                             25,
                         ),
 
-                        (_, _, _) => (LightData::default(), false, 0, 0),
+                        (_, _, _) => (LightData::default(), 0, 0),
                     };
                     if neighbor_light.a != 0 && neighbor_light.a < light_level.a {
                         neighbors[index].set_light(

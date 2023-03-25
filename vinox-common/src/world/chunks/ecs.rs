@@ -130,15 +130,25 @@ impl<'w, 's> ChunkManager<'w, 's> {
         res.push(self.current_chunks.get_entity(chunk_pos).unwrap());
         let res = if res.len() == 27 { Some(res) } else { None };
         if let Some(neighbors) = res {
-            for neighbor_entity in neighbors.iter() {
-                self.commands
-                    .entity(*neighbor_entity)
-                    .insert(PriorityChunkUpdate);
-            }
-
             if let Ok(neighbors) = neighbors.try_into() {
                 if let Ok(mut neighbors) = self.chunk_query.get_many_mut::<27>(neighbors) {
                     ChunkData::calculate_chunk_lights(&mut neighbors, &block_table);
+                    // for (num, neighbor_entity) in entities.iter().enumerate() {
+                    //     if num == 26
+                    //         || num == 4
+                    //         || num == 21
+                    //         || num == 13
+                    //         || num == 12
+                    //         || num == 15
+                    //         || num == 10
+                    //     {
+                    //         self.commands
+                    //             .entity(*neighbor_entity)
+                    //             .insert(PriorityChunkUpdate);
+                    //     } else {
+                    //         self.commands.entity(*neighbor_entity).insert(ChunkUpdate);
+                    //     }
+                    // }
                 }
             }
         }
@@ -154,75 +164,75 @@ impl<'w, 's> ChunkManager<'w, 's> {
                 );
                 chunk.set(x, y, z, block, &self.block_table);
                 self.update_light(ChunkPos(chunk_pos), self.block_table.clone());
-                // match local_pos.x {
-                //     0 => {
-                //         if let Some(neighbor_chunk) = self
-                //             .current_chunks
-                //             .get_entity(ChunkPos(chunk_pos + IVec3::new(-1, 0, 0)))
-                //         {
-                //             self.commands
-                //                 .entity(neighbor_chunk)
-                //                 .insert(PriorityChunkUpdate);
-                //         }
-                //     }
-                //     CHUNK_SIZE_ARR => {
-                //         if let Some(neighbor_chunk) = self
-                //             .current_chunks
-                //             .get_entity(ChunkPos(chunk_pos + IVec3::new(1, 0, 0)))
-                //         {
-                //             self.commands
-                //                 .entity(neighbor_chunk)
-                //                 .insert(PriorityChunkUpdate);
-                //         }
-                //     }
-                //     _ => {}
-                // }
-                // match local_pos.y {
-                //     0 => {
-                //         if let Some(neighbor_chunk) = self
-                //             .current_chunks
-                //             .get_entity(ChunkPos(chunk_pos + IVec3::new(0, -1, 0)))
-                //         {
-                //             self.commands
-                //                 .entity(neighbor_chunk)
-                //                 .insert(PriorityChunkUpdate);
-                //         }
-                //     }
-                //     CHUNK_SIZE_ARR => {
-                //         if let Some(neighbor_chunk) = self
-                //             .current_chunks
-                //             .get_entity(ChunkPos(chunk_pos + IVec3::new(0, 1, 0)))
-                //         {
-                //             self.commands
-                //                 .entity(neighbor_chunk)
-                //                 .insert(PriorityChunkUpdate);
-                //         }
-                //     }
-                //     _ => {}
-                // }
-                // match local_pos.z {
-                //     0 => {
-                //         if let Some(neighbor_chunk) = self
-                //             .current_chunks
-                //             .get_entity(ChunkPos(chunk_pos + IVec3::new(0, 0, -1)))
-                //         {
-                //             self.commands
-                //                 .entity(neighbor_chunk)
-                //                 .insert(PriorityChunkUpdate);
-                //         }
-                //     }
-                //     CHUNK_SIZE_ARR => {
-                //         if let Some(neighbor_chunk) = self
-                //             .current_chunks
-                //             .get_entity(ChunkPos(chunk_pos + IVec3::new(0, 0, 1)))
-                //         {
-                //             self.commands
-                //                 .entity(neighbor_chunk)
-                //                 .insert(PriorityChunkUpdate);
-                //         }
-                //     }
-                //     _ => {}
-                // }
+                match local_pos.x {
+                    0 => {
+                        if let Some(neighbor_chunk) = self
+                            .current_chunks
+                            .get_entity(ChunkPos(chunk_pos + IVec3::new(-1, 0, 0)))
+                        {
+                            self.commands
+                                .entity(neighbor_chunk)
+                                .insert(PriorityChunkUpdate);
+                        }
+                    }
+                    CHUNK_SIZE_ARR => {
+                        if let Some(neighbor_chunk) = self
+                            .current_chunks
+                            .get_entity(ChunkPos(chunk_pos + IVec3::new(1, 0, 0)))
+                        {
+                            self.commands
+                                .entity(neighbor_chunk)
+                                .insert(PriorityChunkUpdate);
+                        }
+                    }
+                    _ => {}
+                }
+                match local_pos.y {
+                    0 => {
+                        if let Some(neighbor_chunk) = self
+                            .current_chunks
+                            .get_entity(ChunkPos(chunk_pos + IVec3::new(0, -1, 0)))
+                        {
+                            self.commands
+                                .entity(neighbor_chunk)
+                                .insert(PriorityChunkUpdate);
+                        }
+                    }
+                    CHUNK_SIZE_ARR => {
+                        if let Some(neighbor_chunk) = self
+                            .current_chunks
+                            .get_entity(ChunkPos(chunk_pos + IVec3::new(0, 1, 0)))
+                        {
+                            self.commands
+                                .entity(neighbor_chunk)
+                                .insert(PriorityChunkUpdate);
+                        }
+                    }
+                    _ => {}
+                }
+                match local_pos.z {
+                    0 => {
+                        if let Some(neighbor_chunk) = self
+                            .current_chunks
+                            .get_entity(ChunkPos(chunk_pos + IVec3::new(0, 0, -1)))
+                        {
+                            self.commands
+                                .entity(neighbor_chunk)
+                                .insert(PriorityChunkUpdate);
+                        }
+                    }
+                    CHUNK_SIZE_ARR => {
+                        if let Some(neighbor_chunk) = self
+                            .current_chunks
+                            .get_entity(ChunkPos(chunk_pos + IVec3::new(0, 0, 1)))
+                        {
+                            self.commands
+                                .entity(neighbor_chunk)
+                                .insert(PriorityChunkUpdate);
+                        }
+                    }
+                    _ => {}
+                }
                 self.commands
                     .entity(chunk_entity)
                     .insert(PriorityChunkUpdate);
