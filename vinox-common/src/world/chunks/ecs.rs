@@ -8,6 +8,7 @@ use crate::{
 };
 
 use super::{
+    light::LightData,
     positions::{global_voxel_positions, ChunkPos},
     storage::{BlockData, BlockTable, ChunkData, CHUNK_SIZE, CHUNK_SIZE_ARR},
 };
@@ -94,6 +95,48 @@ impl<'w, 's> ChunkManager<'w, 's> {
         }
         None
     }
+    pub fn set_light(&mut self, voxel_pos: IVec3, light_data: LightData) {
+        let (chunk_pos, local_pos) = global_voxel_positions(voxel_pos);
+        if let Some(chunk_entity) = self.current_chunks.get_entity(ChunkPos(chunk_pos)) {
+            if let Ok(mut chunk) = self.chunk_query.get_mut(chunk_entity) {
+                let index = ChunkData::linearize(
+                    local_pos.x as usize,
+                    local_pos.y as usize,
+                    local_pos.z as usize,
+                );
+                chunk.set_light(index, light_data);
+            }
+        }
+    }
+    pub fn get_light(&mut self, voxel_pos: IVec3) -> LightData {
+        let (chunk_pos, local_pos) = global_voxel_positions(voxel_pos);
+        if let Some(chunk_entity) = self.current_chunks.get_entity(ChunkPos(chunk_pos)) {
+            if let Ok(chunk) = self.chunk_query.get(chunk_entity) {
+                let index = ChunkData::linearize(
+                    local_pos.x as usize,
+                    local_pos.y as usize,
+                    local_pos.z as usize,
+                );
+                chunk.get_light(index);
+            }
+        }
+        LightData::default()
+    }
+    pub fn update_light(&mut self, chunk_pos: ChunkPos) {
+        let mut res = Vec::with_capacity(26);
+        for chunk_entity in self.current_chunks.get_all_neighbors(chunk_pos) {
+            res.push(chunk_entity);
+        }
+        res.push(self.current_chunks.get_entity(chunk_pos).unwrap());
+        let res = if res.len() == 27 { Some(res) } else { None };
+        if let Some(neighbors) = res {
+            if let Ok(neighbors) = neighbors.try_into() {
+                if let Ok(mut neighbors) = self.chunk_query.get_many_mut::<27>(neighbors) {
+                    ChunkData::calculate_chunk_lights(&mut neighbors);
+                }
+            }
+        }
+    }
     pub fn set_block(&mut self, voxel_pos: IVec3, block: BlockData) {
         let (chunk_pos, local_pos) = global_voxel_positions(voxel_pos);
         if let Some(chunk_entity) = self.current_chunks.get_entity(ChunkPos(chunk_pos)) {
@@ -105,6 +148,7 @@ impl<'w, 's> ChunkManager<'w, 's> {
                     block,
                     &self.block_table,
                 );
+                self.update_light(ChunkPos(chunk_pos));
                 match local_pos.x {
                     0 => {
                         if let Some(neighbor_chunk) = self

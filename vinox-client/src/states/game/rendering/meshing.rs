@@ -825,13 +825,13 @@ fn full_mesh(
     let mut final_color = Vec::new();
     for (idx, color) in final_ao.iter().enumerate() {
         let light_level = light_to_inten(light[idx].a);
-        let light_level_red = light_to_color(light[idx].r);
-        let light_level_green = light_to_color(light[idx].g);
-        let light_level_blue = light_to_color(light[idx].b);
+        // let light_level_red = light_to_color(light[idx].r);
+        // let light_level_green = light_to_color(light[idx].g);
+        // let light_level_blue = light_to_color(light[idx].b);
         final_color.extend_from_slice(&[[
-            color[0] * (light_level + light_level_red),
-            color[1] * (light_level + light_level_green),
-            color[2] * (light_level + light_level_blue),
+            color[0] * light_level,
+            color[1] * light_level,
+            color[2] * light_level,
             color[3],
         ]]);
     }
