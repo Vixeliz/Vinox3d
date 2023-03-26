@@ -682,6 +682,8 @@ pub fn process_priority_task(
 
                 commands.entity(chunk_entity).push_children(&[trans_entity]);
                 commands.entity(entity).despawn_recursive();
+            } else {
+                commands.entity(entity).despawn_recursive();
             }
         }
     });
@@ -782,6 +784,8 @@ pub fn process_task(
                 ));
 
                 commands.entity(chunk_entity).push_children(&[trans_entity]);
+                commands.entity(entity).despawn_recursive();
+            } else {
                 commands.entity(entity).despawn_recursive();
             }
         }
