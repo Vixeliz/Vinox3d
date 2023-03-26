@@ -5,8 +5,8 @@ use bevy::{ecs::system::SystemParam, math::Vec3Swizzles, prelude::*, tasks::Asyn
 use bevy_tweening::{lens::TransformPositionLens, *};
 use vinox_common::world::chunks::{
     ecs::{
-        update_chunk_lights, update_priority_chunk_lights, ChunkManager, CurrentChunks, NeedsMesh,
-        RemoveChunk, SimulationRadius, ViewRadius,
+        update_chunk_lights, update_priority_chunk_lights, ChunkManager, ChunkUpdate,
+        CurrentChunks, NeedsMesh, RemoveChunk, SimulationRadius, ViewRadius,
     },
     positions::{circle_points, voxel_to_global_voxel, world_to_chunk, ChunkPos},
     storage::{
@@ -189,7 +189,7 @@ pub fn receive_chunks(
 
         // Don't mark chunks that won't create any blocks
         if !chunk.is_empty(&block_table) {
-            commands.entity(chunk_id).insert(NeedsMesh);
+            commands.entity(chunk_id).insert(ChunkUpdate);
         }
     }
 }

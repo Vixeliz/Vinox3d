@@ -6,7 +6,7 @@ use serde_big_array::Array;
 use serde_with::{serde_as, Bytes};
 
 use super::{
-    ecs::{CurrentChunks, NeedsMesh, PriorityMesh},
+    ecs::{update_chunk_lights, CurrentChunks, NeedsMesh, PriorityMesh},
     positions::{global_voxel_positions, ChunkPos},
     storage::{BlockData, BlockTable, ChunkData, TOTAL_CHUNK_SIZE},
 };
@@ -114,7 +114,7 @@ pub fn propagate_lighting(
         let Some(chunk_entity) = loaded_chunks.get_entity(ChunkPos(chunk_pos)) else { continue; };
         let Ok((_pos, mut chunk_data)) = chunks.get_mut(chunk_entity) else { continue; };
 
-        let source_level = chunk_data.get_light(local_pos.x, local_pos.y, local_pos.z);
+        let source_level = chunk_data.get_torchlight(local_pos.x, local_pos.y, local_pos.z);
         chunk_data.set_torchlight(local_pos.x, local_pos.y, local_pos.z, 0);
 
         rem_queue.push_back(LightRemNode {
@@ -800,5 +800,6 @@ impl Plugin for LightPlugin {
         app.add_event::<VoxelAddedEvent>()
             .add_event::<VoxelRemovedEvent>();
         app.add_system(propagate_lighting);
+        app.add_system(update_chunk_lights);
     }
 }

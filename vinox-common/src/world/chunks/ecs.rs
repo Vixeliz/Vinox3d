@@ -263,8 +263,13 @@ impl<'w, 's> ChunkManager<'w, 's> {
     }
 }
 
-pub fn update_chunk_lights(mut commands: Commands, chunks: Query<Entity, With<ChunkUpdate>>) {
-    for entity in chunks.iter() {
+pub fn update_chunk_lights(
+    mut commands: Commands,
+    mut chunks: Query<(&mut ChunkData, &ChunkPos)>,
+    chunks_update: Query<Entity, With<ChunkUpdate>>,
+    current_chunks: Res<CurrentChunks>,
+) {
+    for entity in chunks_update.iter() {
         commands.entity(entity).remove::<ChunkUpdate>();
         commands.entity(entity).insert(NeedsMesh);
     }
