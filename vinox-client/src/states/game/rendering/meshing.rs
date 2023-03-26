@@ -835,10 +835,8 @@ pub fn generate_mesh(chunk: &ChunkBoundary, solid_pass: bool, buffer: &mut QuadG
                             chunk.voxels()[ChunkBoundary::linearize(x, y, z - 1)].clone(),
                             chunk.voxels()[ChunkBoundary::linearize(x, y, z + 1)].clone(),
                         ];
-                        let voxel_data = chunk.voxels()[ChunkBoundary::linearize(x, y, z)].clone();
-                        let element = voxel.geo.clone();
-                        for (cube_num, cube) in element.cubes.into_iter().enumerate() {
-                            for (i, neighbor) in neighbor_block.clone().iter().enumerate() {
+                        for (cube_num, cube) in voxel.geo.cubes.iter().enumerate() {
+                            for (i, neighbor) in neighbor_block.iter().enumerate() {
                                 let culled = cube.cull[i];
                                 if cube.discard[i] {
                                     continue;
@@ -936,7 +934,7 @@ pub fn generate_mesh(chunk: &ChunkBoundary, solid_pass: bool, buffer: &mut QuadG
                                         start: (origin_one, origin_two, self_start),
                                         end: (end_one, end_two, self_end),
                                         cube: cube_num,
-                                        data: voxel_data.clone(),
+                                        data: voxel.clone(),
                                     });
                                 }
                             }
