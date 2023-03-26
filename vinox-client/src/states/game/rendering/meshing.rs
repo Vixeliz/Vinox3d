@@ -1012,7 +1012,7 @@ fn full_mesh(
     let final_ao = ao_convert(ao);
     let mut final_color = Vec::new();
     for (idx, color) in final_ao.iter().enumerate() {
-        let light_level = light_to_inten(light[idx].a);
+        let light_level = light_to_inten(light[idx]);
         // let light_level_red = light_to_color(light[idx].r);
         // let light_level_green = light_to_color(light[idx].g);
         // let light_level_blue = light_to_color(light[idx].b);

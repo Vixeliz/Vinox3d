@@ -20,7 +20,6 @@ use vinox_common::{
     storage::{blocks::descriptor::BlockGeometry, items::descriptor::ItemData},
     world::chunks::{
         ecs::{ChunkManager, CurrentChunks},
-        light::LightData,
         positions::{relative_voxel_to_world, voxel_to_world, world_to_chunk, world_to_voxel},
         positions::{voxel_to_global_voxel, ChunkPos},
         storage::{

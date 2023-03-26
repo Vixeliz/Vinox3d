@@ -130,9 +130,9 @@ pub fn get_messages(
                     if let Some(chunk_entity) = current_chunks.get_entity(ChunkPos(chunk_pos)) {
                         if let Ok(mut chunk) = chunks.get_mut(chunk_entity) {
                             chunk.set(
-                                voxel_pos[0] as usize,
-                                voxel_pos[1] as usize,
-                                voxel_pos[2] as usize,
+                                voxel_pos[0] as u32,
+                                voxel_pos[1] as u32,
+                                voxel_pos[2] as u32,
                                 block_type.clone(),
                                 &block_table,
                             );

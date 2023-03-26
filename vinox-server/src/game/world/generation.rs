@@ -30,7 +30,8 @@ pub fn add_grass(
     for z in 0..=CHUNK_SIZE - 1 {
         for y in 0..=CHUNK_SIZE - 1 {
             for x in 0..=CHUNK_SIZE - 1 {
-                if y == CHUNK_SIZE - 1 {
+                let (x, y, z) = (x as u32, y as u32, z as u32);
+                if y == CHUNK_SIZE as u32 - 1 {
                     let full_x = x as i32 + ((CHUNK_SIZE as i32) * pos.x);
                     let full_z = z as i32 + ((CHUNK_SIZE as i32) * pos.z);
                     let full_y = y as i32 + ((CHUNK_SIZE as i32) * pos.y) + 1;
@@ -137,6 +138,7 @@ pub fn generate_chunk(pos: IVec3, seed: u32, block_table: &BlockTable) -> RawChu
                 let full_x = x as i32 + ((CHUNK_SIZE as i32) * pos.x);
                 let full_z = z as i32 + ((CHUNK_SIZE as i32) * pos.z);
                 let full_y = y as i32 + ((CHUNK_SIZE as i32) * pos.y);
+                let (x, y, z) = (x as u32, y as u32, z as u32);
                 // let noise_val =
                 //     final_noise.get([full_x as f64, full_y as f64, full_z as f64]) * 45.152;
                 let noise_val =

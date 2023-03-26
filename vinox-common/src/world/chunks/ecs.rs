@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use bevy::{ecs::system::SystemParam, prelude::*};
 use rustc_hash::FxHashSet;
@@ -8,7 +8,7 @@ use crate::{
 };
 
 use super::{
-    light::LightData,
+    light::{VoxelAddedEvent, VoxelRemovedEvent},
     positions::{global_voxel_positions, ChunkPos},
     storage::{BlockData, BlockTable, ChunkData, CHUNK_SIZE, CHUNK_SIZE_ARR},
 };
@@ -47,6 +47,21 @@ impl CurrentChunks {
             .filter_map(|this_pos| self.chunks.get(this_pos).copied())
             .collect()
     }
+    pub fn get_unique_loaded_chunks_and_neighbors(&self, pos_list: &[ChunkPos]) -> Vec<Entity> {
+        let mut set: HashSet<Entity> = pos_list
+            .iter()
+            .filter_map(|pos| self.chunks.get(pos).copied())
+            .collect();
+        pos_list
+            .iter()
+            .flat_map(|pos| pos.neighbors())
+            .filter_map(|pos| self.chunks.get(&pos).copied())
+            .for_each(|entity| {
+                set.insert(entity);
+            });
+
+        set.into_iter().collect()
+    }
 }
 
 #[derive(Default, Resource)]
@@ -69,6 +84,8 @@ pub struct ChunkManager<'w, 's> {
     pub view_radius: Res<'w, ViewRadius>,
     pub chunk_query: Query<'w, 's, &'static mut ChunkData>,
     pub block_table: Res<'w, BlockTable>,
+    pub light_rem_event: EventWriter<'w, VoxelRemovedEvent>,
+    pub light_add_event: EventWriter<'w, VoxelAddedEvent>,
 }
 
 #[derive(Component, Clone)]
@@ -95,59 +112,62 @@ impl<'w, 's> ChunkManager<'w, 's> {
         }
         None
     }
-    pub fn set_light(&mut self, voxel_pos: IVec3, light_data: LightData) {
-        let (chunk_pos, local_pos) = global_voxel_positions(voxel_pos);
-        if let Some(chunk_entity) = self.current_chunks.get_entity(ChunkPos(chunk_pos)) {
-            if let Ok(mut chunk) = self.chunk_query.get_mut(chunk_entity) {
-                let index = ChunkData::linearize(
-                    local_pos.x as usize,
-                    local_pos.y as usize,
-                    local_pos.z as usize,
-                );
-                chunk.set_light(index, light_data);
-            }
-        }
-    }
-    pub fn get_light(&mut self, voxel_pos: IVec3) -> LightData {
-        let (chunk_pos, local_pos) = global_voxel_positions(voxel_pos);
-        if let Some(chunk_entity) = self.current_chunks.get_entity(ChunkPos(chunk_pos)) {
-            if let Ok(chunk) = self.chunk_query.get(chunk_entity) {
-                let index = ChunkData::linearize(
-                    local_pos.x as usize,
-                    local_pos.y as usize,
-                    local_pos.z as usize,
-                );
-                chunk.get_light(index);
-            }
-        }
-        LightData::default()
-    }
-    pub fn update_light(&mut self, chunk_pos: ChunkPos, block_table: BlockTable) {
-        let mut res = Vec::with_capacity(26);
-        for chunk_entity in self.current_chunks.get_all_neighbors(chunk_pos) {
-            res.push(chunk_entity);
-        }
-        res.push(self.current_chunks.get_entity(chunk_pos).unwrap());
-        let res = if res.len() == 27 { Some(res) } else { None };
-        if let Some(neighbors) = res {
-            if let Ok(neighbors) = neighbors.try_into() {
-                if let Ok(mut neighbors) = self.chunk_query.get_many_mut::<27>(neighbors) {
-                    ChunkData::calculate_chunk_lights(&mut neighbors, &block_table);
-                }
-            }
-        }
-    }
+    // pub fn set_light(&mut self, voxel_pos: IVec3, light: u8) {
+    //     let (chunk_pos, local_pos) = global_voxel_positions(voxel_pos);
+    //     if let Some(chunk_entity) = self.current_chunks.get_entity(ChunkPos(chunk_pos)) {
+    //         if let Ok(mut chunk) = self.chunk_query.get_mut(chunk_entity) {
+    //             let index = ChunkData::linearize(local_pos.x, local_pos.y, local_pos.z);
+    //             // chunk.set_light(index, light_data);
+    //         }
+    //     }
+    // }
+    // pub fn get_light(&mut self, voxel_pos: IVec3) -> LightData {
+    //     let (chunk_pos, local_pos) = global_voxel_positions(voxel_pos);
+    //     if let Some(chunk_entity) = self.current_chunks.get_entity(ChunkPos(chunk_pos)) {
+    //         if let Ok(chunk) = self.chunk_query.get(chunk_entity) {
+    //             let index = ChunkData::linearize(
+    //                 local_pos.x as usize,
+    //                 local_pos.y as usize,
+    //                 local_pos.z as usize,
+    //             );
+    //             chunk.get_light(index);
+    //         }
+    //     }
+    //     LightData::default()
+    // }
+    // pub fn update_light(&mut self, chunk_pos: ChunkPos, block_table: BlockTable) {
+    //     let mut res = Vec::with_capacity(26);
+    //     for chunk_entity in self.current_chunks.get_all_neighbors(chunk_pos) {
+    //         res.push(chunk_entity);
+    //     }
+    //     res.push(self.current_chunks.get_entity(chunk_pos).unwrap());
+    //     let res = if res.len() == 27 { Some(res) } else { None };
+    //     if let Some(neighbors) = res {
+    //         if let Ok(neighbors) = neighbors.try_into() {
+    //             if let Ok(mut neighbors) = self.chunk_query.get_many_mut::<27>(neighbors) {
+    //                 ChunkData::calculate_chunk_lights(&mut neighbors, &block_table);
+    //             }
+    //         }
+    //     }
+    // }
     pub fn set_block(&mut self, voxel_pos: IVec3, block: BlockData) {
         let (chunk_pos, local_pos) = global_voxel_positions(voxel_pos);
         if let Some(chunk_entity) = self.current_chunks.get_entity(ChunkPos(chunk_pos)) {
             if let Ok(mut chunk) = self.chunk_query.get_mut(chunk_entity) {
-                let (x, y, z) = (
-                    local_pos.x as usize,
-                    local_pos.y as usize,
-                    local_pos.z as usize,
+                chunk.set(
+                    local_pos.x,
+                    local_pos.y,
+                    local_pos.z,
+                    block.clone(),
+                    &self.block_table,
                 );
-                chunk.set(x, y, z, block, &self.block_table);
-                self.update_light(ChunkPos(chunk_pos), self.block_table.clone());
+                if block == BlockData::default() {
+                    self.light_rem_event.send(VoxelRemovedEvent::new(voxel_pos));
+                } else {
+                    self.light_add_event
+                        .send(VoxelAddedEvent::new(voxel_pos, block));
+                }
+                // self.update_light(ChunkPos(chunk_pos), self.block_table.clone());
                 match local_pos.x {
                     0 => {
                         if let Some(neighbor_chunk) = self
@@ -230,11 +250,7 @@ impl<'w, 's> ChunkManager<'w, 's> {
             if let Ok(chunk) = self.chunk_query.get(chunk_entity) {
                 return self
                     .block_table
-                    .get(&chunk.get_identifier(
-                        local_pos.x as usize,
-                        local_pos.y as usize,
-                        local_pos.z as usize,
-                    ))
+                    .get(&chunk.get_identifier(local_pos.x, local_pos.y, local_pos.z))
                     .cloned();
             }
         }
@@ -245,11 +261,7 @@ impl<'w, 's> ChunkManager<'w, 's> {
         let (chunk_pos, local_pos) = global_voxel_positions(voxel_pos);
         if let Some(chunk_entity) = self.current_chunks.get_entity(ChunkPos(chunk_pos)) {
             if let Ok(chunk) = self.chunk_query.get(chunk_entity) {
-                return Some(chunk.get_identifier(
-                    local_pos.x as usize,
-                    local_pos.y as usize,
-                    local_pos.z as usize,
-                ));
+                return Some(chunk.get_identifier(local_pos.x, local_pos.y, local_pos.z));
             }
         }
         None
@@ -259,11 +271,7 @@ impl<'w, 's> ChunkManager<'w, 's> {
         let (chunk_pos, local_pos) = global_voxel_positions(voxel_pos);
         if let Some(chunk_entity) = self.current_chunks.get_entity(ChunkPos(chunk_pos)) {
             if let Ok(chunk) = self.chunk_query.get(chunk_entity) {
-                return Some(chunk.get(
-                    local_pos.x as usize,
-                    local_pos.y as usize,
-                    local_pos.z as usize,
-                ));
+                return Some(chunk.get(local_pos.x, local_pos.y, local_pos.z));
             }
         }
         None

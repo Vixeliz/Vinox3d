@@ -190,6 +190,7 @@ pub fn get_rend(
     geo_table: &GeometryTable,
     block_table: &BlockTable,
 ) -> RenderedBlockData {
+    let (x, y, z) = (x as u32, y as u32, z as u32);
     // return RenderedBlockData::default();
     let voxel = chunk.get(x, y, z);
     let identifier = chunk.get_identifier(x, y, z);
@@ -220,6 +221,6 @@ pub fn get_rend(
         exclusive_direction: block_data.exclusive_direction.unwrap_or(false),
         tex_variance,
         blocks: geo_data.unwrap().blocks,
-        light: chunk.get_light(ChunkData::linearize(x, y, z)),
+        light: chunk.get_light(x, y, z),
     }
 }
