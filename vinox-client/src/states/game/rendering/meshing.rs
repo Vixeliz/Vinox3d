@@ -8,10 +8,11 @@ use bevy::{
         primitives::Aabb,
         render_resource::{AsBindGroup, PrimitiveTopology, ShaderRef},
     },
-    tasks::{AsyncComputeTaskPool, ComputeTaskPool},
+    tasks::{AsyncComputeTaskPool, ComputeTaskPool, Task},
     utils::FloatOrd,
 };
 use bevy_tweening::{lens::TransformPositionLens, *};
+use futures_lite::future;
 use itertools::Itertools;
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use rustc_hash::FxHashMap;
@@ -604,31 +605,214 @@ pub struct MeshQueue {
     pub priority: Vec<(IVec3, ChunkData, Box<Array<ChunkData, 26>>)>,
 }
 
-#[derive(Resource)]
-pub struct PriorityMeshChannel {
-    pub tx: Sender<MeshedChunk>,
-    pub rx: Receiver<MeshedChunk>,
+#[derive(Component)]
+pub struct ComputeMesh(Task<MeshedChunk>);
+
+#[derive(Component)]
+pub struct PriorityComputeMesh(Task<MeshedChunk>);
+
+pub fn process_priority_task(
+    mut commands: Commands,
+    mut mesh_tasks: Query<(Entity, &mut PriorityComputeMesh)>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    chunk_material: Res<ChunkMaterial>,
+    current_chunks: Res<CurrentChunks>,
+) {
+    mesh_tasks.for_each_mut(|(entity, mut task)| {
+        if let Some(chunk) = future::block_on(future::poll_once(&mut task.0)) {
+            if let Some(chunk_entity) = current_chunks.get_entity(chunk.pos) {
+                commands.entity(chunk_entity).despawn_descendants();
+
+                let chunk_pos = Vec3::new(
+                    (chunk.pos.x * (CHUNK_SIZE) as i32) as f32,
+                    (chunk.pos.y * (CHUNK_SIZE) as i32) as f32,
+                    (chunk.pos.z * (CHUNK_SIZE) as i32) as f32,
+                );
+
+                let trans_entity = commands
+                    .spawn((
+                        RenderedChunk {
+                            aabb: Aabb {
+                                center: Vec3A::new(
+                                    (CHUNK_SIZE / 2) as f32,
+                                    (CHUNK_SIZE / 2) as f32,
+                                    (CHUNK_SIZE / 2) as f32,
+                                ),
+                                half_extents: Vec3A::new(
+                                    (CHUNK_SIZE / 2) as f32,
+                                    (CHUNK_SIZE / 2) as f32,
+                                    (CHUNK_SIZE / 2) as f32,
+                                ),
+                            },
+                            mesh: MaterialMeshBundle {
+                                mesh: meshes.add(chunk.transparent_mesh.clone()),
+                                material: chunk_material.transparent.clone(),
+                                ..Default::default()
+                            },
+                        },
+                        NotShadowCaster,
+                        NotShadowReceiver,
+                    ))
+                    .id();
+
+                commands.entity(chunk_entity).insert((
+                    RenderedChunk {
+                        aabb: Aabb {
+                            center: Vec3A::new(
+                                (CHUNK_SIZE / 2) as f32,
+                                (CHUNK_SIZE / 2) as f32,
+                                (CHUNK_SIZE / 2) as f32,
+                            ),
+                            half_extents: Vec3A::new(
+                                (CHUNK_SIZE / 2) as f32,
+                                (CHUNK_SIZE / 2) as f32,
+                                (CHUNK_SIZE / 2) as f32,
+                            ),
+                        },
+                        mesh: MaterialMeshBundle {
+                            mesh: meshes.add(chunk.chunk_mesh.clone()),
+                            material: chunk_material.opaque.clone(),
+                            transform: Transform::from_translation(chunk_pos),
+                            ..Default::default()
+                        },
+                    },
+                    NotShadowCaster,
+                    NotShadowReceiver,
+                ));
+
+                commands.entity(chunk_entity).push_children(&[trans_entity]);
+                commands.entity(entity).despawn_recursive();
+            }
+        }
+    });
 }
 
-impl Default for PriorityMeshChannel {
-    fn default() -> Self {
-        let (tx, rx) = tokio::sync::mpsc::channel(256);
-        Self { tx, rx }
-    }
+pub fn process_task(
+    mut commands: Commands,
+    mut mesh_tasks: Query<(Entity, &mut ComputeMesh)>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    chunk_material: Res<ChunkMaterial>,
+    chunks: Query<&ChunkPos, With<NeedsMesh>>,
+    player_chunk: Res<PlayerChunk>,
+    current_chunks: Res<CurrentChunks>,
+) {
+    mesh_tasks.for_each_mut(|(entity, mut task)| {
+        if let Some(chunk) = future::block_on(future::poll_once(&mut task.0)) {
+            if let Some(chunk_entity) = current_chunks.get_entity(chunk.pos) {
+                commands.entity(chunk_entity).despawn_descendants();
+
+                let chunk_pos = Vec3::new(
+                    (chunk.pos.x * (CHUNK_SIZE) as i32) as f32,
+                    (chunk.pos.y * (CHUNK_SIZE) as i32) as f32,
+                    (chunk.pos.z * (CHUNK_SIZE) as i32) as f32,
+                );
+
+                let tween = Tween::new(
+                    EaseFunction::QuadraticInOut,
+                    Duration::from_secs(1),
+                    TransformPositionLens {
+                        start: Vec3::new(chunk_pos.x, chunk_pos.y - CHUNK_SIZE as f32, chunk_pos.z),
+                        end: chunk_pos,
+                    },
+                )
+                .with_repeat_count(RepeatCount::Finite(1));
+
+                let chunk_pos = if chunks.get(chunk_entity).is_err()
+                    && chunk
+                        .pos
+                        .as_vec3()
+                        .distance(player_chunk.chunk_pos.as_vec3())
+                        > 4.0
+                {
+                    commands.entity(chunk_entity).insert(Animator::new(tween));
+                    Vec3::new(chunk_pos.x, chunk_pos.y - CHUNK_SIZE as f32, chunk_pos.z)
+                } else {
+                    chunk_pos
+                };
+
+                let trans_entity = commands
+                    .spawn((
+                        RenderedChunk {
+                            aabb: Aabb {
+                                center: Vec3A::new(
+                                    (CHUNK_SIZE / 2) as f32,
+                                    (CHUNK_SIZE / 2) as f32,
+                                    (CHUNK_SIZE / 2) as f32,
+                                ),
+                                half_extents: Vec3A::new(
+                                    (CHUNK_SIZE / 2) as f32,
+                                    (CHUNK_SIZE / 2) as f32,
+                                    (CHUNK_SIZE / 2) as f32,
+                                ),
+                            },
+                            mesh: MaterialMeshBundle {
+                                mesh: meshes.add(chunk.transparent_mesh.clone()),
+                                material: chunk_material.transparent.clone(),
+                                ..Default::default()
+                            },
+                        },
+                        NotShadowCaster,
+                        NotShadowReceiver,
+                    ))
+                    .id();
+
+                commands.entity(chunk_entity).insert((
+                    RenderedChunk {
+                        aabb: Aabb {
+                            center: Vec3A::new(
+                                (CHUNK_SIZE / 2) as f32,
+                                (CHUNK_SIZE / 2) as f32,
+                                (CHUNK_SIZE / 2) as f32,
+                            ),
+                            half_extents: Vec3A::new(
+                                (CHUNK_SIZE / 2) as f32,
+                                (CHUNK_SIZE / 2) as f32,
+                                (CHUNK_SIZE / 2) as f32,
+                            ),
+                        },
+                        mesh: MaterialMeshBundle {
+                            mesh: meshes.add(chunk.chunk_mesh.clone()),
+                            material: chunk_material.opaque.clone(),
+                            transform: Transform::from_translation(chunk_pos),
+                            ..Default::default()
+                        },
+                    },
+                    NotShadowCaster,
+                    NotShadowReceiver,
+                ));
+
+                commands.entity(chunk_entity).push_children(&[trans_entity]);
+                commands.entity(entity).despawn_recursive();
+            }
+        }
+    });
 }
 
-#[derive(Resource)]
-pub struct MeshChannel {
-    pub tx: Sender<MeshedChunk>,
-    pub rx: Receiver<MeshedChunk>,
-}
+// #[derive(Resource)]
+// pub struct PriorityMeshChannel {
+//     pub tx: Sender<MeshedChunk>,
+//     pub rx: Receiver<MeshedChunk>,
+// }
 
-impl Default for MeshChannel {
-    fn default() -> Self {
-        let (tx, rx) = tokio::sync::mpsc::channel(1024);
-        Self { tx, rx }
-    }
-}
+// impl Default for PriorityMeshChannel {
+//     fn default() -> Self {
+//         let (tx, rx) = tokio::sync::mpsc::channel(256);
+//         Self { tx, rx }
+//     }
+// }
+
+// #[derive(Resource)]
+// pub struct MeshChannel {
+//     pub tx: Sender<MeshedChunk>,
+//     pub rx: Receiver<MeshedChunk>,
+// }
+
+// impl Default for MeshChannel {
+//     fn default() -> Self {
+//         let (tx, rx) = tokio::sync::mpsc::channel(1024);
+//         Self { tx, rx }
+//     }
+// }
 
 // Possibly have this just fully generate the mesh
 pub fn generate_mesh(chunk: &ChunkBoundary, solid_pass: bool, buffer: &mut QuadGroups) {
@@ -902,9 +1086,6 @@ pub fn process_priority_queue(
     block_table: Res<BlockTable>,
     geo_table: Res<GeometryTable>,
     texture_atlas: Res<Assets<TextureAtlas>>,
-    mut priority_channel: ResMut<PriorityMeshChannel>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    chunk_material: Res<ChunkMaterial>,
     current_chunks: ResMut<CurrentChunks>,
 ) {
     let task_pool = ComputeTaskPool::get();
@@ -917,89 +1098,15 @@ pub fn process_priority_queue(
         let cloned_geo_table: GeometryTable = geo_table.clone();
         let cloned_assets: LoadableAssets = loadable_assets.clone();
         let clone_atlas: TextureAtlas = block_atlas.clone();
-        let cloned_sender = priority_channel.tx.clone();
 
-        task_pool
-            .spawn(async move {
-                let raw_chunk =
-                    ChunkBoundary::new(center_chunk, neighbors, &cloned_table, &cloned_geo_table);
-                cloned_sender
-                    .send(full_mesh(
-                        &raw_chunk,
-                        &cloned_assets,
-                        &clone_atlas,
-                        chunk_pos,
-                    ))
-                    .await
-                    .ok();
-            })
-            .detach() // TODO: Switch to polling so we can cancel task outside of view distance or if we break or place a block
-    }
-
-    while let Ok(chunk) = priority_channel.rx.try_recv() {
-        if let Some(chunk_entity) = current_chunks.get_entity(chunk.pos) {
-            commands.entity(chunk_entity).despawn_descendants();
-
-            let chunk_pos = Vec3::new(
-                (chunk.pos.x * (CHUNK_SIZE) as i32) as f32,
-                (chunk.pos.y * (CHUNK_SIZE) as i32) as f32,
-                (chunk.pos.z * (CHUNK_SIZE) as i32) as f32,
-            );
-
-            let trans_entity = commands
-                .spawn((
-                    RenderedChunk {
-                        aabb: Aabb {
-                            center: Vec3A::new(
-                                (CHUNK_SIZE / 2) as f32,
-                                (CHUNK_SIZE / 2) as f32,
-                                (CHUNK_SIZE / 2) as f32,
-                            ),
-                            half_extents: Vec3A::new(
-                                (CHUNK_SIZE / 2) as f32,
-                                (CHUNK_SIZE / 2) as f32,
-                                (CHUNK_SIZE / 2) as f32,
-                            ),
-                        },
-                        mesh: MaterialMeshBundle {
-                            mesh: meshes.add(chunk.transparent_mesh.clone()),
-                            material: chunk_material.transparent.clone(),
-                            ..Default::default()
-                        },
-                    },
-                    NotShadowCaster,
-                    NotShadowReceiver,
-                ))
-                .id();
-
-            commands.entity(chunk_entity).insert((
-                RenderedChunk {
-                    aabb: Aabb {
-                        center: Vec3A::new(
-                            (CHUNK_SIZE / 2) as f32,
-                            (CHUNK_SIZE / 2) as f32,
-                            (CHUNK_SIZE / 2) as f32,
-                        ),
-                        half_extents: Vec3A::new(
-                            (CHUNK_SIZE / 2) as f32,
-                            (CHUNK_SIZE / 2) as f32,
-                            (CHUNK_SIZE / 2) as f32,
-                        ),
-                    },
-                    mesh: MaterialMeshBundle {
-                        mesh: meshes.add(chunk.chunk_mesh.clone()),
-                        material: chunk_material.opaque.clone(),
-                        transform: Transform::from_translation(chunk_pos),
-                        ..Default::default()
-                    },
-                },
-                NotShadowCaster,
-                NotShadowReceiver,
-            ));
-
-            commands.entity(chunk_entity).push_children(&[trans_entity]);
-        } else {
-        }
+        let task = task_pool.spawn(async move {
+            let raw_chunk =
+                ChunkBoundary::new(center_chunk, neighbors, &cloned_table, &cloned_geo_table);
+            full_mesh(&raw_chunk, &cloned_assets, &clone_atlas, chunk_pos)
+        });
+        commands
+            .entity(current_chunks.get_entity(ChunkPos(chunk_pos)).unwrap())
+            .insert(PriorityComputeMesh(task));
     }
 }
 
@@ -1031,8 +1138,8 @@ pub fn priority_mesh(
 pub fn build_mesh(
     mut commands: Commands,
     mut chunk_queue: ResMut<MeshQueue>,
-    chunks: Query<&ChunkPos, With<NeedsMesh>>,
     chunk_manager: ChunkManager,
+    chunks: Query<&ChunkPos, With<NeedsMesh>>,
     player_chunk: Res<PlayerChunk>,
     options: Res<GameOptions>,
 ) {
@@ -1111,6 +1218,7 @@ pub fn create_chunk_material(
         ..Default::default() // discard_pix: 1,
     });
 }
+
 pub fn priority_player(
     player_chunk: Res<PlayerChunk>,
     current_chunks: Res<CurrentChunks>,
@@ -1132,12 +1240,6 @@ pub fn process_queue(
     block_table: Res<BlockTable>,
     geo_table: Res<GeometryTable>,
     texture_atlas: Res<Assets<TextureAtlas>>,
-    mut mesh_channel: ResMut<MeshChannel>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    chunk_material: Res<ChunkMaterial>,
-    current_chunks: ResMut<CurrentChunks>,
-    chunks: Query<&Handle<Mesh>>,
-    player_chunk: Res<PlayerChunk>,
 ) {
     let task_pool = AsyncComputeTaskPool::get();
     let block_atlas: TextureAtlas = texture_atlas
@@ -1149,110 +1251,13 @@ pub fn process_queue(
         let cloned_geo_table: GeometryTable = geo_table.clone();
         let cloned_assets: LoadableAssets = loadable_assets.clone();
         let clone_atlas: TextureAtlas = block_atlas.clone();
-        let cloned_sender = mesh_channel.tx.clone();
 
-        task_pool
-            .spawn(async move {
-                let raw_chunk =
-                    ChunkBoundary::new(center_chunk, neighbors, &cloned_table, &cloned_geo_table);
-                cloned_sender
-                    .send(full_mesh(
-                        &raw_chunk,
-                        &cloned_assets,
-                        &clone_atlas,
-                        chunk_pos,
-                    ))
-                    .await
-                    .ok();
-            })
-            .detach()
-    }
-
-    while let Ok(chunk) = mesh_channel.rx.try_recv() {
-        if let Some(chunk_entity) = current_chunks.get_entity(chunk.pos) {
-            commands.entity(chunk_entity).despawn_descendants();
-            let chunk_pos = Vec3::new(
-                (chunk.pos.x * (CHUNK_SIZE) as i32) as f32,
-                (chunk.pos.y * (CHUNK_SIZE) as i32) as f32,
-                (chunk.pos.z * (CHUNK_SIZE) as i32) as f32,
-            );
-            let tween = Tween::new(
-                EaseFunction::QuadraticInOut,
-                Duration::from_secs(1),
-                TransformPositionLens {
-                    start: Vec3::new(chunk_pos.x, chunk_pos.y - CHUNK_SIZE as f32, chunk_pos.z),
-                    end: chunk_pos,
-                },
-            )
-            .with_repeat_count(RepeatCount::Finite(1));
-
-            let chunk_pos = if chunks.get(chunk_entity).is_err()
-                && chunk
-                    .pos
-                    .as_vec3()
-                    .distance(player_chunk.chunk_pos.as_vec3())
-                    > 4.0
-            {
-                commands.entity(chunk_entity).insert(Animator::new(tween));
-                Vec3::new(chunk_pos.x, chunk_pos.y - CHUNK_SIZE as f32, chunk_pos.z)
-            } else {
-                chunk_pos
-            };
-
-            let trans_entity = commands
-                .spawn((
-                    RenderedChunk {
-                        aabb: Aabb {
-                            center: Vec3A::new(
-                                (CHUNK_SIZE / 2) as f32,
-                                (CHUNK_SIZE / 2) as f32,
-                                (CHUNK_SIZE / 2) as f32,
-                            ),
-                            half_extents: Vec3A::new(
-                                (CHUNK_SIZE / 2) as f32,
-                                (CHUNK_SIZE / 2) as f32,
-                                (CHUNK_SIZE / 2) as f32,
-                            ),
-                        },
-                        mesh: PbrBundle {
-                            mesh: meshes.add(chunk.transparent_mesh.clone()),
-                            material: chunk_material.transparent.clone(),
-                            ..Default::default()
-                        },
-                    },
-                    NotShadowCaster,
-                    NotShadowReceiver,
-                ))
-                .id();
-
-            commands.entity(chunk_entity).insert((
-                RenderedChunk {
-                    aabb: Aabb {
-                        center: Vec3A::new(
-                            (CHUNK_SIZE / 2) as f32,
-                            (CHUNK_SIZE / 2) as f32,
-                            (CHUNK_SIZE / 2) as f32,
-                        ),
-                        half_extents: Vec3A::new(
-                            (CHUNK_SIZE / 2) as f32,
-                            (CHUNK_SIZE / 2) as f32,
-                            (CHUNK_SIZE / 2) as f32,
-                        ),
-                    },
-                    mesh: PbrBundle {
-                        mesh: meshes.add(chunk.chunk_mesh.clone()),
-                        material: chunk_material.opaque.clone(),
-                        transform: Transform::from_translation(chunk_pos),
-                        ..Default::default()
-                    },
-                },
-                NotShadowCaster,
-                NotShadowReceiver,
-            ));
-
-            commands.entity(chunk_entity).push_children(&[trans_entity]);
-        } else {
-        }
+        let task = task_pool.spawn(async move {
+            let raw_chunk =
+                ChunkBoundary::new(center_chunk, neighbors, &cloned_table, &cloned_geo_table);
+            full_mesh(&raw_chunk, &cloned_assets, &clone_atlas, chunk_pos)
+        });
+        commands.spawn(ComputeMesh(task));
     }
 }
 
