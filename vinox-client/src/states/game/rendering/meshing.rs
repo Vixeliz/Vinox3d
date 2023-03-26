@@ -140,64 +140,208 @@ pub fn face_aos(face: &Face, chunk: &ChunkBoundary) -> [u32; 4] {
 
     match (face.side.axis, face.side.positive) {
         (Axis::X, false) => side_aos([
-            chunk.voxels()[ChunkBoundary::linearize(x - 1, y, z + 1)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z + 1)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z - 1)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x - 1, y, z - 1)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z - 1)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z + 1)].clone(),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x - 1, y, z + 1)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z + 1)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z - 1)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x - 1, y, z - 1)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z - 1)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z + 1)],
+                BlockGeo::default(),
+            ),
         ]),
         (Axis::X, true) => side_aos([
-            chunk.voxels()[ChunkBoundary::linearize(x + 1, y, z - 1)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z - 1)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z + 1)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x + 1, y, z + 1)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z + 1)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z - 1)].clone(),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x + 1, y, z - 1)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z - 1)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z + 1)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x + 1, y, z + 1)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z + 1)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z - 1)],
+                BlockGeo::default(),
+            ),
         ]),
         (Axis::Y, false) => side_aos([
-            chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z + 1)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x, y - 1, z + 1)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z + 1)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z - 1)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x, y - 1, z - 1)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z - 1)].clone(),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z + 1)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x, y - 1, z + 1)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z + 1)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z - 1)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x, y - 1, z - 1)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z - 1)],
+                BlockGeo::default(),
+            ),
         ]),
         (Axis::Y, true) => side_aos([
-            chunk.voxels()[ChunkBoundary::linearize(x, y + 1, z + 1)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z + 1)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z - 1)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x, y + 1, z - 1)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z - 1)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z + 1)].clone(),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x, y + 1, z + 1)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z + 1)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z - 1)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x, y + 1, z - 1)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z - 1)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z + 1)],
+                BlockGeo::default(),
+            ),
         ]),
         (Axis::Z, false) => side_aos([
-            chunk.voxels()[ChunkBoundary::linearize(x - 1, y, z - 1)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z - 1)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x, y - 1, z - 1)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z - 1)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x + 1, y, z - 1)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z - 1)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x, y + 1, z - 1)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z - 1)].clone(),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x - 1, y, z - 1)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z - 1)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x, y - 1, z - 1)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z - 1)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x + 1, y, z - 1)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z - 1)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x, y + 1, z - 1)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z - 1)],
+                BlockGeo::default(),
+            ),
         ]),
         (Axis::Z, true) => side_aos([
-            chunk.voxels()[ChunkBoundary::linearize(x + 1, y, z + 1)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z + 1)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x, y - 1, z + 1)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z + 1)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x - 1, y, z + 1)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z + 1)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x, y + 1, z + 1)].clone(),
-            chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z + 1)].clone(),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x + 1, y, z + 1)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z + 1)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x, y - 1, z + 1)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z + 1)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x - 1, y, z + 1)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z + 1)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x, y + 1, z + 1)],
+                BlockGeo::default(),
+            ),
+            (
+                chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z + 1)],
+                BlockGeo::default(),
+            ),
         ]),
     }
 }
@@ -237,16 +381,16 @@ pub(crate) fn ao_value(side1: bool, corner: bool, side2: bool) -> u32 {
     }
 }
 
-pub(crate) fn side_aos(neighbors: [RenderedBlockData; 8]) -> [u32; 4] {
+pub(crate) fn side_aos(neighbors: [(RenderedBlockData, BlockGeo); 8]) -> [u32; 4] {
     let ns = [
-        neighbors[0].visibility == OPAQUE && neighbors[0].geo == BlockGeo::default(),
-        neighbors[1].visibility == OPAQUE && neighbors[1].geo == BlockGeo::default(),
-        neighbors[2].visibility == OPAQUE && neighbors[2].geo == BlockGeo::default(),
-        neighbors[3].visibility == OPAQUE && neighbors[3].geo == BlockGeo::default(),
-        neighbors[4].visibility == OPAQUE && neighbors[4].geo == BlockGeo::default(),
-        neighbors[5].visibility == OPAQUE && neighbors[5].geo == BlockGeo::default(),
-        neighbors[6].visibility == OPAQUE && neighbors[6].geo == BlockGeo::default(),
-        neighbors[7].visibility == OPAQUE && neighbors[7].geo == BlockGeo::default(),
+        neighbors[0].0.visibility == OPAQUE && neighbors[0].1 == BlockGeo::default(),
+        neighbors[1].0.visibility == OPAQUE && neighbors[1].1 == BlockGeo::default(),
+        neighbors[2].0.visibility == OPAQUE && neighbors[2].1 == BlockGeo::default(),
+        neighbors[3].0.visibility == OPAQUE && neighbors[3].1 == BlockGeo::default(),
+        neighbors[4].0.visibility == OPAQUE && neighbors[4].1 == BlockGeo::default(),
+        neighbors[5].0.visibility == OPAQUE && neighbors[5].1 == BlockGeo::default(),
+        neighbors[6].0.visibility == OPAQUE && neighbors[6].1 == BlockGeo::default(),
+        neighbors[7].0.visibility == OPAQUE && neighbors[7].1 == BlockGeo::default(),
     ];
 
     [
@@ -273,6 +417,7 @@ impl<'a> Face<'a> {
     pub fn positions(
         &self,
         voxel_size: f32,
+        chunk: &ChunkBoundary,
         // geo: &GeometryDescriptor,
         // direction: Option<storage::Direction>,
         // top: Option<bool>,
@@ -351,17 +496,11 @@ impl<'a> Face<'a> {
                 z * voxel_size + positions[3][2] * voxel_size,
             ),
         ];
-        let cube_pivot = self.quad.data.geo.cubes.get(self.quad.cube).unwrap().pivot;
-        let cube_rotation = self
-            .quad
-            .data
-            .geo
-            .cubes
-            .get(self.quad.cube)
-            .unwrap()
-            .rotation;
-        let block_pivot = self.quad.data.geo.pivot;
-        let block_rotation = self.quad.data.geo.rotation;
+        let geo = chunk.geometry_pal.get(self.quad.data.geo_index).unwrap();
+        let cube_pivot = geo.cubes.get(self.quad.cube).unwrap().pivot;
+        let cube_rotation = geo.cubes.get(self.quad.cube).unwrap().rotation;
+        let block_pivot = geo.pivot;
+        let block_rotation = geo.rotation;
         if (cube_rotation != (0, 0, 0) || block_rotation != (0, 0, 0))
             && self.quad.data.direction.is_none()
             && self.quad.data.top.is_none()
@@ -452,116 +591,113 @@ impl<'a> Face<'a> {
         // block: &RenderedBlockData,
         // descriptor: &BlockDescriptor,
         world_pos: IVec3,
+        chunk: &ChunkBoundary,
     ) -> [[f32; 2]; 4] {
-        if let Some(texture_index) = texture_atlas.get_texture_index(
-            &loadable_assets
-                .block_textures
-                .get(&self.quad.data.identifier)
-                .unwrap()[matched_ind],
-        ) {
-            let uv = self.quad.data.geo.cubes.get(self.quad.cube).unwrap().uv;
-            let mut face_tex = [[0.0; 2]; 4];
-            let min_x = texture_atlas.textures.get(texture_index).unwrap().min.x;
-            let min_y = texture_atlas.textures.get(texture_index).unwrap().min.y;
-            let face_index = match (&self.side.axis, &self.side.positive) {
-                (Axis::X, false) => 0,
-                (Axis::X, true) => 1,
-                (Axis::Y, false) => 2,
-                (Axis::Y, true) => 3,
-                (Axis::Z, false) => 4,
-                (Axis::Z, true) => 5,
-            };
-            let (min_x, min_y) = (
-                min_x + uv.get(face_index).unwrap().0 .0 as f32,
-                min_y + uv.get(face_index).unwrap().0 .1 as f32,
-            );
-            let (max_x, max_y) = (
-                min_x + uv.get(face_index).unwrap().1 .0 as f32,
-                min_y + uv.get(face_index).unwrap().1 .1 as f32,
-            );
-            let (min_x, min_y, max_x, max_y) = (
-                min_x / texture_atlas.size.x,
-                min_y / texture_atlas.size.y,
-                max_x / texture_atlas.size.x,
-                max_y / texture_atlas.size.y,
-            );
-            let flip_num = if self.quad.data.tex_variance[face_index] {
-                let mut rng: StdRng = SeedableRng::seed_from_u64(world_pos.reflect_hash().unwrap());
-                rng.gen_range(0..6)
-            } else {
-                0
-            };
-            match flip_num {
-                0 => {
-                    face_tex[2][0] = min_x;
-                    face_tex[2][1] = min_y;
-                    face_tex[3][0] = max_x;
-                    face_tex[3][1] = min_y;
-                    face_tex[0][0] = min_x;
-                    face_tex[0][1] = max_y;
-                    face_tex[1][0] = max_x;
-                    face_tex[1][1] = max_y;
-                }
-                1 => {
-                    face_tex[2][0] = max_x;
-                    face_tex[2][1] = max_y;
-                    face_tex[3][0] = min_x;
-                    face_tex[3][1] = max_y;
-                    face_tex[0][0] = max_x;
-                    face_tex[0][1] = min_y;
-                    face_tex[1][0] = min_x;
-                    face_tex[1][1] = min_y;
-                }
-                2 => {
-                    face_tex[2][0] = max_x;
-                    face_tex[2][1] = min_y;
-                    face_tex[3][0] = min_x;
-                    face_tex[3][1] = min_y;
-                    face_tex[0][0] = max_x;
-                    face_tex[0][1] = max_y;
-                    face_tex[1][0] = min_x;
-                    face_tex[1][1] = max_y;
-                }
-                3 => {
-                    face_tex[2][0] = min_x;
-                    face_tex[2][1] = max_y;
-                    face_tex[3][0] = max_x;
-                    face_tex[3][1] = max_y;
-                    face_tex[0][0] = min_x;
-                    face_tex[0][1] = min_y;
-                    face_tex[1][0] = max_x;
-                    face_tex[1][1] = min_y;
-                }
-                4 => {
-                    face_tex[2][0] = max_x;
-                    face_tex[2][1] = max_y;
-                    face_tex[3][0] = max_x;
-                    face_tex[3][1] = min_y;
-                    face_tex[0][0] = min_x;
-                    face_tex[0][1] = max_y;
-                    face_tex[1][0] = min_x;
-                    face_tex[1][1] = min_y;
-                }
-                5 => {
-                    face_tex[2][0] = min_x;
-                    face_tex[2][1] = min_y;
-                    face_tex[3][0] = min_x;
-                    face_tex[3][1] = max_y;
-                    face_tex[0][0] = max_x;
-                    face_tex[0][1] = min_y;
-                    face_tex[1][0] = max_x;
-                    face_tex[1][1] = max_y;
-                }
-                _ => {}
+        let texture_index = self.quad.data.textures[matched_ind];
+        let geo = chunk.geometry_pal.get(self.quad.data.geo_index).unwrap();
+        let uv = geo.cubes.get(self.quad.cube).unwrap().uv;
+        let mut face_tex = [[0.0; 2]; 4];
+        let min_x = texture_atlas.textures.get(texture_index).unwrap().min.x;
+        let min_y = texture_atlas.textures.get(texture_index).unwrap().min.y;
+        let face_index = match (&self.side.axis, &self.side.positive) {
+            (Axis::X, false) => 0,
+            (Axis::X, true) => 1,
+            (Axis::Y, false) => 2,
+            (Axis::Y, true) => 3,
+            (Axis::Z, false) => 4,
+            (Axis::Z, true) => 5,
+        };
+        let (min_x, min_y) = (
+            min_x + uv.get(face_index).unwrap().0 .0 as f32,
+            min_y + uv.get(face_index).unwrap().0 .1 as f32,
+        );
+        let (max_x, max_y) = (
+            min_x + uv.get(face_index).unwrap().1 .0 as f32,
+            min_y + uv.get(face_index).unwrap().1 .1 as f32,
+        );
+        let (min_x, min_y, max_x, max_y) = (
+            min_x / texture_atlas.size.x,
+            min_y / texture_atlas.size.y,
+            max_x / texture_atlas.size.x,
+            max_y / texture_atlas.size.y,
+        );
+        let flip_num = if self.quad.data.tex_variance[face_index] {
+            let mut rng: StdRng = SeedableRng::seed_from_u64(world_pos.reflect_hash().unwrap());
+            rng.gen_range(0..6)
+        } else {
+            0
+        };
+        match flip_num {
+            0 => {
+                face_tex[2][0] = min_x;
+                face_tex[2][1] = min_y;
+                face_tex[3][0] = max_x;
+                face_tex[3][1] = min_y;
+                face_tex[0][0] = min_x;
+                face_tex[0][1] = max_y;
+                face_tex[1][0] = max_x;
+                face_tex[1][1] = max_y;
             }
-            return face_tex;
+            1 => {
+                face_tex[2][0] = max_x;
+                face_tex[2][1] = max_y;
+                face_tex[3][0] = min_x;
+                face_tex[3][1] = max_y;
+                face_tex[0][0] = max_x;
+                face_tex[0][1] = min_y;
+                face_tex[1][0] = min_x;
+                face_tex[1][1] = min_y;
+            }
+            2 => {
+                face_tex[2][0] = max_x;
+                face_tex[2][1] = min_y;
+                face_tex[3][0] = min_x;
+                face_tex[3][1] = min_y;
+                face_tex[0][0] = max_x;
+                face_tex[0][1] = max_y;
+                face_tex[1][0] = min_x;
+                face_tex[1][1] = max_y;
+            }
+            3 => {
+                face_tex[2][0] = min_x;
+                face_tex[2][1] = max_y;
+                face_tex[3][0] = max_x;
+                face_tex[3][1] = max_y;
+                face_tex[0][0] = min_x;
+                face_tex[0][1] = min_y;
+                face_tex[1][0] = max_x;
+                face_tex[1][1] = min_y;
+            }
+            4 => {
+                face_tex[2][0] = max_x;
+                face_tex[2][1] = max_y;
+                face_tex[3][0] = max_x;
+                face_tex[3][1] = min_y;
+                face_tex[0][0] = min_x;
+                face_tex[0][1] = max_y;
+                face_tex[1][0] = min_x;
+                face_tex[1][1] = min_y;
+            }
+            5 => {
+                face_tex[2][0] = min_x;
+                face_tex[2][1] = min_y;
+                face_tex[3][0] = min_x;
+                face_tex[3][1] = max_y;
+                face_tex[0][0] = max_x;
+                face_tex[0][1] = min_y;
+                face_tex[1][0] = max_x;
+                face_tex[1][1] = max_y;
+            }
+            _ => {}
         }
-        match (flip_u, flip_v) {
-            (true, true) => [[1.0, 1.0], [0.0, 1.0], [1.0, 0.0], [0.0, 0.0]],
-            (true, false) => [[1.0, 0.0], [0.0, 0.0], [1.0, 1.0], [0.0, 1.0]],
-            (false, true) => [[0.0, 1.0], [1.0, 1.0], [0.0, 0.0], [1.0, 0.0]],
-            (false, false) => [[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0]],
-        }
+        return face_tex;
+
+        // match (flip_u, flip_v) {
+        //     (true, true) => [[1.0, 1.0], [0.0, 1.0], [1.0, 0.0], [0.0, 0.0]],
+        //     (true, false) => [[1.0, 0.0], [0.0, 0.0], [1.0, 1.0], [0.0, 1.0]],
+        //     (false, true) => [[0.0, 1.0], [1.0, 1.0], [0.0, 0.0], [1.0, 0.0]],
+        //     (false, false) => [[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0]],
+        // }
     }
 
     pub fn voxel(&self) -> [usize; 3] {
@@ -824,19 +960,20 @@ pub fn generate_mesh(chunk: &ChunkBoundary, solid_pass: bool, buffer: &mut QuadG
     for z in 1..ChunkBoundary::edge() - 1 {
         for y in 1..ChunkBoundary::edge() - 1 {
             for x in 1..ChunkBoundary::edge() - 1 {
-                let voxel = chunk.voxels()[ChunkBoundary::linearize(x, y, z)].clone();
+                let voxel = chunk.voxels()[ChunkBoundary::linearize(x, y, z)];
                 match voxel.visibility {
                     EMPTY => continue,
                     visibility => {
                         let neighbor_block = [
-                            chunk.voxels()[ChunkBoundary::linearize(x - 1, y, z)].clone(),
-                            chunk.voxels()[ChunkBoundary::linearize(x + 1, y, z)].clone(),
-                            chunk.voxels()[ChunkBoundary::linearize(x, y - 1, z)].clone(),
-                            chunk.voxels()[ChunkBoundary::linearize(x, y + 1, z)].clone(),
-                            chunk.voxels()[ChunkBoundary::linearize(x, y, z - 1)].clone(),
-                            chunk.voxels()[ChunkBoundary::linearize(x, y, z + 1)].clone(),
+                            chunk.voxels()[ChunkBoundary::linearize(x - 1, y, z)],
+                            chunk.voxels()[ChunkBoundary::linearize(x + 1, y, z)],
+                            chunk.voxels()[ChunkBoundary::linearize(x, y - 1, z)],
+                            chunk.voxels()[ChunkBoundary::linearize(x, y + 1, z)],
+                            chunk.voxels()[ChunkBoundary::linearize(x, y, z - 1)],
+                            chunk.voxels()[ChunkBoundary::linearize(x, y, z + 1)],
                         ];
-                        for (cube_num, cube) in voxel.geo.cubes.iter().enumerate() {
+                        let geo = chunk.geometry_pal.get(voxel.geo_index).unwrap();
+                        for (cube_num, cube) in geo.cubes.iter().enumerate() {
                             for (i, neighbor) in neighbor_block.iter().enumerate() {
                                 let culled = cube.cull[i];
                                 if cube.discard[i] {
@@ -935,7 +1072,7 @@ pub fn generate_mesh(chunk: &ChunkBoundary, solid_pass: bool, buffer: &mut QuadG
                                         start: (origin_one, origin_two, self_start),
                                         end: (end_one, end_two, self_end),
                                         cube: cube_num,
-                                        data: voxel.clone(),
+                                        data: voxel,
                                     });
                                 }
                             }
@@ -965,7 +1102,7 @@ fn full_mesh(
     let mut light = Vec::new();
     for face in buffer.iter_with_ao(raw_chunk) {
         indices.extend_from_slice(&face.indices(positions.len() as u32));
-        positions.extend_from_slice(&face.positions(1.0)); // Voxel size is 1m
+        positions.extend_from_slice(&face.positions(1.0, &raw_chunk)); // Voxel size is 1m
         normals.extend_from_slice(&face.normals());
         ao.extend_from_slice(&face.aos());
         let matched_index = match (face.side.axis, face.side.positive) {
@@ -1005,6 +1142,7 @@ fn full_mesh(
                 ))
                 .as_vec3()
                 .as_ivec3(),
+                &raw_chunk,
             ),
         );
     }
@@ -1039,7 +1177,7 @@ fn full_mesh(
     for face in buffer.iter_with_ao(raw_chunk) {
         indices.extend_from_slice(&face.indices(positions.len() as u32));
 
-        positions.extend_from_slice(&face.positions(1.0)); // Voxel size is 1m
+        positions.extend_from_slice(&face.positions(1.0, &raw_chunk)); // Voxel size is 1m
         normals.extend_from_slice(&face.normals());
         ao.extend_from_slice(&face.aos());
         let matched_index = match (face.side.axis, face.side.positive) {
@@ -1065,6 +1203,7 @@ fn full_mesh(
                 ))
                 .as_vec3()
                 .as_ivec3(),
+                &raw_chunk,
             ),
         );
     }
@@ -1103,8 +1242,14 @@ pub fn process_priority_queue(
         let clone_atlas: TextureAtlas = block_atlas.clone();
 
         let task = task_pool.spawn(async move {
-            let raw_chunk =
-                ChunkBoundary::new(center_chunk, neighbors, &cloned_table, &cloned_geo_table);
+            let raw_chunk = ChunkBoundary::new(
+                center_chunk,
+                neighbors,
+                &cloned_table,
+                &cloned_geo_table,
+                &cloned_assets,
+                &clone_atlas,
+            );
             full_mesh(&raw_chunk, &cloned_assets, &clone_atlas, chunk_pos)
         });
         // commands
@@ -1257,8 +1402,14 @@ pub fn process_queue(
         let clone_atlas: TextureAtlas = block_atlas.clone();
 
         let task = task_pool.spawn(async move {
-            let raw_chunk =
-                ChunkBoundary::new(center_chunk, neighbors, &cloned_table, &cloned_geo_table);
+            let raw_chunk = ChunkBoundary::new(
+                center_chunk,
+                neighbors,
+                &cloned_table,
+                &cloned_geo_table,
+                &cloned_assets,
+                &clone_atlas,
+            );
             full_mesh(&raw_chunk, &cloned_assets, &clone_atlas, chunk_pos)
         });
         commands.spawn(ComputeMesh(task));

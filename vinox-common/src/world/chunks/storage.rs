@@ -77,16 +77,17 @@ pub struct Container {
     pub max_size: u8,
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub struct RenderedBlockData {
-    pub identifier: String,
+    // pub identifier: String,
     pub direction: Option<Direction>,
     pub top: Option<bool>,
-    pub geo: BlockGeo,
+    // pub geo: BlockGeo,
+    pub geo_index: usize,
     pub visibility: VoxelVisibility,
     pub has_direction: bool,
     pub exclusive_direction: bool,
-    // pub textures: [Handle<Image>; 6],
+    pub textures: [usize; 6],
     pub tex_variance: [bool; 6],
     pub blocks: [bool; 6],
     pub light: u8,
@@ -124,15 +125,17 @@ pub fn trim_geo_identifier(identifier: String) -> String {
 impl Default for RenderedBlockData {
     fn default() -> Self {
         RenderedBlockData {
-            identifier: "vinox:air".to_string(),
+            // identifier: "vinox:air".to_string(),
             visibility: VoxelVisibility::Empty,
             blocks: [false, false, false, false, false, false],
             tex_variance: [false, false, false, false, false, false],
+            textures: [0, 0, 0, 0, 0, 0],
+            geo_index: 0,
             has_direction: false,
             exclusive_direction: false,
             direction: None,
             top: None,
-            geo: block_geo().unwrap(),
+            // geo: block_geo().unwrap(),
             light: 0,
         }
     }
