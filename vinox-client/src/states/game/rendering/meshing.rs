@@ -620,42 +620,16 @@ pub fn process_priority_task(
 ) {
     mesh_tasks.for_each_mut(|(entity, mut task)| {
         if let Some(chunk) = future::block_on(future::poll_once(&mut task.0)) {
-            if let Some(chunk_entity) = current_chunks.get_entity(chunk.pos) {
-                commands.entity(chunk_entity).despawn_descendants();
+            commands.entity(entity).despawn_descendants();
 
-                let chunk_pos = Vec3::new(
-                    (chunk.pos.x * (CHUNK_SIZE) as i32) as f32,
-                    (chunk.pos.y * (CHUNK_SIZE) as i32) as f32,
-                    (chunk.pos.z * (CHUNK_SIZE) as i32) as f32,
-                );
+            let chunk_pos = Vec3::new(
+                (chunk.pos.x * (CHUNK_SIZE) as i32) as f32,
+                (chunk.pos.y * (CHUNK_SIZE) as i32) as f32,
+                (chunk.pos.z * (CHUNK_SIZE) as i32) as f32,
+            );
 
-                let trans_entity = commands
-                    .spawn((
-                        RenderedChunk {
-                            aabb: Aabb {
-                                center: Vec3A::new(
-                                    (CHUNK_SIZE / 2) as f32,
-                                    (CHUNK_SIZE / 2) as f32,
-                                    (CHUNK_SIZE / 2) as f32,
-                                ),
-                                half_extents: Vec3A::new(
-                                    (CHUNK_SIZE / 2) as f32,
-                                    (CHUNK_SIZE / 2) as f32,
-                                    (CHUNK_SIZE / 2) as f32,
-                                ),
-                            },
-                            mesh: MaterialMeshBundle {
-                                mesh: meshes.add(chunk.transparent_mesh.clone()),
-                                material: chunk_material.transparent.clone(),
-                                ..Default::default()
-                            },
-                        },
-                        NotShadowCaster,
-                        NotShadowReceiver,
-                    ))
-                    .id();
-
-                commands.entity(chunk_entity).insert((
+            let trans_entity = commands
+                .spawn((
                     RenderedChunk {
                         aabb: Aabb {
                             center: Vec3A::new(
@@ -670,19 +644,42 @@ pub fn process_priority_task(
                             ),
                         },
                         mesh: MaterialMeshBundle {
-                            mesh: meshes.add(chunk.chunk_mesh.clone()),
-                            material: chunk_material.opaque.clone(),
-                            transform: Transform::from_translation(chunk_pos),
+                            mesh: meshes.add(chunk.transparent_mesh.clone()),
+                            material: chunk_material.transparent.clone(),
                             ..Default::default()
                         },
                     },
                     NotShadowCaster,
                     NotShadowReceiver,
-                ));
+                ))
+                .id();
 
-                commands.entity(chunk_entity).push_children(&[trans_entity]);
-                commands.entity(entity).despawn_recursive();
-            }
+            commands.entity(entity).insert((
+                RenderedChunk {
+                    aabb: Aabb {
+                        center: Vec3A::new(
+                            (CHUNK_SIZE / 2) as f32,
+                            (CHUNK_SIZE / 2) as f32,
+                            (CHUNK_SIZE / 2) as f32,
+                        ),
+                        half_extents: Vec3A::new(
+                            (CHUNK_SIZE / 2) as f32,
+                            (CHUNK_SIZE / 2) as f32,
+                            (CHUNK_SIZE / 2) as f32,
+                        ),
+                    },
+                    mesh: MaterialMeshBundle {
+                        mesh: meshes.add(chunk.chunk_mesh.clone()),
+                        material: chunk_material.opaque.clone(),
+                        transform: Transform::from_translation(chunk_pos),
+                        ..Default::default()
+                    },
+                },
+                NotShadowCaster,
+                NotShadowReceiver,
+            ));
+
+            commands.entity(entity).push_children(&[trans_entity]);
         }
     });
 }
