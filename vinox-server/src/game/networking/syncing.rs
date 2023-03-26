@@ -21,16 +21,27 @@ use crate::game::world::{chunk::LoadPoint, storage::ChunksToSave};
 use super::components::{ChunkLimit, LocalGame, ServerLobby};
 
 pub fn connections(
+    mut commands: Commands,
     mut server: ResMut<Server>,
-    lobby: Res<ServerLobby>,
+    mut lobby: ResMut<ServerLobby>,
     mut connection_events: EventReader<ConnectionEvent>,
     mut connection_lost_events: EventReader<ConnectionLostEvent>,
     local_game: Res<LocalGame>,
     mut exit: EventWriter<AppExit>,
 ) {
-    for _ in connection_lost_events.iter() {
+    for client in connection_lost_events.iter() {
+        let id = client.id;
         if **local_game {
             exit.send(AppExit);
+        } else {
+            println!("Player {id} disconnected.");
+            if let Some(player_entity) = lobby.players.remove(&id) {
+                commands.entity(player_entity).despawn();
+            }
+
+            server
+                .endpoint_mut()
+                .try_broadcast_message(&ServerMessage::PlayerRemove { id });
         }
     }
     for client in connection_events.iter() {
