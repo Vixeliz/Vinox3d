@@ -3,14 +3,12 @@ use std::collections::{HashMap, HashSet};
 use bevy::{ecs::system::SystemParam, prelude::*};
 use rustc_hash::FxHashSet;
 
-use crate::{
-    storage::blocks::descriptor::BlockDescriptor, world::chunks::storage::TOTAL_CHUNK_SIZE,
-};
+use crate::storage::blocks::descriptor::BlockDescriptor;
 
 use super::{
     light::{VoxelAddedEvent, VoxelRemovedEvent},
     positions::{global_voxel_positions, ChunkPos},
-    storage::{BlockData, BlockTable, ChunkData, CHUNK_SIZE, CHUNK_SIZE_ARR},
+    storage::{BlockData, BlockTable, ChunkData},
 };
 
 #[derive(Component, Default)]
@@ -236,11 +234,9 @@ impl<'w, 's> ChunkManager<'w, 's> {
                         }
                     }
                 }
-            } else {
-                if let Some(entity) = self.current_chunks.get_entity(*chunk_pos) {
-                    if let Ok(chunk) = self.chunk_query.get(entity) {
-                        res.push((chunk, *chunk_pos));
-                    }
+            } else if let Some(entity) = self.current_chunks.get_entity(*chunk_pos) {
+                if let Ok(chunk) = self.chunk_query.get(entity) {
+                    res.push((chunk, *chunk_pos));
                 }
             }
         }
@@ -265,9 +261,9 @@ impl<'w, 's> ChunkManager<'w, 's> {
 
 pub fn update_chunk_lights(
     mut commands: Commands,
-    mut chunks: Query<(&mut ChunkData, &ChunkPos)>,
+    _chunks: Query<(&mut ChunkData, &ChunkPos)>,
     chunks_update: Query<Entity, With<ChunkUpdate>>,
-    current_chunks: Res<CurrentChunks>,
+    _current_chunks: Res<CurrentChunks>,
 ) {
     for entity in chunks_update.iter() {
         commands.entity(entity).remove::<ChunkUpdate>();

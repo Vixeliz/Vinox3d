@@ -1,14 +1,11 @@
 use bevy::{
-    ecs::system::SystemParam,
-    math::Vec3Swizzles,
-    // utils::FloatOrd,
     prelude::*,
     tasks::AsyncComputeTaskPool,
 };
 use tokio::sync::mpsc::{Receiver, Sender};
 use vinox_common::world::chunks::{
     ecs::{ChunkManager, CurrentChunks, RemoveChunk, SentChunks, SimulationRadius, ViewRadius},
-    positions::{circle_points, ChunkPos},
+    positions::{ChunkPos},
     storage::{BlockTable, ChunkData, HORIZONTAL_DISTANCE, VERTICAL_DISTANCE},
 };
 

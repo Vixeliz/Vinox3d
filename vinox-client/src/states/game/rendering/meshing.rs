@@ -19,11 +19,11 @@ use rustc_hash::FxHashMap;
 // use rand::seq::IteratorRandom;
 use serde_big_array::Array;
 use std::{ops::Deref, time::Duration};
-use tokio::sync::mpsc::{Receiver, Sender};
+
 use vinox_common::{
     storage::geometry::descriptor::{BlockGeo, GeometryDescriptor},
     world::chunks::{
-        ecs::{ChunkManager, ChunkUpdate, CurrentChunks, NeedsMesh, PriorityMesh},
+        ecs::{ChunkManager, CurrentChunks, NeedsMesh, PriorityMesh},
         positions::{voxel_to_world, world_to_global_voxel, ChunkPos},
         storage::{self, BlockTable, ChunkData, RenderedBlockData, VoxelVisibility, CHUNK_SIZE},
     },
@@ -725,7 +725,7 @@ impl<'a> Face<'a> {
                 // *point = temp_transform.translation;
                 *point = pivot + rotation * (*point - pivot);
                 *point = pivot_cube + rotation_cube * (*point - pivot_cube);
-                if let Some(direction) = self.quad.data.direction.clone() {
+                if let Some(direction) = self.quad.data.direction {
                     let pivot = Vec3::new(0.5 + x, 0.5 + y, 0.5 + z); // TO emulate how itll be getting from geometry
                     let rotation = match direction {
                         storage::Direction::North => {
@@ -774,14 +774,8 @@ impl<'a> Face<'a> {
 
     pub fn uvs(
         &self,
-        flip_u: bool,
-        flip_v: bool,
-        // geo: &GeometryDescriptor,
         texture_atlas: &TextureAtlas,
         matched_ind: usize,
-        loadable_assets: &LoadableAssets,
-        // block: &RenderedBlockData,
-        // descriptor: &BlockDescriptor,
         world_pos: IVec3,
         chunk: &ChunkBoundary,
     ) -> [[f32; 2]; 4] {
@@ -882,7 +876,7 @@ impl<'a> Face<'a> {
             }
             _ => {}
         }
-        return face_tex;
+        face_tex
 
         // match (flip_u, flip_v) {
         //     (true, true) => [[1.0, 1.0], [0.0, 1.0], [1.0, 0.0], [0.0, 0.0]],
@@ -998,7 +992,7 @@ pub fn process_priority_task(
                             ),
                         },
                         mesh: MaterialMeshBundle {
-                            mesh: meshes.add(chunk.chunk_mesh.clone()),
+                            mesh: meshes.add(chunk.chunk_mesh),
                             material: chunk_material.opaque.clone(),
                             transform: Transform::from_translation(chunk_pos),
                             ..Default::default()
@@ -1101,7 +1095,7 @@ pub fn process_task(
                             ),
                         },
                         mesh: MaterialMeshBundle {
-                            mesh: meshes.add(chunk.chunk_mesh.clone()),
+                            mesh: meshes.add(chunk.chunk_mesh),
                             material: chunk_material.opaque.clone(),
                             transform: Transform::from_translation(chunk_pos),
                             ..Default::default()
@@ -1280,7 +1274,6 @@ pub fn generate_mesh(chunk: &ChunkBoundary, solid_pass: bool, buffer: &mut QuadG
 
 fn full_mesh(
     raw_chunk: &ChunkBoundary,
-    loadable_assets: &LoadableAssets,
     texture_atlas: &TextureAtlas,
     chunk_pos: IVec3,
 ) -> MeshedChunk {
@@ -1294,7 +1287,7 @@ fn full_mesh(
     let mut light = Vec::new();
     for face in buffer.iter_with_ao(raw_chunk) {
         indices.extend_from_slice(&face.indices(positions.len() as u32));
-        positions.extend_from_slice(&face.positions(1.0, &raw_chunk)); // Voxel size is 1m
+        positions.extend_from_slice(&face.positions(1.0, raw_chunk)); // Voxel size is 1m
         normals.extend_from_slice(&face.normals());
         ao.extend_from_slice(&face.aos());
         let matched_index = match (face.side.axis, face.side.positive) {
@@ -1315,18 +1308,14 @@ fn full_mesh(
         };
         let light_val = raw_chunk.voxels()
             [ChunkBoundary::linearize(matched_neighbor.0, matched_neighbor.1, matched_neighbor.2)]
-        .light
-        .clone();
+        .light;
 
         light.extend_from_slice(&[light_val, light_val, light_val, light_val]);
 
         uvs.extend_from_slice(
             &face.uvs(
-                false,
-                false,
                 texture_atlas,
                 matched_index,
-                loadable_assets,
                 world_to_global_voxel(Vec3::new(
                     face.voxel()[0] as f32,
                     face.voxel()[1] as f32,
@@ -1334,7 +1323,7 @@ fn full_mesh(
                 ))
                 .as_vec3()
                 .as_ivec3(),
-                &raw_chunk,
+                raw_chunk,
             ),
         );
     }
@@ -1369,7 +1358,7 @@ fn full_mesh(
     for face in buffer.iter_with_ao(raw_chunk) {
         indices.extend_from_slice(&face.indices(positions.len() as u32));
 
-        positions.extend_from_slice(&face.positions(1.0, &raw_chunk)); // Voxel size is 1m
+        positions.extend_from_slice(&face.positions(1.0, raw_chunk)); // Voxel size is 1m
         normals.extend_from_slice(&face.normals());
         ao.extend_from_slice(&face.aos());
         let matched_index = match (face.side.axis, face.side.positive) {
@@ -1383,11 +1372,8 @@ fn full_mesh(
 
         uvs.extend_from_slice(
             &face.uvs(
-                false,
-                false,
                 texture_atlas,
                 matched_index,
-                loadable_assets,
                 world_to_global_voxel(Vec3::new(
                     face.voxel()[0] as f32,
                     face.voxel()[1] as f32,
@@ -1395,7 +1381,7 @@ fn full_mesh(
                 ))
                 .as_vec3()
                 .as_ivec3(),
-                &raw_chunk,
+                raw_chunk,
             ),
         );
     }
@@ -1420,7 +1406,7 @@ pub fn process_priority_queue(
     block_table: Res<BlockTable>,
     geo_table: Res<GeometryTable>,
     texture_atlas: Res<Assets<TextureAtlas>>,
-    current_chunks: ResMut<CurrentChunks>,
+    _current_chunks: ResMut<CurrentChunks>,
 ) {
     let task_pool = ComputeTaskPool::get();
     let block_atlas: TextureAtlas = texture_atlas
@@ -1442,7 +1428,7 @@ pub fn process_priority_queue(
                 &cloned_assets,
                 &clone_atlas,
             );
-            full_mesh(&raw_chunk, &cloned_assets, &clone_atlas, chunk_pos)
+            full_mesh(&raw_chunk, &clone_atlas, chunk_pos)
         });
         // commands
         //     .entity(current_chunks.get_entity(ChunkPos(chunk_pos)).unwrap())
@@ -1602,33 +1588,33 @@ pub fn process_queue(
                 &cloned_assets,
                 &clone_atlas,
             );
-            full_mesh(&raw_chunk, &cloned_assets, &clone_atlas, chunk_pos)
+            full_mesh(&raw_chunk, &clone_atlas, chunk_pos)
         });
         commands.spawn(ComputeMesh(task));
     }
 }
 
-fn light_to_color(color: u8) -> f32 {
-    match color {
-        0 => 0.0,
-        1 => 0.0,
-        2 => 0.1,
-        3 => 0.2,
-        4 => 0.25,
-        5 => 1.0,
-        6 => 1.1,
-        7 => 1.2,
-        8 => 1.3,
-        9 => 1.5,
-        10 => 2.0,
-        11 => 3.0,
-        12 => 4.0,
-        13 => 4.5,
-        14 => 5.0,
-        15 => 7.5,
-        _ => 10.0,
-    }
-}
+// fn light_to_color(color: u8) -> f32 {
+//     match color {
+//         0 => 0.0,
+//         1 => 0.0,
+//         2 => 0.1,
+//         3 => 0.2,
+//         4 => 0.25,
+//         5 => 1.0,
+//         6 => 1.1,
+//         7 => 1.2,
+//         8 => 1.3,
+//         9 => 1.5,
+//         10 => 2.0,
+//         11 => 3.0,
+//         12 => 4.0,
+//         13 => 4.5,
+//         14 => 5.0,
+//         15 => 7.5,
+//         _ => 10.0,
+//     }
+// }
 fn light_to_inten(color: u8) -> f32 {
     match color {
         0 => 0.25,

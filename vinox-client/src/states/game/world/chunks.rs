@@ -1,18 +1,15 @@
-use std::{collections::HashSet, time::Duration};
+use std::collections::HashSet;
 use tokio::sync::mpsc::{Receiver, Sender};
 
-use bevy::{ecs::system::SystemParam, math::Vec3Swizzles, prelude::*, tasks::AsyncComputeTaskPool};
-use bevy_tweening::{lens::TransformPositionLens, *};
+use bevy::{prelude::*, tasks::AsyncComputeTaskPool};
+use bevy_tweening::*;
 use vinox_common::world::chunks::{
     ecs::{
         update_chunk_lights, update_priority_chunk_lights, ChunkManager, ChunkUpdate,
-        CurrentChunks, NeedsMesh, RemoveChunk, SimulationRadius, ViewRadius,
+        CurrentChunks, RemoveChunk, SimulationRadius, ViewRadius,
     },
-    positions::{circle_points, voxel_to_global_voxel, world_to_chunk, ChunkPos},
-    storage::{
-        BlockData, BlockTable, ChunkData, RawChunk, CHUNK_SIZE, CHUNK_SIZE_ARR,
-        HORIZONTAL_DISTANCE, VERTICAL_DISTANCE,
-    },
+    positions::{voxel_to_global_voxel, world_to_chunk, ChunkPos},
+    storage::{BlockData, BlockTable, ChunkData, RawChunk, HORIZONTAL_DISTANCE, VERTICAL_DISTANCE},
 };
 
 use crate::states::{
@@ -171,7 +168,7 @@ pub fn receive_chunks(
             let mut chunk_data = ChunkData::from_raw(evt.raw_chunk.clone());
             let cloned_sender = light_channel.tx.clone();
             let cloned_table = block_table.clone();
-            let pos = evt.pos.clone();
+            let pos = evt.pos;
             task_pool
                 .spawn(async move {
                     cloned_sender
@@ -195,7 +192,7 @@ pub fn receive_chunks(
 }
 
 pub fn set_block(
-    mut commands: Commands,
+    _commands: Commands,
     mut event: EventReader<SetBlockEvent>,
     // current_chunks: Res<CurrentChunks>,
     // mut chunks: Query<&mut ChunkData>,

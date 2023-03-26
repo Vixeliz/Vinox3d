@@ -175,7 +175,7 @@ pub fn aabb_vs_world(
                 return block_data.is_empty(block_table);
             }
         }
-        return true;
+        true
     });
     if !collisions.is_empty() {
         return Some(collisions);
@@ -189,10 +189,10 @@ fn aabbs_intersecting(a: &Aabb, b: &Aabb) -> bool {
     let amax = a.max();
     let bmin = b.min();
     let bmax = b.max();
-    return !(amin.x >= bmax.x
+    !(amin.x >= bmax.x
         || bmin.x >= amax.x
         || amin.y >= bmax.y
         || bmin.y >= amax.y
         || amin.z >= bmax.z
-        || bmin.z >= amax.z);
+        || bmin.z >= amax.z)
 }

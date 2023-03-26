@@ -10,11 +10,10 @@ use strum::EnumString;
 use crate::storage::{
     blocks::descriptor::BlockDescriptor,
     crafting::descriptor::RecipeDescriptor,
-    geometry::{descriptor::BlockGeo, load::block_geo},
     items::descriptor::ItemDescriptor,
 };
 
-use super::{light::LightStorage, positions::ChunkPos};
+use super::{light::LightStorage};
 
 pub const HORIZONTAL_DISTANCE: usize = 16;
 pub const VERTICAL_DISTANCE: usize = 8;
@@ -494,7 +493,7 @@ impl ChunkData {
         name_to_identifier(voxel.namespace, voxel.name)
     }
 
-    pub fn set(&mut self, x: u32, y: u32, z: u32, voxel: BlockData, block_table: &BlockTable) {
+    pub fn set(&mut self, x: u32, y: u32, z: u32, voxel: BlockData, _block_table: &BlockTable) {
         self.voxels.set(Self::linearize(x, y, z), voxel);
         self.change_count += 1;
         self.set_dirty(true);
@@ -545,7 +544,7 @@ impl ChunkData {
             Storage::Multi(_) => false,
         }
     }
-    pub fn complete_relight(&mut self, block_table: &BlockTable) -> ChunkData {
+    pub fn complete_relight(&mut self, _block_table: &BlockTable) -> ChunkData {
         // for x in 0..CHUNK_SIZE {
         //     for y in 0..CHUNK_SIZE {
         //         for z in 0..CHUNK_SIZE {

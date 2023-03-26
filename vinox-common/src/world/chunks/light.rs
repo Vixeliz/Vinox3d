@@ -2,13 +2,13 @@ use std::collections::{HashSet, VecDeque};
 
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
-use serde_big_array::Array;
+
 use serde_with::{serde_as, Bytes};
 
 use super::{
-    ecs::{update_chunk_lights, CurrentChunks, NeedsMesh, PriorityMesh},
+    ecs::{CurrentChunks, PriorityMesh},
     positions::{global_voxel_positions, ChunkPos},
-    storage::{BlockData, BlockTable, ChunkData, TOTAL_CHUNK_SIZE},
+    storage::{BlockData, BlockTable, ChunkData},
 };
 
 #[inline]
@@ -26,6 +26,14 @@ pub fn to_sunlight(value: u8) -> u8 {
 pub struct LightStorage {
     #[serde_as(as = "Bytes")]
     lights: Box<[u8; ChunkData::usize()]>,
+}
+
+impl Default for LightStorage {
+    fn default() -> Self {
+        Self {
+            lights: Box::new([0; ChunkData::usize()]),
+        }
+    }
 }
 
 impl LightStorage {
@@ -800,6 +808,6 @@ impl Plugin for LightPlugin {
         app.add_event::<VoxelAddedEvent>()
             .add_event::<VoxelRemovedEvent>();
         app.add_system(propagate_lighting);
-        app.add_system(update_chunk_lights);
+        // app.add_system(update_chunk_lights);
     }
 }

@@ -380,6 +380,7 @@ impl ChunkBoundary {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn get_rend(
     chunk: &ChunkData,
     x: usize,
@@ -388,7 +389,7 @@ pub fn get_rend(
     geo_table: &GeometryTable,
     block_table: &BlockTable,
     loadable_assets: &LoadableAssets,
-    mut pal: &mut Vec<BlockGeo>,
+    pal: &mut Vec<BlockGeo>,
     texture_atlas: &TextureAtlas,
 ) -> RenderedBlockData {
     let (x, y, z) = (x as u32, y as u32, z as u32);
@@ -420,8 +421,8 @@ pub fn get_rend(
         tex_variance[5].unwrap_or(false),
     ];
     let mut textures = [0, 0, 0, 0, 0, 0];
-    for i in 0..6 {
-        textures[i] = texture_atlas
+    for (i, texture) in textures.iter_mut().enumerate() {
+        *texture = texture_atlas
             .get_texture_index(&loadable_assets.block_textures.get(&identifier).unwrap()[i])
             .unwrap_or_default();
     }

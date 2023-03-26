@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use bracket_noise::prelude::*;
-use noise::{BasicMulti, Blend, MultiFractal, NoiseFn, OpenSimplex, RidgedMulti, RotatePoint};
 use std::collections::HashMap;
 // use rand::{rngs::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};

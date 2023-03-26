@@ -24,7 +24,7 @@ use vinox_common::{
         positions::{voxel_to_global_voxel, ChunkPos},
         storage::{
             self, name_to_identifier, trim_geo_identifier, BlockData, BlockTable, ChunkData,
-            ItemTable, CHUNK_SIZE, CHUNK_SIZE_ARR, HORIZONTAL_DISTANCE,
+            ItemTable, CHUNK_SIZE, HORIZONTAL_DISTANCE,
         },
     },
 };
@@ -165,7 +165,6 @@ pub fn spawn_camera(
                             - (CHUNK_SIZE * (HORIZONTAL_DISTANCE / 2)) as f32,
                         end: (HORIZONTAL_DISTANCE * CHUNK_SIZE) as f32 + (CHUNK_SIZE * 2) as f32,
                     },
-                    ..Default::default()
                 },
             ));
         });
@@ -272,7 +271,7 @@ fn norm_to_bar(item: usize) -> Option<(usize, usize)> {
 #[allow(clippy::too_many_arguments)]
 #[allow(clippy::type_complexity)]
 pub fn interact(
-    mut commands: Commands,
+    _commands: Commands,
     mut windows: Query<&mut Window, With<PrimaryWindow>>,
     camera_query: Query<&GlobalTransform, With<Camera>>,
     mut client: ResMut<Client>,
@@ -757,7 +756,7 @@ pub fn collision_movement_system(
             let mut max_move = v_after.abs();
             let margin: f32 = 0.01;
             let aabb_collisions = aabb_vs_world(
-                player_aabb.clone(),
+                *player_aabb,
                 &chunks,
                 v_after,
                 &current_chunks,
