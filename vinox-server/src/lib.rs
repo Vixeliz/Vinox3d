@@ -93,7 +93,7 @@ pub fn create_server() {
         .insert_resource(final_world_info)
         .insert_resource(WorldDatabase { connection: pool })
         .insert_resource(NetworkIP(ip))
-        .insert_resource(ChunkLimit(128))
+        .insert_resource(ChunkLimit(64))
         .insert_resource(LocalGame(true))
         .add_plugins(MinimalPlugins)
         .add_plugin(DiagnosticsPlugin)
