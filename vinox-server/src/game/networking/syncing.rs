@@ -3,7 +3,7 @@ use std::io::Cursor;
 use rand::seq::SliceRandom;
 use rustc_data_structures::stable_set::FxHashSet;
 
-use bevy::prelude::*;
+use bevy::{app::AppExit, prelude::*};
 use bevy_quinnet::server::*;
 use vinox_common::{
     ecs::bundles::{ClientName, Inventory, PlayerBundleBuilder},
@@ -18,13 +18,21 @@ use zstd::stream::copy_encode;
 
 use crate::game::world::{chunk::LoadPoint, storage::ChunksToSave};
 
-use super::components::{ChunkLimit, ServerLobby};
+use super::components::{ChunkLimit, LocalGame, ServerLobby};
 
 pub fn connections(
     mut server: ResMut<Server>,
     lobby: Res<ServerLobby>,
     mut connection_events: EventReader<ConnectionEvent>,
+    mut connection_lost_events: EventReader<ConnectionLostEvent>,
+    local_game: Res<LocalGame>,
+    mut exit: EventWriter<AppExit>,
 ) {
+    for _ in connection_lost_events.iter() {
+        if **local_game {
+            exit.send(AppExit);
+        }
+    }
     for client in connection_events.iter() {
         // Refuse connection once we already have two players
         if lobby.players.len() >= 8 {

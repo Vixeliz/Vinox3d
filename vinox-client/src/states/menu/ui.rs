@@ -230,7 +230,7 @@ pub fn create_ui(
 
                 ui.allocate_space(egui::Vec2::new(1.0, 26.0));
 
-                if ui.button("Singeplayer").clicked() {
+                if ui.button("Singleplayer").clicked() {
                     std::thread::spawn(|| {
                         create_server();
                     });
