@@ -81,13 +81,13 @@ pub fn update_player_location(
 }
 pub fn unload_chunks(
     mut commands: Commands,
-    remove_chunks: Query<&ChunkPos, With<RemoveChunk>>,
+    remove_chunks: Query<(&ChunkPos, Entity), With<RemoveChunk>>,
     mut current_chunks: ResMut<CurrentChunks>,
 ) {
-    for chunk in remove_chunks.iter() {
-        if let Some(chunk_entity) = current_chunks.remove_entity(*chunk) {
-            commands.entity(chunk_entity).despawn_recursive();
-        }
+    for (chunk, entity) in remove_chunks.iter() {
+        current_chunks.remove_entity(*chunk).ok_or(0).ok();
+        commands.entity(entity).despawn_recursive();
+
         // if current_chunks.get_entity(*chunk).is_some() {
         // let tween = Tween::new(
         //     EaseFunction::QuadraticInOut,
