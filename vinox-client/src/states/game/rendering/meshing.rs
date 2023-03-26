@@ -820,6 +820,7 @@ pub fn process_task(
 
 // Possibly have this just fully generate the mesh
 pub fn generate_mesh(chunk: &ChunkBoundary, solid_pass: bool, buffer: &mut QuadGroups) {
+    buffer.clear();
     for z in 1..ChunkBoundary::edge() - 1 {
         for y in 1..ChunkBoundary::edge() - 1 {
             for x in 1..ChunkBoundary::edge() - 1 {

@@ -41,7 +41,7 @@ pub enum VoxelVisibility {
     Transparent,
 }
 
-#[derive(EnumString, Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone, Default)]
+#[derive(EnumString, Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone, Default, Copy)]
 pub enum Direction {
     #[default]
     North,
@@ -161,6 +161,17 @@ impl BlockData {
             .visibility
             .unwrap_or_default()
             == VoxelVisibility::Empty
+    }
+    pub fn is_opaque(&self, block_table: &BlockTable) -> bool {
+        block_table
+            .get(&name_to_identifier(
+                self.namespace.clone(),
+                self.name.clone(),
+            ))
+            .unwrap()
+            .visibility
+            .unwrap_or_default()
+            == VoxelVisibility::Opaque
     }
     pub fn is_true_empty(&self, block_table: &BlockTable) -> bool {
         let descriptor = block_table
