@@ -6,7 +6,7 @@ use serde_big_array::Array;
 use serde_with::{serde_as, Bytes};
 
 use super::{
-    ecs::{CurrentChunks, NeedsMesh},
+    ecs::{CurrentChunks, NeedsMesh, PriorityMesh},
     positions::{global_voxel_positions, ChunkPos},
     storage::{BlockData, BlockTable, ChunkData, TOTAL_CHUNK_SIZE},
 };
@@ -168,7 +168,7 @@ pub fn propagate_lighting(
 
     let changed: Vec<ChunkPos> = changed.into_iter().collect();
     for chunk_entity in loaded_chunks.get_unique_loaded_chunks_and_neighbors(&changed) {
-        commands.entity(chunk_entity).insert(NeedsMesh);
+        commands.entity(chunk_entity).insert(PriorityMesh);
     }
 }
 
