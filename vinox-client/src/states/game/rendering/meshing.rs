@@ -142,205 +142,397 @@ pub fn face_aos(face: &Face, chunk: &ChunkBoundary) -> [u32; 4] {
         (Axis::X, false) => side_aos([
             (
                 chunk.voxels()[ChunkBoundary::linearize(x - 1, y, z + 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x - 1, y, z + 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z + 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z + 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z - 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z - 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x - 1, y, z - 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x - 1, y, z - 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z - 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z - 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z + 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z + 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
         ]),
         (Axis::X, true) => side_aos([
             (
                 chunk.voxels()[ChunkBoundary::linearize(x + 1, y, z - 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x + 1, y, z - 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z - 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z - 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z + 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z + 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x + 1, y, z + 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x + 1, y, z + 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z + 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z + 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z - 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z - 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
         ]),
         (Axis::Y, false) => side_aos([
             (
                 chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z + 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z + 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x, y - 1, z + 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x, y - 1, z + 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z + 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z + 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z - 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z - 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x, y - 1, z - 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x, y - 1, z - 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z - 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z - 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
         ]),
         (Axis::Y, true) => side_aos([
             (
                 chunk.voxels()[ChunkBoundary::linearize(x, y + 1, z + 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x, y + 1, z + 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z + 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z + 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z - 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z - 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x, y + 1, z - 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x, y + 1, z - 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z - 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z - 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z + 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z + 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
         ]),
         (Axis::Z, false) => side_aos([
             (
                 chunk.voxels()[ChunkBoundary::linearize(x - 1, y, z - 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x - 1, y, z - 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z - 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z - 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x, y - 1, z - 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x, y - 1, z - 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z - 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z - 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x + 1, y, z - 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x + 1, y, z - 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z - 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z - 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x, y + 1, z - 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x, y + 1, z - 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z - 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z - 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
         ]),
         (Axis::Z, true) => side_aos([
             (
                 chunk.voxels()[ChunkBoundary::linearize(x + 1, y, z + 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x + 1, y, z + 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z + 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z + 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x, y - 1, z + 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x, y - 1, z + 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z + 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z + 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x - 1, y, z + 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x - 1, y, z + 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z + 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z + 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x, y + 1, z + 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x, y + 1, z + 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
             (
                 chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z + 1)],
-                BlockGeo::default(),
+                &chunk
+                    .geometry_pal
+                    .get(chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z + 1)].geo_index)
+                    .unwrap()
+                    .clone(),
             ),
         ]),
     }
@@ -381,16 +573,16 @@ pub(crate) fn ao_value(side1: bool, corner: bool, side2: bool) -> u32 {
     }
 }
 
-pub(crate) fn side_aos(neighbors: [(RenderedBlockData, BlockGeo); 8]) -> [u32; 4] {
+pub(crate) fn side_aos(neighbors: [(RenderedBlockData, &BlockGeo); 8]) -> [u32; 4] {
     let ns = [
-        neighbors[0].0.visibility == OPAQUE && neighbors[0].1 == BlockGeo::default(),
-        neighbors[1].0.visibility == OPAQUE && neighbors[1].1 == BlockGeo::default(),
-        neighbors[2].0.visibility == OPAQUE && neighbors[2].1 == BlockGeo::default(),
-        neighbors[3].0.visibility == OPAQUE && neighbors[3].1 == BlockGeo::default(),
-        neighbors[4].0.visibility == OPAQUE && neighbors[4].1 == BlockGeo::default(),
-        neighbors[5].0.visibility == OPAQUE && neighbors[5].1 == BlockGeo::default(),
-        neighbors[6].0.visibility == OPAQUE && neighbors[6].1 == BlockGeo::default(),
-        neighbors[7].0.visibility == OPAQUE && neighbors[7].1 == BlockGeo::default(),
+        neighbors[0].0.visibility == OPAQUE && neighbors[0].1 == &BlockGeo::default(),
+        neighbors[1].0.visibility == OPAQUE && neighbors[1].1 == &BlockGeo::default(),
+        neighbors[2].0.visibility == OPAQUE && neighbors[2].1 == &BlockGeo::default(),
+        neighbors[3].0.visibility == OPAQUE && neighbors[3].1 == &BlockGeo::default(),
+        neighbors[4].0.visibility == OPAQUE && neighbors[4].1 == &BlockGeo::default(),
+        neighbors[5].0.visibility == OPAQUE && neighbors[5].1 == &BlockGeo::default(),
+        neighbors[6].0.visibility == OPAQUE && neighbors[6].1 == &BlockGeo::default(),
+        neighbors[7].0.visibility == OPAQUE && neighbors[7].1 == &BlockGeo::default(),
     ];
 
     [
