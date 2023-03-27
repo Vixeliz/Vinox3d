@@ -1,6 +1,6 @@
 use bevy::{
     math::Vec3A,
-    prelude::{Component, Entity, EventWriter, IVec3, Query, Res, Vec3, With, Without},
+    prelude::{Component, Entity, EventWriter, IVec3, Query, Res, Transform, Vec3, With, Without},
     render::primitives::Aabb,
     time::Time,
 };
@@ -39,14 +39,17 @@ pub fn move_no_collide(
 }
 
 pub fn move_and_collide(
-    mut moving_entities: Query<(Entity, &mut Aabb, &mut Velocity), With<CollidesWithWorld>>,
+    mut moving_entities: Query<
+        (Entity, &mut Aabb, &mut Velocity, &mut Transform),
+        With<CollidesWithWorld>,
+    >,
     time: Res<Time>,
     chunks: Query<&ChunkData>,
     current_chunks: Res<CurrentChunks>,
     block_table: Res<BlockTable>,
     mut collision_event_writer: EventWriter<VoxelCollisionEvent>,
 ) {
-    for (entity, mut aabb, mut velocity) in moving_entities.iter_mut() {
+    for (entity, mut aabb, mut velocity, mut transform) in moving_entities.iter_mut() {
         if current_chunks
             .get_entity(ChunkPos(world_to_chunk(Vec3::from(aabb.center))))
             .is_none()
@@ -134,5 +137,6 @@ pub fn move_and_collide(
         velocity.0 = v_after / time.delta().as_secs_f32();
         let final_move = max_move.copysign(movement);
         aabb.center += Vec3A::from(final_move);
+        transform.translation = Vec3::from(aabb.center - Vec3A::Y * aabb.half_extents)
     }
 }
