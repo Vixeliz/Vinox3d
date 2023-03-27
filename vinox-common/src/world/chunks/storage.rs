@@ -8,12 +8,11 @@ use serde::{Deserialize, Serialize};
 use strum::EnumString;
 
 use crate::storage::{
-    blocks::descriptor::BlockDescriptor,
-    crafting::descriptor::RecipeDescriptor,
+    blocks::descriptor::BlockDescriptor, crafting::descriptor::RecipeDescriptor,
     items::descriptor::ItemDescriptor,
 };
 
-use super::{light::LightStorage};
+use super::light::LightStorage;
 
 pub const HORIZONTAL_DISTANCE: usize = 16;
 pub const VERTICAL_DISTANCE: usize = 8;

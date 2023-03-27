@@ -141,7 +141,7 @@ pub fn propagate_lighting(
             .unwrap()
             .light
             .unwrap_or_default();
-        if event.value.is_true_empty(&block_table) {
+        if event.value.is_opaque(&block_table) && light_val.3 == 0 {
             let source_level = chunk_data.get_torchlight(local_pos.x, local_pos.y, local_pos.z);
             chunk_data.set_torchlight(local_pos.x, local_pos.y, local_pos.z, 0);
 
@@ -456,7 +456,7 @@ fn check_neighbor_simple_add(
     block_table: &BlockTable,
 ) {
     if chunk_data.get(x, y, z).is_true_empty(block_table)
-        && chunk_data.get_torchlight(x, y, z) + 2 <= source_level
+        && chunk_data.get_torchlight(x, y, z) + 2 < source_level
     {
         chunk_data.set_torchlight(x, y, z, new_level);
         add_queue.push_back(LightAddNode {
