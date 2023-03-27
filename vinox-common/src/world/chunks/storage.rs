@@ -8,8 +8,8 @@ use serde::{Deserialize, Serialize};
 use strum::EnumString;
 
 use crate::storage::{
-    blocks::descriptor::BlockDescriptor, crafting::descriptor::RecipeDescriptor,
-    items::descriptor::ItemDescriptor,
+    biomes::descriptor::BiomeDescriptor, blocks::descriptor::BlockDescriptor,
+    crafting::descriptor::RecipeDescriptor, items::descriptor::ItemDescriptor,
 };
 
 use super::light::LightStorage;
@@ -30,6 +30,9 @@ pub struct BlockTable(pub FxHashMap<String, BlockDescriptor>);
 
 #[derive(Resource, Clone, Default, Deref, DerefMut)]
 pub struct ItemTable(pub FxHashMap<String, ItemDescriptor>);
+
+#[derive(Resource, Clone, Default, Deref, DerefMut)]
+pub struct BiomeTable(pub FxHashMap<String, BiomeDescriptor>);
 
 #[derive(EnumString, Serialize, Deserialize, Debug, PartialEq, Eq, Default, Clone, Copy, Hash)]
 pub enum VoxelVisibility {

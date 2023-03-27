@@ -10,6 +10,8 @@ use vinox_common::world::chunks::{
     storage::{BlockTable, ChunkData, HORIZONTAL_DISTANCE, VERTICAL_DISTANCE},
 };
 
+use crate::game::networking::components::SaveGame;
+
 use super::{
     generation::generate_chunk,
     storage::{load_chunk, save_chunks, ChunksToSave, WorldDatabase, WorldInfo},
@@ -41,19 +43,22 @@ pub fn generate_chunks_world(
     mut commands: Commands,
     mut chunk_manager: ChunkManager,
     database: Res<WorldDatabase>,
+    save: Res<SaveGame>,
 ) {
     for point in load_points.iter() {
         for pos in chunk_manager.get_chunk_positions(ChunkPos(**point)) {
             if chunk_manager.current_chunks.get_entity(pos).is_none() {
                 let data = database.connection.get().unwrap();
                 if let Some(chunk) = load_chunk(pos, &data) {
-                    let chunk_id = commands.spawn(ChunkData::from_raw(chunk)).insert(pos).id();
-                    chunk_manager.current_chunks.insert_entity(pos, chunk_id);
-                } else {
-                    let chunk_id = commands.spawn(pos).id();
-                    chunk_manager.current_chunks.insert_entity(pos, chunk_id);
-                    chunk_queue.create.push(pos);
+                    if **save {
+                        let chunk_id = commands.spawn(ChunkData::from_raw(chunk)).insert(pos).id();
+                        chunk_manager.current_chunks.insert_entity(pos, chunk_id);
+                        continue;
+                    }
                 }
+                let chunk_id = commands.spawn(pos).id();
+                chunk_manager.current_chunks.insert_entity(pos, chunk_id);
+                chunk_queue.create.push(pos);
             }
         }
     }
@@ -139,6 +144,7 @@ pub fn process_queue(
     world_info: Res<WorldInfo>,
     mut chunks_to_save: ResMut<ChunksToSave>,
     block_table: Res<BlockTable>,
+    save: Res<SaveGame>,
 ) {
     let cloned_seed = world_info.seed;
     let task_pool = AsyncComputeTaskPool::get();
@@ -155,8 +161,9 @@ pub fn process_queue(
     gen_task.for_each_mut(|(entity, mut task)| {
         if let Some(chunk) = future::block_on(future::poll_once(&mut task.0)) {
             let chunk_pos = chunk.1;
-
-            chunks_to_save.push((chunk_pos, chunk.0.to_raw()));
+            if **save {
+                chunks_to_save.push((chunk_pos, chunk.0.to_raw()));
+            }
             if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos) {
                 commands.entity(chunk_entity).insert(chunk);
             }
