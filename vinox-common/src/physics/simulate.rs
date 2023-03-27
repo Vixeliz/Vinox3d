@@ -6,7 +6,7 @@ use bevy::{
 };
 
 use crate::{
-    physics::collision::aabb::{aabbs_intersect_or_touch, get_collision_info, CollisionInfo},
+    physics::collision::aabb::{get_collision_info, CollisionInfo},
     world::chunks::{
         ecs::CurrentChunks,
         positions::{world_to_chunk, ChunkPos},
@@ -59,7 +59,6 @@ pub fn move_and_collide(
         if let Some(mut aabb_collisions) =
             aabb_vs_world(&aabb, &chunks, movement, &current_chunks, &block_table)
         {
-            println!("All collisions first detected:");
             // First pass to evaluate all collisions
             for col in aabb_collisions.iter() {
                 if col.normal.x != 0.0 {
@@ -72,10 +71,6 @@ pub fn move_and_collide(
                     max_move.z = f32::min(max_move.z, col.dist);
                     v_after.z = 0.0;
                 }
-                println!(
-                    "\tCollision @ {} norm {} dist {}",
-                    col.collision_aabb.center, col.normal, col.dist
-                );
             }
             // Remove collisions that are blocked by other collisions
             aabb_collisions.retain(|col| {
@@ -88,25 +83,14 @@ pub fn move_and_collide(
                     v_filt = Vec3::new(v_after.x, v_after.y, movement.z);
                 }
                 let hypth_aabb = Aabb {
-                    center: aabb.center
-                        + Vec3A::from(
-                            Vec3::new(
-                                max_move.x * movement.x.signum(),
-                                max_move.y * movement.y.signum(),
-                                max_move.z * movement.z.signum(),
-                            ) + v_filt,
-                        ),
+                    center: aabb.center + Vec3A::from(max_move.copysign(movement) + v_filt),
                     half_extents: aabb.half_extents,
                 };
                 let intersects = aabbs_intersect(&hypth_aabb, &col.collision_aabb);
                 return intersects;
             });
             // Re-calculate normals
-            let fm = Vec3::new(
-                max_move.x * movement.x.signum(),
-                max_move.y * movement.y.signum(),
-                max_move.z * movement.z.signum(),
-            );
+            let fm = max_move.copysign(movement);
             let aabb_collisions: Vec<CollisionInfo> = aabb_collisions
                 .iter()
                 .filter_map(|col| {
@@ -122,17 +106,9 @@ pub fn move_and_collide(
                         center: aabb.center + Vec3A::from(fm),
                         half_extents: aabb.half_extents,
                     };
-                    let new_col = get_collision_info(&hypth_aabb, &col.collision_aabb, &v_filt);
-                    if let Some(n) = new_col.clone() {
-                        println!("New collision: {} v_filt {v_filt} fm {fm}", n);
-                    } else {
-                        println!("Collision {} was removed!", col);
-                    }
-                    return new_col;
+                    return get_collision_info(&hypth_aabb, &col.collision_aabb, &v_filt);
                 })
                 .collect();
-            println!("Final list of collisions:");
-            aabb_collisions.iter().for_each(|c| println!("\t{c}"));
             // Re-evaluate the new set of collisions
             let mut v_after = movement;
             let mut max_move = movement.abs();
@@ -143,7 +119,7 @@ pub fn move_and_collide(
                 } else if col.normal.y != 0.0 {
                     max_move.y = f32::min(max_move.y, col.dist);
                     v_after.y = 0.0;
-                } else if col.normal.z != 0.0 {
+                } else {
                     max_move.z = f32::min(max_move.z, col.dist);
                     v_after.z = 0.0;
                 }
@@ -155,13 +131,8 @@ pub fn move_and_collide(
             }
         }
         // Apply updated velocity
-        println!("Final mxmv: {max_move}");
         velocity.0 = v_after / time.delta().as_secs_f32();
-        let final_move = Vec3::new(
-            max_move.x * movement.x.signum(),
-            max_move.y * movement.y.signum(),
-            max_move.z * movement.z.signum(),
-        );
+        let final_move = max_move.copysign(movement);
         aabb.center += Vec3A::from(final_move);
     }
 }

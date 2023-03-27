@@ -142,62 +142,28 @@ pub fn handle_movement(
     let Ok(window) = windows.get_single() else {
         return;
     };
-    if window.cursor.grab_mode != CursorGrabMode::Locked {
-        return;
-    }
     let Ok(mut transform) = camera_transform.get_single_mut() else {
         return;
     };
     // Update camera look
-    if let Ok(mut fps_camera) = player.get_single_mut() {
-        for MouseMotion { delta } in mouse_events.iter() {
-            fps_camera.phi += delta.x * mouse_sensitivity.0 * 0.003;
-            fps_camera.theta = (fps_camera.theta + delta.y * mouse_sensitivity.0 * 0.003)
-                .clamp(0.00005, PI - 0.00005);
+    if window.cursor.grab_mode == CursorGrabMode::Locked {
+        if let Ok(mut fps_camera) = player.get_single_mut() {
+            for MouseMotion { delta } in mouse_events.iter() {
+                fps_camera.phi += delta.x * mouse_sensitivity.0 * 0.003;
+                fps_camera.theta = (fps_camera.theta + delta.y * mouse_sensitivity.0 * 0.003)
+                    .clamp(0.00005, PI - 0.00005);
+            }
+            let looking_at = Vec3::new(
+                10.0 * fps_camera.phi.cos() * fps_camera.theta.sin(),
+                10.0 * fps_camera.theta.cos(),
+                10.0 * fps_camera.phi.sin() * fps_camera.theta.sin(),
+            );
+            transform.look_at(looking_at, Vec3::new(0.0, 1.0, 0.0));
         }
-        let looking_at = Vec3::new(
-            10.0 * fps_camera.phi.cos() * fps_camera.theta.sin(),
-            10.0 * fps_camera.theta.cos(),
-            10.0 * fps_camera.phi.sin() * fps_camera.theta.sin(),
-        );
-        transform.look_at(looking_at, Vec3::new(0.0, 1.0, 0.0));
     }
     // Update velocity with movement input
     if let Ok((translation, mut velocity, action_state)) = player_position.get_single_mut() {
-        let chunk_pos = world_to_chunk(translation.translation);
-        if current_chunks.get_entity(ChunkPos(chunk_pos)).is_none() {
-            return;
-        }
-
         let mut movement = Vec3::ZERO;
-        if action_state.pressed(GameActions::Forward) {
-            let mut fwd = transform.forward();
-            fwd.y = 0.0;
-            let fwd = fwd.normalize();
-            movement += fwd;
-        }
-        if action_state.pressed(GameActions::Left) {
-            movement += transform.left()
-        }
-        if action_state.pressed(GameActions::Right) {
-            movement += transform.right()
-        }
-        if action_state.pressed(GameActions::Backward) {
-            let mut back = transform.back();
-            back.y = 0.0;
-            let back = back.normalize();
-            movement += back;
-        }
-        movement = movement.normalize_or_zero();
-        if action_state.pressed(GameActions::Run) {
-            movement *= 10.0;
-        } else {
-            movement *= 5.0;
-        }
-        if action_state.pressed(GameActions::Jump) && *stationary_frames > 2 {
-            *stationary_frames = 0;
-            velocity.0.y = 10.0;
-        }
 
         if velocity.0.y.abs() < 0.001 && *stationary_frames < 10 {
             *stationary_frames += 4;
@@ -205,9 +171,45 @@ pub fn handle_movement(
             *stationary_frames -= 1;
         }
 
-        velocity.0 = Vec3::new(movement.x, velocity.0.y, movement.z);
         let gravity = 35.0 * Vec3::NEG_Y;
         velocity.0 += gravity * time.delta().as_secs_f32().clamp(0.0, 0.1);
+
+        let chunk_pos = world_to_chunk(translation.translation);
+        if window.cursor.grab_mode == CursorGrabMode::Locked {
+            if current_chunks.get_entity(ChunkPos(chunk_pos)).is_none() {
+                return;
+            }
+
+            if action_state.pressed(GameActions::Forward) {
+                let mut fwd = transform.forward();
+                fwd.y = 0.0;
+                let fwd = fwd.normalize();
+                movement += fwd;
+            }
+            if action_state.pressed(GameActions::Left) {
+                movement += transform.left()
+            }
+            if action_state.pressed(GameActions::Right) {
+                movement += transform.right()
+            }
+            if action_state.pressed(GameActions::Backward) {
+                let mut back = transform.back();
+                back.y = 0.0;
+                let back = back.normalize();
+                movement += back;
+            }
+            movement = movement.normalize_or_zero();
+            if action_state.pressed(GameActions::Run) {
+                movement *= 10.0;
+            } else {
+                movement *= 5.0;
+            }
+            if action_state.pressed(GameActions::Jump) && *stationary_frames > 2 {
+                *stationary_frames = 0;
+                velocity.0.y = 10.0;
+            }
+        }
+        velocity.0 = Vec3::new(movement.x, velocity.0.y, movement.z);
     }
 }
 

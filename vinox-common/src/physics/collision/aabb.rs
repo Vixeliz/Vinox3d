@@ -12,7 +12,7 @@ use crate::world::chunks::{
     storage::{BlockData, BlockTable, ChunkData},
 };
 
-const MARGIN: f32 = 0.01;
+const MARGIN: Vec3A = Vec3A::new(0.001, 0.001, 0.001);
 
 #[derive(Clone)]
 pub struct CollisionInfo {
@@ -41,14 +41,18 @@ pub fn aabb_vs_world(
     block_table: &BlockTable,
 ) -> Option<Vec<CollisionInfo>> {
     let mut collisions: Vec<CollisionInfo> = Vec::new();
-    // Area to check for collisions that can be conceivably reached beased on velocity
     let area_to_check = (
-        (Vec3::from(-aabb.half_extents) + velocity)
+        (-aabb.half_extents)
+            .min(-aabb.half_extents + Vec3A::from(velocity))
             .floor()
-            .as_ivec3(),
-        (Vec3::from(aabb.half_extents) + velocity).ceil().as_ivec3(),
+            .as_ivec3()
+            + IVec3::NEG_ONE,
+        (aabb.half_extents)
+            .max(aabb.half_extents + Vec3A::from(velocity))
+            .ceil()
+            .as_ivec3()
+            + IVec3::ONE,
     );
-    // TODO: Change to an iterator so can parallelize
     for x in area_to_check.0.x..=area_to_check.1.x {
         for y in area_to_check.0.y..=area_to_check.1.y {
             for z in area_to_check.0.z..=area_to_check.1.z {
@@ -65,11 +69,10 @@ pub fn aabb_vs_world(
                         let voxel_pos = voxel_to_global_voxel(check_block_cpos, check_chunk_pos);
                         if !block_data.is_empty(block_table) {
                             let block_aabb = Aabb {
-                                center: (Vec3A::from(voxel_pos.as_vec3())
-                                    + Vec3A::new(0.5, 0.5, 0.5)),
+                                center: voxel_pos.as_vec3a() + Vec3A::new(0.5, 0.5, 0.5),
                                 half_extents: Vec3A::new(0.5, 0.5, 0.5),
                             };
-                            let col = get_collision_info(aabb, &block_aabb, &velocity);
+                            let col = get_collision_info(&aabb, &block_aabb, &velocity);
                             if let Some(c) = col {
                                 collisions.push(c);
                             }
@@ -79,30 +82,6 @@ pub fn aabb_vs_world(
             }
         }
     }
-    // Remove all detected collisions that are on a face blocked by another block
-    collisions.retain(|col| {
-        let blocked_pos = Vec3::from(col.collision_aabb.center) + col.normal;
-        let block_aabb = Aabb {
-            center: Vec3A::from(blocked_pos),
-            half_extents: Vec3A::new(0.5, 0.5, 0.5),
-        };
-        // If the "blocked pos" is inside the player, don't count it as blocked
-        if aabbs_intersect(&aabb, &block_aabb) {
-            return true;
-        }
-        let (chunk_pos, voxel_cpos) = world_to_voxel(blocked_pos);
-        if let Some(chunk_entity) = current_chunks.get_entity(ChunkPos(chunk_pos)) {
-            if let Ok(chunk) = chunks.get(chunk_entity) {
-                let block_data: BlockData = chunk.get(
-                    voxel_cpos.x as usize,
-                    voxel_cpos.y as usize,
-                    voxel_cpos.z as usize,
-                );
-                return block_data.is_empty(block_table);
-            }
-        }
-        return true;
-    });
     if !collisions.is_empty() {
         return Some(collisions);
     }
@@ -125,6 +104,8 @@ pub fn aabbs_intersect(a: &Aabb, b: &Aabb) -> bool {
         || bmin.z >= amax.z);
 }
 
+#[inline]
+// Returns if two AABBs are inside each other, or touching.
 pub fn aabbs_intersect_or_touch(a: &Aabb, b: &Aabb) -> bool {
     let amin = a.min();
     let amax = a.max();
@@ -209,7 +190,7 @@ pub fn get_collision_info(a: &Aabb, b: &Aabb, a_velocity: &Vec3) -> Option<Colli
     let enter_time = max(max(FloatOrd(enter.x), FloatOrd(enter.y)), FloatOrd(enter.z));
     let exit_time = min(min(FloatOrd(exit.x), FloatOrd(exit.y)), FloatOrd(exit.z));
     if enter_time > exit_time
-        || enter.x < -MARGIN && enter.y < -MARGIN && enter.z < -MARGIN
+        || enter.x < -MARGIN.x && enter.y < -MARGIN.y && enter.z < -MARGIN.z
         || enter.x > 1.0
         || enter.y > 1.0
         || enter.z > 1.0
@@ -262,10 +243,6 @@ pub fn get_collision_info(a: &Aabb, b: &Aabb, a_velocity: &Vec3) -> Option<Colli
             normal.z = if inv_exit.z < 0.0 { 1.0 } else { -1.0 };
             dist = inv_enter.z.abs();
         }
-        println!(
-            "Getting collision info... Normal is {normal}. inv_enter {inv_enter}, enter_time {}. enter {enter} velocity {a_velocity} player_aabb {a:?}",
-            enter_time.0,
-        );
         return Some(CollisionInfo {
             collision_aabb: b.clone(),
             normal,
