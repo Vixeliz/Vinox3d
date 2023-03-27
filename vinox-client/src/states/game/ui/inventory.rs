@@ -54,7 +54,6 @@ pub fn status_bar(
                             } else {
                                 ui.style().visuals.window_fill
                             };
-
                             egui::Frame::none()
                                 .fill(color)
                                 .outer_margin(2.0)
