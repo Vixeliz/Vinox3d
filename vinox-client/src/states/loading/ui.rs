@@ -9,8 +9,10 @@ use vinox_common::{
     ecs::bundles::PlayerBundleBuilder,
     networking::protocol::NetworkIP,
     storage::{
-        blocks::load::load_all_blocks, crafting::load::load_all_recipes,
-        geometry::load::load_all_geo, items::load::item_from_block,
+        blocks::load::load_all_blocks,
+        crafting::load::load_all_recipes,
+        geometry::load::load_all_geo,
+        items::load::{item_from_block, load_all_items},
     },
     world::chunks::storage::{trim_geo_identifier, BlockTable, ItemTable, RecipeTable},
 };
@@ -141,6 +143,12 @@ pub fn setup_resources(
         name.push(':');
         name.push_str(&geo.name);
         geo_table.insert(name, geo);
+    }
+    for item in load_all_items() {
+        let mut name = item.clone().namespace;
+        name.push(':');
+        name.push_str(&item.name);
+        item_table.insert(name, item);
     }
 }
 

@@ -1,0 +1,8 @@
+RecipeDescriptor(
+    namespace: "vinox",
+    name: "shovel",
+    required_items: Some({
+        "vinox:dirt": 1,
+    }),
+    output_item: ("vinox:shovel", 1)
+)

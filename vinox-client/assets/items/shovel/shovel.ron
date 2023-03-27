@@ -1,0 +1,7 @@
+ItemDescriptor(
+    namespace: "vinox",
+    name: "shovel",
+    max_durability: Some(250),
+    max_stack_size: Some(1),
+    tool_type: Some(Shovel)
+)

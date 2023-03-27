@@ -480,7 +480,18 @@ pub fn interact(
         let cur_bar = inventory.clone().current_bar;
         let item_data = inventory.clone().hotbar[*cur_bar][*cur_item].clone();
         let place_item = if let Some(item) = item_data.clone() {
-            Some(BlockData::new(item.namespace, item.name))
+            if let Some(item_descriptor) = item_table.get(&name_to_identifier(
+                item.namespace.clone(),
+                item.name.clone(),
+            )) {
+                if item_descriptor.associated_block.is_some() {
+                    Some(BlockData::new(item.namespace, item.name))
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
         } else {
             None
         };
