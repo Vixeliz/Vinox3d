@@ -75,7 +75,7 @@ pub struct BlockDescriptor {
     pub visibility: Option<VoxelVisibility>,
     pub has_direction: Option<bool>,       // Also affects up and down
     pub exclusive_direction: Option<bool>, // If this block needs only either top and bottom or direction. Or if it needs both top and bottom and direction
-    pub light: Option<u8>,
+    pub light: Option<(u8, u8, u8, u8)>,   //Red, Green, Blue, Intensity
     pub interactable: Option<bool>,
     pub gui: Option<String>,
     pub has_item: Option<bool>, // Basically whether or not we should auto generate an item for this block

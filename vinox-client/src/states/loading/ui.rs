@@ -68,7 +68,6 @@ pub fn switch(
             warn!("{:?} did not resolve to an `Image` asset.", asset_server.get_handle_path(item));
             continue;
                     };
-
                         texture_atlas_builder.add_texture(item.clone(), texture);
                     }
                 }
@@ -91,7 +90,7 @@ pub fn timeout(
     mut client: ResMut<Client>,
 ) {
     timer.set_mode(TimerMode::Repeating);
-    timer.set_duration(Duration::from_secs_f32(5.));
+    timer.set_duration(Duration::from_secs_f32(10.));
 
     timer.tick(time.delta());
     if timer.just_finished() {

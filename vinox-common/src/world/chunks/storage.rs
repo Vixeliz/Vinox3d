@@ -8,14 +8,14 @@ use serde::{Deserialize, Serialize};
 use strum::EnumString;
 
 use crate::storage::{
-    blocks::descriptor::BlockDescriptor,
-    crafting::descriptor::RecipeDescriptor,
-    geometry::{descriptor::BlockGeo, load::block_geo},
+    blocks::descriptor::BlockDescriptor, crafting::descriptor::RecipeDescriptor,
     items::descriptor::ItemDescriptor,
 };
 
-pub const HORIZONTAL_DISTANCE: usize = 20;
-pub const VERTICAL_DISTANCE: usize = 6;
+use super::light::LightStorage;
+
+pub const HORIZONTAL_DISTANCE: usize = 16;
+pub const VERTICAL_DISTANCE: usize = 8;
 pub const CHUNK_SIZE: usize = 16;
 pub const CHUNK_SIZE_ARR: u32 = CHUNK_SIZE as u32 - 1;
 pub const TOTAL_CHUNK_SIZE: usize = (CHUNK_SIZE) * (CHUNK_SIZE) * (CHUNK_SIZE);
@@ -39,7 +39,7 @@ pub enum VoxelVisibility {
     Transparent,
 }
 
-#[derive(EnumString, Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone, Default)]
+#[derive(EnumString, Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone, Default, Copy)]
 pub enum Direction {
     #[default]
     North,
@@ -75,18 +75,20 @@ pub struct Container {
     pub max_size: u8,
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub struct RenderedBlockData {
-    pub identifier: String,
+    // pub identifier: String,
     pub direction: Option<Direction>,
     pub top: Option<bool>,
-    pub geo: BlockGeo,
+    // pub geo: BlockGeo,
+    pub geo_index: usize,
     pub visibility: VoxelVisibility,
     pub has_direction: bool,
     pub exclusive_direction: bool,
-    // pub textures: [Handle<Image>; 6],
+    pub textures: [usize; 6],
     pub tex_variance: [bool; 6],
     pub blocks: [bool; 6],
+    pub light: u8,
 }
 
 pub fn name_to_identifier(namespace: String, name: String) -> String {
@@ -121,15 +123,18 @@ pub fn trim_geo_identifier(identifier: String) -> String {
 impl Default for RenderedBlockData {
     fn default() -> Self {
         RenderedBlockData {
-            identifier: "vinox:air".to_string(),
+            // identifier: "vinox:air".to_string(),
             visibility: VoxelVisibility::Empty,
             blocks: [false, false, false, false, false, false],
             tex_variance: [false, false, false, false, false, false],
+            textures: [0, 0, 0, 0, 0, 0],
+            geo_index: 0,
             has_direction: false,
             exclusive_direction: false,
             direction: None,
             top: None,
-            geo: block_geo().unwrap(),
+            // geo: block_geo().unwrap(),
+            light: 0,
         }
     }
 }
@@ -157,6 +162,32 @@ impl BlockData {
             .visibility
             .unwrap_or_default()
             == VoxelVisibility::Empty
+    }
+    pub fn is_opaque(&self, block_table: &BlockTable) -> bool {
+        block_table
+            .get(&name_to_identifier(
+                self.namespace.clone(),
+                self.name.clone(),
+            ))
+            .unwrap()
+            .visibility
+            .unwrap_or_default()
+            == VoxelVisibility::Opaque
+    }
+    pub fn is_true_empty(&self, block_table: &BlockTable) -> bool {
+        let descriptor = block_table
+            .get(&name_to_identifier(
+                self.namespace.clone(),
+                self.name.clone(),
+            ))
+            .unwrap();
+        !(descriptor.visibility.unwrap_or_default() == VoxelVisibility::Opaque
+            && descriptor
+                .geometry
+                .clone()
+                .unwrap_or_default()
+                .get_geo_namespace()
+                == "vinox:block")
     }
 }
 
@@ -434,6 +465,7 @@ pub struct RawChunk {
 #[derive(Component, Clone, Debug)]
 pub struct ChunkData {
     voxels: Storage,
+    lights: LightStorage,
     change_count: u16,
     dirty: bool,
 }
@@ -444,22 +476,23 @@ impl Default for ChunkData {
             voxels: Storage::new(ChunkShape::USIZE),
             change_count: 0,
             dirty: true,
+            lights: LightStorage::new(),
         }
     }
 }
 
 #[allow(dead_code)]
 impl ChunkData {
-    pub fn get(&self, x: usize, y: usize, z: usize) -> BlockData {
+    pub fn get(&self, x: u32, y: u32, z: u32) -> BlockData {
         self.voxels.get(Self::linearize(x, y, z))
     }
 
-    pub fn get_identifier(&self, x: usize, y: usize, z: usize) -> String {
+    pub fn get_identifier(&self, x: u32, y: u32, z: u32) -> String {
         let voxel = self.voxels.get(Self::linearize(x, y, z));
         name_to_identifier(voxel.namespace, voxel.name)
     }
 
-    pub fn set(&mut self, x: usize, y: usize, z: usize, voxel: BlockData) {
+    pub fn set(&mut self, x: u32, y: u32, z: u32, voxel: BlockData, _block_table: &BlockTable) {
         self.voxels.set(Self::linearize(x, y, z), voxel);
         self.change_count += 1;
         self.set_dirty(true);
@@ -468,6 +501,40 @@ impl ChunkData {
             self.voxels.trim();
             self.change_count = 0;
         }
+        // let descriptor = block_table.get(&self.get_identifier(x, y, z)).unwrap();
+        // let self_light = self.get_light(Self::linearize(x, y, z));
+        // if let Some(light) = descriptor.light {
+        //     let light = LightData {
+        //         r: light.0,
+        //         g: light.1,
+        //         b: light.2,
+        //         a: light.3,
+        //     };
+        //     if self_light != light {
+        //         if light != LightData::default() {
+        //             self.set_light(Self::linearize(x, y, z), light);
+        //             // self.calculate_all_light(block_table);
+        //         } else {
+        //             self.remove_light(Self::linearize(x, y, z), self_light);
+        //             // self.calculate_all_remove_lights();
+        //             self.set_light(Self::linearize(x, y, z), light);
+        //             // self.calculate_all_light(block_table);
+        //         }
+        //     }
+        // } else {
+        //     self.remove_light(Self::linearize(x, y, z), self_light);
+        //     // self.calculate_all_remove_lights();
+        //     self.set_light(
+        //         Self::linearize(x, y, z),
+        //         LightData {
+        //             r: 0,
+        //             b: 0,
+        //             g: 0,
+        //             a: 0,
+        //         },
+        //     );
+        // self.calculate_all_light(block_table);
+        // }
     }
 
     pub fn is_uniform(&self) -> bool {
@@ -476,7 +543,30 @@ impl ChunkData {
             Storage::Multi(_) => false,
         }
     }
-
+    pub fn complete_relight(&mut self, _block_table: &BlockTable) -> ChunkData {
+        // for x in 0..CHUNK_SIZE {
+        //     for y in 0..CHUNK_SIZE {
+        //         for z in 0..CHUNK_SIZE {
+        //             let index = Self::linearize(x, y, z);
+        //             if let Some(block) = block_table.get(&self.get_identifier(x, y, z)) {
+        //                 if let Some(light) = block.light {
+        //                     self.set_light(
+        //                         index,
+        //                         LightData {
+        //                             r: light.0,
+        //                             g: light.1,
+        //                             b: light.2,
+        //                             a: light.3,
+        //                         },
+        //                     );
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
+        // self.calculate_all_light(block_table);
+        self.clone()
+    }
     pub fn is_empty(&self, block_table: &BlockTable) -> bool {
         self.is_uniform() && self.get(0, 0, 0).is_empty(block_table)
     }
@@ -493,7 +583,11 @@ impl ChunkData {
         self.voxels.trim();
     }
 
-    pub const fn size() -> usize {
+    pub const fn size() -> u32 {
+        ChunkShape::USIZE as u32
+    }
+
+    pub const fn usize() -> usize {
         ChunkShape::USIZE
     }
 
@@ -502,14 +596,14 @@ impl ChunkData {
     }
 
     #[inline]
-    pub fn linearize(x: usize, y: usize, z: usize) -> usize {
-        ChunkShape::linearize([x, y, z])
+    pub fn linearize(x: u32, y: u32, z: u32) -> usize {
+        ChunkShape::linearize([x as usize, y as usize, z as usize])
     }
 
     #[inline]
-    pub fn delinearize(idx: usize) -> (usize, usize, usize) {
+    pub fn delinearize(idx: usize) -> (u32, u32, u32) {
         let res = ChunkShape::delinearize(idx);
-        (res[0], res[1], res[2])
+        (res[0] as u32, res[1] as u32, res[2] as u32)
     }
 
     pub fn from_raw(raw_chunk: RawChunk) -> Self {
@@ -517,6 +611,7 @@ impl ChunkData {
             voxels: raw_chunk.voxels,
             change_count: 0,
             dirty: false,
+            lights: LightStorage::new(),
         }
     }
 
@@ -524,5 +619,29 @@ impl ChunkData {
         RawChunk {
             voxels: self.voxels.clone(),
         }
+    }
+
+    pub fn get_light(&self, x: u32, y: u32, z: u32) -> u8 {
+        self.lights.get_light(Self::linearize(x, y, z))
+    }
+
+    /// Output is bounded between 0 and 15
+    pub fn get_torchlight(&self, x: u32, y: u32, z: u32) -> u8 {
+        self.lights.get_torchlight(Self::linearize(x, y, z))
+    }
+
+    /// Input is bounded between 0 and 15
+    pub fn set_torchlight(&mut self, x: u32, y: u32, z: u32, value: u8) {
+        self.lights.set_torchlight(Self::linearize(x, y, z), value);
+    }
+
+    /// Output is bounded between 0 and 15
+    pub fn get_sunlight(&self, x: u32, y: u32, z: u32) -> u8 {
+        self.lights.get_sunlight(Self::linearize(x, y, z))
+    }
+
+    /// Input is bounded between 0 and 15
+    pub fn set_sunlight(&mut self, x: u32, y: u32, z: u32, value: u8) {
+        self.lights.set_sunlight(Self::linearize(x, y, z), value);
     }
 }

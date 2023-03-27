@@ -3,31 +3,47 @@ use std::io::Cursor;
 use rand::seq::SliceRandom;
 use rustc_data_structures::stable_set::FxHashSet;
 
-use bevy::prelude::*;
+use bevy::{app::AppExit, prelude::*};
 use bevy_quinnet::server::*;
 use vinox_common::{
     ecs::bundles::{ClientName, Inventory, PlayerBundleBuilder},
     networking::protocol::{ClientMessage, NetworkedEntities, Player, ServerMessage},
     world::chunks::{
-        ecs::CurrentChunks,
+        ecs::{ChunkManager, CurrentChunks, SentChunks},
         positions::{world_to_chunk, ChunkPos},
-        storage::ChunkData,
+        storage::{BlockTable, ChunkData},
     },
 };
 use zstd::stream::copy_encode;
 
-use crate::game::world::{
-    chunk::{ChunkManager, LoadPoint},
-    storage::ChunksToSave,
-};
+use crate::game::world::{chunk::LoadPoint, storage::ChunksToSave};
 
-use super::components::{ChunkLimit, SentChunks, ServerLobby};
+use super::components::{ChunkLimit, LocalGame, ServerLobby};
 
 pub fn connections(
+    mut commands: Commands,
     mut server: ResMut<Server>,
-    lobby: Res<ServerLobby>,
+    mut lobby: ResMut<ServerLobby>,
     mut connection_events: EventReader<ConnectionEvent>,
+    mut connection_lost_events: EventReader<ConnectionLostEvent>,
+    local_game: Res<LocalGame>,
+    mut exit: EventWriter<AppExit>,
 ) {
+    for client in connection_lost_events.iter() {
+        let id = client.id;
+        if **local_game {
+            exit.send(AppExit);
+        } else {
+            println!("Player {id} disconnected.");
+            if let Some(player_entity) = lobby.players.remove(&id) {
+                commands.entity(player_entity).despawn();
+            }
+
+            server
+                .endpoint_mut()
+                .try_broadcast_message(&ServerMessage::PlayerRemove { id });
+        }
+    }
     for client in connection_events.iter() {
         // Refuse connection once we already have two players
         if lobby.players.len() >= 8 {
@@ -51,6 +67,7 @@ pub fn get_messages(
     mut chunks: Query<&mut ChunkData>,
     current_chunks: Res<CurrentChunks>,
     mut chunks_to_save: ResMut<ChunksToSave>,
+    block_table: Res<BlockTable>,
 ) {
     let endpoint = server.endpoint_mut();
     for client_id in endpoint.clients() {
@@ -132,10 +149,11 @@ pub fn get_messages(
                     if let Some(chunk_entity) = current_chunks.get_entity(ChunkPos(chunk_pos)) {
                         if let Ok(mut chunk) = chunks.get_mut(chunk_entity) {
                             chunk.set(
-                                voxel_pos[0] as usize,
-                                voxel_pos[1] as usize,
-                                voxel_pos[2] as usize,
+                                voxel_pos[0] as u32,
+                                voxel_pos[1] as u32,
+                                voxel_pos[2] as u32,
                                 block_type.clone(),
+                                &block_table,
                             );
                             chunks_to_save.push((ChunkPos(chunk_pos), chunk.to_raw()));
                             endpoint.try_broadcast_message(ServerMessage::SentBlock {
@@ -200,7 +218,7 @@ pub fn send_chunks(
                 let load_point = LoadPoint(chunk_pos);
                 commands.entity(*player_entity).insert(load_point.clone());
                 for chunk in chunk_manager
-                    .get_chunks_around_chunk(ChunkPos(chunk_pos), &sent_chunks)
+                    .get_chunks_around_chunk(ChunkPos(chunk_pos), Some(&sent_chunks))
                     .choose_multiple(&mut rng, **chunk_limit)
                 {
                     let raw_chunk = chunk.0.to_raw();

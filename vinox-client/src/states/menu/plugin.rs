@@ -31,9 +31,7 @@ impl Plugin for MenuPlugin {
             .insert_resource(NetworkIP(ip))
             .add_systems(
                 (
-                    save_options,
                     create_ui,
-                    options,
                     ui_events,
                     configure_visuals,
                     update_ui_scale_factor,
@@ -41,6 +39,7 @@ impl Plugin for MenuPlugin {
                     .chain()
                     .in_set(OnUpdate(GameState::Menu)),
             )
+            .add_systems((save_options, options))
             .add_system(start.in_schedule(OnEnter(GameState::Menu)))
             .add_system(despawn_with::<Menu>.in_schedule(OnExit(GameState::Menu)));
     }

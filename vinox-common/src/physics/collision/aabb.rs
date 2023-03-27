@@ -61,11 +61,8 @@ pub fn aabb_vs_world(
                 );
                 if let Some(chunk_entity) = current_chunks.get_entity(ChunkPos(check_chunk_pos)) {
                     if let Ok(chunk) = chunks.get(chunk_entity) {
-                        let block_data: BlockData = chunk.get(
-                            check_block_cpos.x as usize,
-                            check_block_cpos.y as usize,
-                            check_block_cpos.z as usize,
-                        );
+                        let block_data: BlockData =
+                            chunk.get(check_block_cpos.x, check_block_cpos.y, check_block_cpos.z);
                         let voxel_pos = voxel_to_global_voxel(check_block_cpos, check_chunk_pos);
                         if !block_data.is_empty(block_table) {
                             let block_aabb = Aabb {

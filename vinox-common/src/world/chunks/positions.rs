@@ -55,6 +55,13 @@ pub fn world_to_voxel(voxel_pos: Vec3) -> (IVec3, UVec3) {
     (world_to_chunk(voxel_pos), world_to_offsets(voxel_pos))
 }
 
+pub fn global_voxel_positions(voxel_pos: IVec3) -> (IVec3, UVec3) {
+    (
+        world_to_chunk(voxel_pos.as_vec3()),
+        world_to_offsets(voxel_pos.as_vec3()),
+    )
+}
+
 pub fn voxel_to_world(voxel_pos: UVec3, chunk_pos: IVec3) -> Vec3 {
     let world_chunk = chunk_pos * IVec3::splat(CHUNK_SIZE as i32);
     Vec3::new(
@@ -266,32 +273,32 @@ impl ChunkPos {
                 self.x.wrapping_sub(1),
                 self.y.wrapping_sub(1),
                 self.z.wrapping_sub(1),
-            ),
-            ChunkPos::new(self.x.wrapping_sub(1), self.y.wrapping_sub(1), self.z),
-            ChunkPos::new(self.x.wrapping_sub(1), self.y.wrapping_sub(1), self.z + 1),
-            ChunkPos::new(self.x.wrapping_sub(1), self.y, self.z.wrapping_sub(1)),
-            ChunkPos::new(self.x.wrapping_sub(1), self.y, self.z),
-            ChunkPos::new(self.x.wrapping_sub(1), self.y, self.z + 1),
-            ChunkPos::new(self.x.wrapping_sub(1), self.y + 1, self.z.wrapping_sub(1)),
-            ChunkPos::new(self.x.wrapping_sub(1), self.y + 1, self.z),
-            ChunkPos::new(self.x.wrapping_sub(1), self.y + 1, self.z + 1),
-            ChunkPos::new(self.x, self.y.wrapping_sub(1), self.z.wrapping_sub(1)),
-            ChunkPos::new(self.x, self.y.wrapping_sub(1), self.z),
-            ChunkPos::new(self.x, self.y.wrapping_sub(1), self.z + 1),
-            ChunkPos::new(self.x, self.y, self.z.wrapping_sub(1)),
-            ChunkPos::new(self.x, self.y, self.z + 1),
-            ChunkPos::new(self.x, self.y + 1, self.z.wrapping_sub(1)),
-            ChunkPos::new(self.x, self.y + 1, self.z),
-            ChunkPos::new(self.x, self.y + 1, self.z + 1),
-            ChunkPos::new(self.x + 1, self.y.wrapping_sub(1), self.z.wrapping_sub(1)),
-            ChunkPos::new(self.x + 1, self.y.wrapping_sub(1), self.z),
-            ChunkPos::new(self.x + 1, self.y.wrapping_sub(1), self.z + 1),
-            ChunkPos::new(self.x + 1, self.y, self.z.wrapping_sub(1)),
-            ChunkPos::new(self.x + 1, self.y, self.z),
-            ChunkPos::new(self.x + 1, self.y, self.z + 1),
-            ChunkPos::new(self.x + 1, self.y + 1, self.z.wrapping_sub(1)),
-            ChunkPos::new(self.x + 1, self.y + 1, self.z),
-            ChunkPos::new(self.x + 1, self.y + 1, self.z + 1),
+            ), //0
+            ChunkPos::new(self.x.wrapping_sub(1), self.y.wrapping_sub(1), self.z), // 1
+            ChunkPos::new(self.x.wrapping_sub(1), self.y.wrapping_sub(1), self.z + 1), //2
+            ChunkPos::new(self.x.wrapping_sub(1), self.y, self.z.wrapping_sub(1)), // 3
+            ChunkPos::new(self.x.wrapping_sub(1), self.y, self.z),                 // 4
+            ChunkPos::new(self.x.wrapping_sub(1), self.y, self.z + 1),             // 5
+            ChunkPos::new(self.x.wrapping_sub(1), self.y + 1, self.z.wrapping_sub(1)), // 6
+            ChunkPos::new(self.x.wrapping_sub(1), self.y + 1, self.z),             // 7
+            ChunkPos::new(self.x.wrapping_sub(1), self.y + 1, self.z + 1),         // 8
+            ChunkPos::new(self.x, self.y.wrapping_sub(1), self.z.wrapping_sub(1)), // 9
+            ChunkPos::new(self.x, self.y.wrapping_sub(1), self.z),                 // 10
+            ChunkPos::new(self.x, self.y.wrapping_sub(1), self.z + 1),             // 11
+            ChunkPos::new(self.x, self.y, self.z.wrapping_sub(1)),                 // 12
+            ChunkPos::new(self.x, self.y, self.z + 1),                             // 13
+            ChunkPos::new(self.x, self.y + 1, self.z.wrapping_sub(1)),             // 14
+            ChunkPos::new(self.x, self.y + 1, self.z),                             // 15
+            ChunkPos::new(self.x, self.y + 1, self.z + 1),                         // 16
+            ChunkPos::new(self.x + 1, self.y.wrapping_sub(1), self.z.wrapping_sub(1)), // 17
+            ChunkPos::new(self.x + 1, self.y.wrapping_sub(1), self.z),             // 18
+            ChunkPos::new(self.x + 1, self.y.wrapping_sub(1), self.z + 1),         // 19
+            ChunkPos::new(self.x + 1, self.y, self.z.wrapping_sub(1)),             // 20
+            ChunkPos::new(self.x + 1, self.y, self.z),                             // 21
+            ChunkPos::new(self.x + 1, self.y, self.z + 1),                         // 22
+            ChunkPos::new(self.x + 1, self.y + 1, self.z.wrapping_sub(1)),         // 23
+            ChunkPos::new(self.x + 1, self.y + 1, self.z),                         // 24
+            ChunkPos::new(self.x + 1, self.y + 1, self.z + 1),                     // 25
         ]
     }
 

@@ -1,0 +1,10 @@
+BlockDescriptor(
+    namespace: "vinox",
+    name: "light",
+    textures: Some({
+    Some("front"): Some("light.png"),
+    }),
+    has_item: Some(true),
+    visibility: Some(Opaque),
+    light: Some((0, 0, 16, 10))
+)
