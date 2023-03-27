@@ -1,11 +1,12 @@
 use bevy::{
     prelude::*,
-    tasks::AsyncComputeTaskPool,
+    tasks::{AsyncComputeTaskPool, Task},
 };
+use futures_lite::future;
 use tokio::sync::mpsc::{Receiver, Sender};
 use vinox_common::world::chunks::{
     ecs::{ChunkManager, CurrentChunks, RemoveChunk, SentChunks, SimulationRadius, ViewRadius},
-    positions::{ChunkPos},
+    positions::ChunkPos,
     storage::{BlockTable, ChunkData, HORIZONTAL_DISTANCE, VERTICAL_DISTANCE},
 };
 
@@ -49,7 +50,7 @@ pub fn generate_chunks_world(
                     let chunk_id = commands.spawn(ChunkData::from_raw(chunk)).insert(pos).id();
                     chunk_manager.current_chunks.insert_entity(pos, chunk_id);
                 } else {
-                    let chunk_id = commands.spawn_empty().id();
+                    let chunk_id = commands.spawn(pos).id();
                     chunk_manager.current_chunks.insert_entity(pos, chunk_id);
                     chunk_queue.create.push(pos);
                 }
@@ -107,29 +108,33 @@ pub fn unsend_chunks(
     }
 }
 
-#[derive(Resource)]
-pub struct ChunkChannel {
-    pub tx: Sender<(ChunkData, ChunkPos)>,
-    pub rx: Receiver<(ChunkData, ChunkPos)>,
-}
+// #[derive(Resource)]
+// pub struct ChunkChannel {
+//     pub tx: Sender<(ChunkData, ChunkPos)>,
+//     pub rx: Receiver<(ChunkData, ChunkPos)>,
+// }
 
-impl Default for ChunkChannel {
-    fn default() -> Self {
-        let (tx, rx) = tokio::sync::mpsc::channel(512);
+// impl Default for ChunkChannel {
+//     fn default() -> Self {
+//         let (tx, rx) = tokio::sync::mpsc::channel(512);
 
-        Self { tx, rx }
-    }
-}
+//         Self { tx, rx }
+//     }
+// }
 
 pub fn process_save(mut chunks_to_save: ResMut<ChunksToSave>, database: Res<WorldDatabase>) {
     save_chunks(&chunks_to_save, &database.connection.get().unwrap());
     chunks_to_save.clear();
 }
 
+#[derive(Component)]
+pub struct GenTask(Task<(ChunkData, ChunkPos)>);
+
 pub fn process_queue(
     mut commands: Commands,
     mut chunk_queue: ResMut<ChunkQueue>,
-    mut chunk_channel: ResMut<ChunkChannel>,
+    mut gen_task: Query<(Entity, &mut GenTask)>,
+    // mut chunk_channel: ResMut<ChunkChannel>,
     current_chunks: Res<CurrentChunks>,
     world_info: Res<WorldInfo>,
     mut chunks_to_save: ResMut<ChunksToSave>,
@@ -138,29 +143,26 @@ pub fn process_queue(
     let cloned_seed = world_info.seed;
     let task_pool = AsyncComputeTaskPool::get();
     for chunk_pos in chunk_queue.create.drain(..) {
-        let cloned_sender = chunk_channel.tx.clone();
         let cloned_table = block_table.clone();
-        task_pool
-            .spawn(async move {
-                cloned_sender
-                    .send((
-                        ChunkData::from_raw(generate_chunk(*chunk_pos, cloned_seed, &cloned_table)),
-                        chunk_pos,
-                    ))
-                    .await
-                    .ok();
-            })
-            .detach();
+        let task = task_pool.spawn(async move {
+            (
+                ChunkData::from_raw(generate_chunk(*chunk_pos, cloned_seed, &cloned_table)),
+                chunk_pos,
+            )
+        });
+        commands.spawn(GenTask(task));
     }
-    chunk_queue.create.clear();
-    while let Ok(chunk) = chunk_channel.rx.try_recv() {
-        let chunk_pos = chunk.1;
+    gen_task.for_each_mut(|(entity, mut task)| {
+        if let Some(chunk) = future::block_on(future::poll_once(&mut task.0)) {
+            let chunk_pos = chunk.1;
 
-        chunks_to_save.push((chunk_pos, chunk.0.to_raw()));
-        commands
-            .entity(current_chunks.get_entity(chunk_pos).unwrap())
-            .insert(chunk);
-    }
+            chunks_to_save.push((chunk_pos, chunk.0.to_raw()));
+            if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos) {
+                commands.entity(chunk_entity).insert(chunk);
+            }
+            commands.entity(entity).despawn_recursive();
+        }
+    });
 }
 
 pub struct ChunkPlugin;
@@ -181,9 +183,9 @@ impl Plugin for ChunkPlugin {
             .add_systems((clear_unloaded_chunks, unsend_chunks, generate_chunks_world))
             .add_system(process_queue.after(clear_unloaded_chunks))
             .add_system(process_save.after(process_queue))
-            .add_startup_system(|mut commands: Commands| {
-                commands.insert_resource(ChunkChannel::default());
-            })
+            // .add_startup_system(|mut commands: Commands| {
+            //     commands.insert_resource(ChunkChannel::default());
+            // })
             .add_system(destroy_chunks.after(process_queue));
     }
 }
