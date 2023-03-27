@@ -89,8 +89,7 @@ pub fn move_and_collide(
                     center: aabb.center + Vec3A::from(max_move.copysign(movement) + v_filt),
                     half_extents: aabb.half_extents,
                 };
-                let intersects = aabbs_intersect(&hypth_aabb, &col.collision_aabb);
-                return intersects;
+                aabbs_intersect(&hypth_aabb, &col.collision_aabb)
             });
             // Re-calculate normals
             let fm = max_move.copysign(movement);
@@ -109,7 +108,7 @@ pub fn move_and_collide(
                         center: aabb.center + Vec3A::from(fm),
                         half_extents: aabb.half_extents,
                     };
-                    return get_collision_info(&hypth_aabb, &col.collision_aabb, &v_filt);
+                    get_collision_info(&hypth_aabb, &col.collision_aabb, &v_filt)
                 })
                 .collect();
             // Re-evaluate the new set of collisions

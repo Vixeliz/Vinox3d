@@ -69,7 +69,7 @@ pub fn aabb_vs_world(
                                 center: voxel_pos.as_vec3a() + Vec3A::new(0.5, 0.5, 0.5),
                                 half_extents: Vec3A::new(0.5, 0.5, 0.5),
                             };
-                            let col = get_collision_info(&aabb, &block_aabb, &velocity);
+                            let col = get_collision_info(aabb, &block_aabb, &velocity);
                             if let Some(c) = col {
                                 collisions.push(c);
                             }
@@ -93,12 +93,12 @@ pub fn aabbs_intersect(a: &Aabb, b: &Aabb) -> bool {
     let amax = a.max();
     let bmin = b.min();
     let bmax = b.max();
-    return !(amin.x >= bmax.x
+    !(amin.x >= bmax.x
         || bmin.x >= amax.x
         || amin.y >= bmax.y
         || bmin.y >= amax.y
         || amin.z >= bmax.z
-        || bmin.z >= amax.z);
+        || bmin.z >= amax.z)
 }
 
 #[inline]
@@ -108,12 +108,12 @@ pub fn aabbs_intersect_or_touch(a: &Aabb, b: &Aabb) -> bool {
     let amax = a.max();
     let bmin = b.min();
     let bmax = b.max();
-    return !(amin.x > bmax.x
+    !(amin.x > bmax.x
         || bmin.x > amax.x
         || amin.y > bmax.y
         || bmin.y > amax.y
         || amin.z > bmax.z
-        || bmin.z > amax.z);
+        || bmin.z > amax.z)
 }
 
 pub fn get_collision_info(a: &Aabb, b: &Aabb, a_velocity: &Vec3) -> Option<CollisionInfo> {
@@ -193,7 +193,7 @@ pub fn get_collision_info(a: &Aabb, b: &Aabb, a_velocity: &Vec3) -> Option<Colli
         || enter.z > 1.0
     {
         // No collision happens here this frame
-        return None;
+        None
     } else {
         // This might be a collision this frame
         let dist: f32;
@@ -240,10 +240,10 @@ pub fn get_collision_info(a: &Aabb, b: &Aabb, a_velocity: &Vec3) -> Option<Colli
             normal.z = if inv_exit.z < 0.0 { 1.0 } else { -1.0 };
             dist = inv_enter.z.abs();
         }
-        return Some(CollisionInfo {
-            collision_aabb: b.clone(),
+        Some(CollisionInfo {
+            collision_aabb: *b,
             normal,
             dist,
-        });
+        })
     }
 }
