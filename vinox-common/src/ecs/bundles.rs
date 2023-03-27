@@ -80,6 +80,82 @@ impl Inventory {
         }
         None
     }
+
+    pub fn add_item(&mut self, item_comp: &ItemDescriptor) -> Result<u8, u8> {
+        if let Some((section, row, idx, amount)) = self.get_first_item(item_comp) {
+            if amount + 1 <= item_comp.max_stack_size.unwrap_or(MAX_STACK_SIZE) {
+                match section {
+                    "inventory" => {
+                        self.slots[row][row] = Some(ItemData {
+                            name: item_comp.name.clone(),
+                            namespace: item_comp.namespace.clone(),
+                            stack_size: amount + 1,
+                            ..Default::default()
+                        });
+                    }
+                    "hotbar" => {
+                        self.hotbar[row][idx] = Some(ItemData {
+                            name: item_comp.name.clone(),
+                            namespace: item_comp.namespace.clone(),
+                            stack_size: amount + 1,
+                            ..Default::default()
+                        });
+                    }
+                    _ => {}
+                }
+                return Ok(1);
+            }
+        }
+        if let Some((section, row, idx)) = self.get_first_slot() {
+            match section {
+                "inventory" => {
+                    self.slots[row][row] = Some(ItemData {
+                        name: item_comp.name.clone(),
+                        namespace: item_comp.namespace.clone(),
+                        stack_size: 1,
+                        ..Default::default()
+                    });
+                }
+                "hotbar" => {
+                    self.hotbar[row][idx] = Some(ItemData {
+                        name: item_comp.name.clone(),
+                        namespace: item_comp.namespace.clone(),
+                        stack_size: 1,
+                        ..Default::default()
+                    });
+                }
+                _ => {}
+            }
+            return Ok(1);
+        }
+        Err(0)
+    }
+
+    pub fn item_decrement(
+        &mut self,
+        section: &str,
+        row: usize,
+        num: usize,
+        // item_comp: &ItemDescriptor,
+    ) {
+        match section {
+            "inventory" => {
+                if self.slots[row][num].clone().unwrap_or_default().stack_size == 1 {
+                    self.slots[row][num] = None;
+                } else if let Some(item) = self.slots[row][num].as_mut() {
+                    item.stack_size -= 1;
+                }
+            }
+            "hotbar" => {
+                if self.hotbar[row][num].clone().unwrap_or_default().stack_size == 1 {
+                    self.hotbar[row][num] = None;
+                } else if let Some(item) = self.hotbar[row][num].as_mut() {
+                    item.stack_size -= 1;
+                }
+            }
+            _ => {}
+        }
+    }
 }
 
 #[derive(Component, Default, Deref, DerefMut)]

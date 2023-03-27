@@ -71,54 +71,11 @@ pub fn craft(
         }
     }
     if modified_items.is_empty() {
-        if let Some((section, row_index, item_index, count)) =
-            new_inventory.get_first_item(item_table.get(&output_item.0).unwrap())
+        if new_inventory
+            .add_item(item_table.get(&output_item.0).unwrap())
+            .is_ok()
         {
-            if let Some((namespace, name)) = identifier_to_name(output_item.0) {
-                match section {
-                    "inventory" => {
-                        new_inventory.slots[row_index][item_index] = Some(ItemData {
-                            name,
-                            namespace,
-                            stack_size: count + output_item.1,
-                            ..Default::default()
-                        });
-                    }
-                    "hotbar" => {
-                        new_inventory.hotbar[row_index][item_index] = Some(ItemData {
-                            name,
-                            namespace,
-                            stack_size: count + output_item.1,
-                            ..Default::default()
-                        });
-                    }
-                    _ => {}
-                }
-                *inventory = new_inventory.clone();
-            }
-        } else if let Some((section, row_index, item_index)) = new_inventory.get_first_slot() {
-            if let Some((namespace, name)) = identifier_to_name(output_item.0) {
-                match section {
-                    "inventory" => {
-                        new_inventory.slots[row_index][item_index] = Some(ItemData {
-                            name,
-                            namespace,
-                            stack_size: output_item.1,
-                            ..Default::default()
-                        });
-                    }
-                    "hotbar" => {
-                        new_inventory.hotbar[row_index][item_index] = Some(ItemData {
-                            name,
-                            namespace,
-                            stack_size: output_item.1,
-                            ..Default::default()
-                        });
-                    }
-                    _ => {}
-                }
-                *inventory = new_inventory.clone();
-            }
+            *inventory = new_inventory.clone();
         }
     }
 }

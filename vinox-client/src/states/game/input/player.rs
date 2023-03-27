@@ -519,11 +519,7 @@ pub fn interact(
                 }
                 if mouse_left || (mouse_right && place_item.is_some()) {
                     if mouse_right {
-                        if item_data.unwrap_or_default().stack_size == 1 {
-                            inventory.hotbar[*cur_bar][*cur_item] = None;
-                        } else if let Some(item) = inventory.hotbar[*cur_bar][*cur_item].as_mut() {
-                            item.stack_size -= 1;
-                        }
+                        inventory.item_decrement("hotbar", *cur_bar, *cur_item);
 
                         if (point.x <= player_transform.translation.x - 0.5
                             || point.x >= player_transform.translation.x + 0.5)
@@ -655,74 +651,27 @@ pub fn interact(
                         {
                             let identifier = trim_geo_identifier(identifier);
                             if let Some(item_def) = item_table.get(&identifier) {
-                                if let Some((section, row_index, item_index, stack_size)) =
-                                    inventory.get_first_item(item_def)
-                                {
-                                    match section {
-                                        "inventory" => {
-                                            inventory.slots[row_index][item_index] =
-                                                Some(ItemData {
-                                                    name: item_def.name.clone(),
-                                                    namespace: item_def.namespace.clone(),
-                                                    stack_size: stack_size + 1,
-                                                    ..Default::default()
-                                                });
-                                        }
-                                        "hotbar" => {
-                                            inventory.hotbar[row_index][item_index] =
-                                                Some(ItemData {
-                                                    name: item_def.name.clone(),
-                                                    namespace: item_def.namespace.clone(),
-                                                    stack_size: stack_size + 1,
-                                                    ..Default::default()
-                                                });
-                                        }
-                                        _ => {}
-                                    }
-                                } else if let Some((section, row_index, item_index)) =
-                                    inventory.get_first_slot()
-                                {
-                                    match section {
-                                        "inventory" => {
-                                            inventory.slots[row_index][item_index] =
-                                                Some(ItemData {
-                                                    name: item_def.name.clone(),
-                                                    namespace: item_def.namespace.clone(),
-                                                    stack_size: 1,
-                                                    ..Default::default()
-                                                });
-                                        }
-                                        "hotbar" => {
-                                            inventory.hotbar[row_index][item_index] =
-                                                Some(ItemData {
-                                                    name: item_def.name.clone(),
-                                                    namespace: item_def.namespace.clone(),
-                                                    stack_size: 1,
-                                                    ..Default::default()
-                                                });
-                                        }
-                                        _ => {}
-                                    }
+                                if inventory.add_item(item_def).is_ok() {
+                                    chunk_manager.set_block(
+                                        voxel_to_global_voxel(voxel_pos, *chunk_pos),
+                                        BlockData::new("vinox".to_string(), "air".to_string()),
+                                    );
+                                    client.connection_mut().try_send_message(
+                                        ClientMessage::SentBlock {
+                                            chunk_pos: *chunk_pos,
+                                            voxel_pos: [
+                                                voxel_pos.x as u8,
+                                                voxel_pos.y as u8,
+                                                voxel_pos.z as u8,
+                                            ],
+                                            block_type: BlockData::new(
+                                                "vinox".to_string(),
+                                                "air".to_string(),
+                                            ),
+                                        },
+                                    );
                                 }
                             }
-                            chunk_manager.set_block(
-                                voxel_to_global_voxel(voxel_pos, *chunk_pos),
-                                BlockData::new("vinox".to_string(), "air".to_string()),
-                            );
-                            client
-                                .connection_mut()
-                                .try_send_message(ClientMessage::SentBlock {
-                                    chunk_pos: *chunk_pos,
-                                    voxel_pos: [
-                                        voxel_pos.x as u8,
-                                        voxel_pos.y as u8,
-                                        voxel_pos.z as u8,
-                                    ],
-                                    block_type: BlockData::new(
-                                        "vinox".to_string(),
-                                        "air".to_string(),
-                                    ),
-                                });
                         }
                     }
                 }
