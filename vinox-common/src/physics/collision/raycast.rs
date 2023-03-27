@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::world::chunks::{
-    ecs::{ChunkManager},
+    ecs::ChunkManager,
     positions::{world_to_global_voxel, world_to_voxel, ChunkPos},
 };
 // Takes in absolute world positions returns a chunk pos and a voxel pos for whatever face it hits and a normal
@@ -9,9 +9,6 @@ pub fn raycast_world(
     origin: Vec3,
     direction: Vec3,
     radius: f32,
-    // chunks: &Query<&mut ChunkData>,
-    // current_chunks: &CurrentChunks,
-    // block_table: &BlockTable,
     chunk_manager: &ChunkManager,
 ) -> Option<(ChunkPos, UVec3, Vec3, f32)> {
     // TMax needs the fractional part of origin to work.

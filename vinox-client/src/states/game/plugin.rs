@@ -2,6 +2,7 @@ use crate::states::components::{despawn_with, Game, GameActions, GameState};
 
 use bevy::prelude::*;
 use leafwing_input_manager::prelude::*;
+use vinox_common::physics::plugin::PhysicsPlugin;
 use vinox_common::world::chunks::light::LightPlugin;
 
 use super::{
@@ -18,6 +19,7 @@ impl Plugin for GamePlugin {
             .add_plugin(ChunkPlugin)
             .add_plugin(NetworkingPlugin)
             .add_plugin(InputPlugin)
+            .add_plugin(PhysicsPlugin)
             .add_plugin(UiPlugin)
             .add_plugin(LightPlugin)
             // .add_plugin(LogDiagnosticsPlugin::default())

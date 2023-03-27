@@ -13,18 +13,17 @@ use bevy::{
 };
 use bevy_quinnet::client::Client;
 use vinox_common::{
-    collision::aabb::aabb_vs_world,
-    collision::raycast::raycast_world,
     ecs::bundles::Inventory,
     networking::protocol::ClientMessage,
+    physics::{collision::raycast::raycast_world, simulate::Velocity},
     storage::{blocks::descriptor::BlockGeometry, items::descriptor::ItemData},
     world::chunks::{
         ecs::{ChunkManager, CurrentChunks},
         positions::{relative_voxel_to_world, voxel_to_world, world_to_chunk, world_to_voxel},
         positions::{voxel_to_global_voxel, ChunkPos},
         storage::{
-            self, name_to_identifier, trim_geo_identifier, BlockData, BlockTable, ChunkData,
-            ItemTable, CHUNK_SIZE, HORIZONTAL_DISTANCE,
+            self, name_to_identifier, trim_geo_identifier, BlockData, ItemTable, CHUNK_SIZE,
+            HORIZONTAL_DISTANCE,
         },
     },
 };
@@ -43,7 +42,6 @@ use crate::states::{
 pub struct FPSCamera {
     pub phi: f32,
     pub theta: f32,
-    pub velocity: Vec3,
 }
 
 impl Default for FPSCamera {
@@ -51,7 +49,6 @@ impl Default for FPSCamera {
         FPSCamera {
             phi: 0.0,
             theta: FRAC_PI_2,
-            velocity: Vec3::ZERO,
         }
     }
 }
@@ -140,6 +137,7 @@ pub fn spawn_camera(
             Camera3dBundle {
                 projection: Projection::Perspective(perspective_projection),
                 frustum,
+                transform: Transform::from_translation(Vec3::new(0.0, 1.8, 0.0)),
                 // camera: Camera {
                 //     hdr: true,
                 //     ..Default::default()
@@ -175,87 +173,91 @@ pub fn spawn_camera(
 pub struct MouseSensitivity(pub f32);
 
 #[allow(clippy::too_many_arguments)]
-pub fn movement_input(
+pub fn handle_movement(
     mut player: Query<&mut FPSCamera>,
-    mut player_position: Query<(&mut Transform, &ActionState<GameActions>), With<ControlledPlayer>>,
+    mut player_position: Query<
+        (&mut Transform, &mut Velocity, &ActionState<GameActions>),
+        With<ControlledPlayer>,
+    >,
     mut camera_transform: Query<&mut Transform, (With<Camera>, Without<ControlledPlayer>)>,
     mut mouse_events: EventReader<MouseMotion>,
     mouse_sensitivity: Res<MouseSensitivity>,
     windows: Query<&Window, With<PrimaryWindow>>,
     mut stationary_frames: Local<i32>,
     current_chunks: Res<CurrentChunks>,
+    time: Res<Time>,
 ) {
-    if let Ok((translation, action_state)) = player_position.get_single_mut() {
-        let Ok(window) = windows.get_single() else {
-            return
-        };
-        let mut movement = Vec3::default();
+    let Ok(window) = windows.get_single() else {
+        return;
+    };
+    let Ok(mut transform) = camera_transform.get_single_mut() else {
+        return;
+    };
+    // Update camera look
+    if window.cursor.grab_mode == CursorGrabMode::Locked {
         if let Ok(mut fps_camera) = player.get_single_mut() {
-            let mut transform = camera_transform.single_mut();
-
-            if window.cursor.grab_mode == CursorGrabMode::Locked {
-                for MouseMotion { delta } in mouse_events.iter() {
-                    fps_camera.phi += delta.x * mouse_sensitivity.0 * 0.003;
-                    fps_camera.theta = (fps_camera.theta + delta.y * mouse_sensitivity.0 * 0.003)
-                        .clamp(0.00005, PI - 0.00005);
-                }
-
-                if action_state.pressed(GameActions::Forward) {
-                    let mut fwd = transform.forward();
-                    fwd.y = 0.0;
-                    let fwd = fwd.normalize();
-                    movement += fwd;
-                }
-                if action_state.pressed(GameActions::Left) {
-                    movement += transform.left()
-                }
-                if action_state.pressed(GameActions::Right) {
-                    movement += transform.right()
-                }
-                if action_state.pressed(GameActions::Backward) {
-                    let mut back = transform.back();
-                    back.y = 0.0;
-                    let back = back.normalize();
-                    movement += back;
-                }
-
-                if action_state.pressed(GameActions::Jump) && *stationary_frames > 2 {
-                    *stationary_frames = 0;
-                    fps_camera.velocity.y = 14.0;
-                }
+            for MouseMotion { delta } in mouse_events.iter() {
+                fps_camera.phi += delta.x * mouse_sensitivity.0 * 0.003;
+                fps_camera.theta = (fps_camera.theta + delta.y * mouse_sensitivity.0 * 0.003)
+                    .clamp(0.00005, PI - 0.00005);
             }
-
-            movement = movement.normalize_or_zero();
-
-            if fps_camera.velocity.y.abs() < 0.001 && *stationary_frames < 10 {
-                *stationary_frames += 4;
-            } else if *stationary_frames >= 0 {
-                *stationary_frames -= 1;
-            }
-
-            let y = fps_camera.velocity.y;
-            fps_camera.velocity.y = 0.0;
-            fps_camera.velocity = movement;
-            if action_state.pressed(GameActions::Run) {
-                fps_camera.velocity *= 10.0;
-            } else {
-                fps_camera.velocity *= 5.0;
-            }
-            fps_camera.velocity.y = y;
-            let chunk_pos = world_to_chunk(translation.translation);
-
-            if current_chunks.get_entity(ChunkPos(chunk_pos)).is_none() {
-                return;
-            }
-
             let looking_at = Vec3::new(
                 10.0 * fps_camera.phi.cos() * fps_camera.theta.sin(),
                 10.0 * fps_camera.theta.cos(),
                 10.0 * fps_camera.phi.sin() * fps_camera.theta.sin(),
             );
-
             transform.look_at(looking_at, Vec3::new(0.0, 1.0, 0.0));
         }
+    }
+    // Update velocity with movement input
+    if let Ok((translation, mut velocity, action_state)) = player_position.get_single_mut() {
+        let mut movement = Vec3::ZERO;
+
+        if velocity.0.y.abs() < 0.001 && *stationary_frames < 10 {
+            *stationary_frames += 4;
+        } else if *stationary_frames >= 0 {
+            *stationary_frames -= 1;
+        }
+
+        let gravity = 35.0 * Vec3::NEG_Y;
+        velocity.0 += gravity * time.delta().as_secs_f32().clamp(0.0, 0.1);
+
+        let chunk_pos = world_to_chunk(translation.translation);
+        if window.cursor.grab_mode == CursorGrabMode::Locked {
+            if current_chunks.get_entity(ChunkPos(chunk_pos)).is_none() {
+                return;
+            }
+
+            if action_state.pressed(GameActions::Forward) {
+                let mut fwd = transform.forward();
+                fwd.y = 0.0;
+                let fwd = fwd.normalize();
+                movement += fwd;
+            }
+            if action_state.pressed(GameActions::Left) {
+                movement += transform.left()
+            }
+            if action_state.pressed(GameActions::Right) {
+                movement += transform.right()
+            }
+            if action_state.pressed(GameActions::Backward) {
+                let mut back = transform.back();
+                back.y = 0.0;
+                let back = back.normalize();
+                movement += back;
+            }
+            movement = movement.normalize_or_zero();
+            if action_state.pressed(GameActions::Run) {
+                movement *= 10.0;
+            } else {
+                movement *= 5.0;
+            }
+            if action_state.pressed(GameActions::Jump) && *stationary_frames > 2 {
+                *stationary_frames = 0;
+                velocity.0.y = 10.0;
+            }
+        }
+        velocity.0 = Vec3::new(movement.x, velocity.0.y, movement.z);
     }
 }
 
@@ -722,74 +724,10 @@ pub fn interact(
     }
 }
 
-pub fn collision_movement_system(
-    mut camera: Query<(Entity, &mut FPSCamera)>,
-    mut player: Query<(Entity, &mut Aabb), With<ControlledPlayer>>,
-    mut transforms: Query<&mut Transform>,
-    time: Res<Time>,
-    chunks: Query<&ChunkData>,
-    current_chunks: Res<CurrentChunks>,
-    block_table: Res<BlockTable>,
-) {
-    if let Ok((entity_camera, mut fps_camera)) = camera.get_single_mut() {
-        if let Ok((entity_player, mut player_aabb)) = player.get_single_mut() {
-            let mut camera_t = transforms.get_mut(entity_camera).unwrap();
-            let looking_at = Vec3::new(
-                10.0 * fps_camera.phi.cos() * fps_camera.theta.sin(),
-                10.0 * fps_camera.theta.cos(),
-                10.0 * fps_camera.phi.sin() * fps_camera.theta.sin(),
-            );
-            camera_t.look_at(looking_at, Vec3::new(0.0, 1.0, 0.0));
-            camera_t.translation = Vec3::new(0.0, 1.8, 0.0);
-
-            if current_chunks
-                .get_entity(ChunkPos(world_to_chunk(Vec3::from(player_aabb.center))))
-                .is_none()
-            {
-                return;
-            }
-
-            let mut player_transform = transforms.get_mut(entity_player).unwrap();
-            fps_camera.velocity.y -= 35.0 * time.delta().as_secs_f32().clamp(0.0, 0.1);
-            let movement = fps_camera.velocity * time.delta().as_secs_f32();
-            let mut v_after = movement;
-            let mut max_move = v_after.abs();
-            let margin: f32 = 0.01;
-            let aabb_collisions = aabb_vs_world(
-                *player_aabb,
-                &chunks,
-                v_after,
-                &current_chunks,
-                &block_table,
-                margin,
-            );
-            if let Some(collisions_list) = aabb_collisions {
-                for col in collisions_list {
-                    let margin_dist = col.dist;
-                    if col.normal.x != 0.0 {
-                        max_move.x = f32::min(max_move.x, margin_dist);
-                        v_after.x = 0.0;
-                    } else if col.normal.y != 0.0 {
-                        max_move.y = f32::min(max_move.y, margin_dist);
-                        v_after.y = 0.0;
-                    } else if col.normal.z != 0.0 {
-                        max_move.z = f32::min(max_move.z, margin_dist);
-                        v_after.z = 0.0;
-                    }
-                }
-            }
-            fps_camera.velocity = v_after / time.delta().as_secs_f32();
-            set_pos(
-                player_transform.translation
-                    + Vec3::new(
-                        max_move.x * movement.x.signum(),
-                        max_move.y * movement.y.signum(),
-                        max_move.z * movement.z.signum(),
-                    ),
-                &mut player_aabb,
-                &mut player_transform,
-            );
-        }
+// Update main position based on the AABB
+pub fn update_visual_position(mut player: Query<(&Aabb, &mut Transform), With<ControlledPlayer>>) {
+    if let Ok((aabb, mut transform)) = player.get_single_mut() {
+        transform.translation = Vec3::from(aabb.center - Vec3A::Y * aabb.half_extents)
     }
 }
 
@@ -849,18 +787,6 @@ pub fn cursor_grab_system(
             }
             **in_ui = !**in_ui;
         }
-    }
-}
-
-pub fn set_pos(position: Vec3, aabb: &mut Aabb, transform: &mut Transform) {
-    aabb.center = Vec3A::from(position) + aabb.half_extents;
-    transform.translation = position;
-}
-
-pub fn update_aabb(mut player: Query<(&mut Aabb, &Transform), With<ControlledPlayer>>) {
-    if let Ok((mut aabb, transform)) = player.get_single_mut() {
-        aabb.center =
-            Vec3A::from(transform.translation) + Vec3A::new(0.0, aabb.half_extents.y, 0.0);
     }
 }
 
