@@ -20,7 +20,7 @@ use vinox_common::{
     world::chunks::{
         ecs::{ChunkManager, CurrentChunks},
         positions::{relative_voxel_to_world, voxel_to_world, world_to_chunk, world_to_voxel},
-        positions::{voxel_to_global_voxel, ChunkPos},
+        positions::{voxel_to_global_voxel, world_to_global_voxel, ChunkPos},
         storage::{
             self, name_to_identifier, trim_geo_identifier, BlockData, ItemTable, CHUNK_SIZE,
             HORIZONTAL_DISTANCE,
@@ -33,7 +33,7 @@ use crate::states::{
     game::{
         networking::syncing::HighLightCube,
         ui::{dropdown::ConsoleOpen, plugin::InUi},
-        world::chunks::ControlledPlayer,
+        world::chunks::{ControlledPlayer, PlayerTargetedBlock},
     },
     menu::ui::InOptions,
 };
@@ -296,6 +296,7 @@ pub fn interact(
     mut scroll_evr: EventReader<MouseWheel>,
     keys: Res<Input<KeyCode>>,
     options: Res<GameOptions>,
+    mut player_targeted: ResMut<PlayerTargetedBlock>,
 ) {
     let window = windows.single_mut();
     if window.cursor.grab_mode != CursorGrabMode::Locked {
@@ -508,6 +509,12 @@ pub fn interact(
             );
             if let Some((chunk_pos, voxel_pos, normal, _)) = hit {
                 let point = voxel_to_world(voxel_pos.as_vec3().as_uvec3(), *chunk_pos);
+                **player_targeted = chunk_manager
+                    .get_block(world_to_global_voxel(relative_voxel_to_world(
+                        voxel_pos.as_vec3().as_ivec3(),
+                        *chunk_pos,
+                    )))
+                    .clone();
 
                 if let Ok((mut block_transform, mut block_visibility)) =
                     cube_position.get_single_mut()

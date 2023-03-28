@@ -30,6 +30,21 @@ pub struct PlayerBlock {
     pub pos: IVec3,
 }
 
+#[derive(Default, Resource, Debug, Deref, DerefMut)]
+pub struct PlayerTargetedBlock(pub Option<BlockData>);
+
+#[derive(Default, Debug)]
+pub enum VoxelAxis {
+    #[default]
+    North,
+    South,
+    West,
+    East,
+}
+
+#[derive(Default, Resource, Debug, Deref, DerefMut)]
+pub struct PlayerDirection(pub VoxelAxis);
+
 pub struct CreateChunkEvent {
     pub pos: IVec3,
     pub raw_chunk: RawChunk,
@@ -75,6 +90,12 @@ pub fn update_player_location(
             player_block.pos = player_transform.translation.floor().as_ivec3();
         }
     }
+}
+pub fn update_player_direction(
+    player_query: Query<&Transform, With<ControlledPlayer>>,
+    mut player_direction: ResMut<PlayerDirection>,
+) {
+    if let Ok(player_transform) = player_query.get_single() {}
 }
 pub fn unload_chunks(
     mut commands: Commands,
@@ -219,6 +240,8 @@ impl Plugin for ChunkPlugin {
             .insert_resource(ChunkQueue::default())
             .insert_resource(PlayerChunk::default())
             .insert_resource(PlayerBlock::default())
+            .insert_resource(PlayerDirection::default())
+            .insert_resource(PlayerTargetedBlock::default())
             .insert_resource(LightingChannel::default())
             .insert_resource(ViewRadius {
                 horizontal: HORIZONTAL_DISTANCE as i32,
@@ -229,6 +252,7 @@ impl Plugin for ChunkPlugin {
                 vertical: 4,
             })
             .add_system(update_player_location.in_set(OnUpdate(GameState::Game)))
+            .add_system(update_player_direction.in_set(OnUpdate(GameState::Game)))
             .add_systems(
                 (receive_chunks, set_block)
                     .chain()
