@@ -801,7 +801,7 @@ pub fn debug_input(
     // mut in_ui: ResMut<InUi>,
 ) {
     if let Ok(action_state) = player_actions.get_single() {
-        if action_state.just_pressed(GameActions::Debug) {
+        if action_state.just_released(GameActions::Debug) {
             is_open.debug = !is_open.debug;
         }
     }
