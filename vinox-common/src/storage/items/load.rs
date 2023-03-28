@@ -36,7 +36,13 @@ pub fn item_from_block(block: BlockDescriptor) -> ItemDescriptor {
 
     let texture = if let Some(textures) = block.textures {
         if let Some(texture) = textures.get(&Some("front".to_string())) {
-            texture.clone()
+            // let mut final_path = "../../blocks/".to_string();
+            let mut final_path = "blocks/".to_string();
+            final_path.push_str(&block.name);
+            final_path.push('/');
+            final_path.push_str(&texture.clone().unwrap());
+            // println!("{final_path}");
+            Some(final_path)
         } else {
             None
         }

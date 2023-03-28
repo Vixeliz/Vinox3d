@@ -1,3 +1,4 @@
+use egui_extras::{Size, StripBuilder};
 use std::collections::BTreeMap;
 
 use bevy::prelude::*;
@@ -8,9 +9,12 @@ use bevy_egui::{
 use vinox_common::{
     ecs::bundles::{CurrentInvBar, CurrentInvItem, Inventory},
     storage::items::descriptor::ItemData,
+    world::chunks::storage::name_to_identifier,
 };
 
-use crate::states::{components::GameOptions, game::world::chunks::ControlledPlayer};
+use crate::states::{
+    assets::load::LoadableAssets, components::GameOptions, game::world::chunks::ControlledPlayer,
+};
 
 pub fn status_bar(
     mut player_query: Query<&mut Inventory, With<ControlledPlayer>>,
@@ -18,16 +22,16 @@ pub fn status_bar(
     options: Res<GameOptions>,
     mut held_items: ResMut<CurrentItemsHeld>,
     mut holding: ResMut<Holding>,
-    // mut texture_ids: Local<[Option<egui::TextureId>; 9]>,
+    loadable_assets: Res<LoadableAssets>,
 ) {
     if !options.dark_theme {
         catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
     }
-
+    let ctx = contexts.ctx_mut().clone();
     egui::TopBottomPanel::bottom("status_bar")
         .default_height(40.0)
         .max_height(75.0)
-        .show(contexts.ctx_mut(), |ui| {
+        .show(&ctx, |ui| {
             ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
                 ui.ctx().set_style(egui::Style {
                     text_styles: {
@@ -42,60 +46,121 @@ pub fn status_bar(
                     ..Default::default()
                 });
                 if let Ok(mut inventory) = player_query.get_single_mut() {
-                    for (hotbar_num, hotbar_section) in
-                        inventory.clone().hotbar.iter().cloned().enumerate()
-                    {
-                        ui.separator();
-                        for (item_num, item) in hotbar_section.iter().clone().enumerate() {
-                            let color = if *inventory.current_item == item_num
-                                && *inventory.current_bar == hotbar_num
+                    StripBuilder::new(ui)
+                        .size(Size::exact(50.0))
+                        .size(Size::exact(50.0))
+                        .size(Size::exact(50.0))
+                        .size(Size::exact(50.0))
+                        .size(Size::exact(50.0))
+                        .size(Size::exact(50.0))
+                        .size(Size::exact(50.0))
+                        .size(Size::exact(50.0))
+                        .size(Size::exact(50.0))
+                        .horizontal(|mut strip| {
+                            for (hotbar_num, hotbar_section) in
+                                inventory.clone().hotbar.iter().cloned().enumerate()
                             {
-                                Color32::WHITE
-                            } else {
-                                ui.style().visuals.window_fill
-                            };
-                            egui::Frame::none()
-                                .fill(color)
-                                .outer_margin(2.0)
-                                .show(ui, |ui| {
-                                    ui.separator();
-                                    if let Some(item) = item {
-                                        if ui
-                                            .add(
-                                                egui::Label::new(format!(
-                                                    "{}: {}",
-                                                    item.name, item.stack_size
-                                                ))
-                                                .sense(Sense::click()),
-                                            )
-                                            .clicked()
+                                for (item_num, item) in hotbar_section.iter().clone().enumerate() {
+                                    strip.cell(|ui| {
+                                        let color = if *inventory.current_item == item_num
+                                            && *inventory.current_bar == hotbar_num
                                         {
-                                            grab_stack(
-                                                &mut held_items,
-                                                &mut inventory,
-                                                &mut holding,
-                                                hotbar_num,
-                                                item_num,
-                                                true,
-                                            );
-                                        }
-                                    } else if ui
-                                        .add(egui::Label::new("None").sense(Sense::click()))
-                                        .clicked()
-                                    {
-                                        grab_stack(
-                                            &mut held_items,
-                                            &mut inventory,
-                                            &mut holding,
-                                            hotbar_num,
-                                            item_num,
-                                            true,
+                                            Color32::from_white_alpha(128)
+                                        } else {
+                                            Color32::WHITE
+                                        };
+                                        egui::Frame::none().outer_margin(2.0).fill(color).show(
+                                            ui,
+                                            |ui| {
+                                                if let Some(item) = item {
+                                                    let image = ui
+                                                        .add(
+                                                            egui::widgets::Image::new(
+                                                                contexts
+                                                                    .image_id(
+                                                                        loadable_assets
+                                                                            .item_textures
+                                                                            .get(
+                                                                                &name_to_identifier(
+                                                                                    item.namespace
+                                                                                        .clone(),
+                                                                                    item.name
+                                                                                        .clone(),
+                                                                                ),
+                                                                            )
+                                                                            .unwrap(),
+                                                                    )
+                                                                    .unwrap(),
+                                                                [48.0, 48.0],
+                                                            )
+                                                            .tint(color)
+                                                            .sense(Sense::click()),
+                                                        )
+                                                        .on_hover_ui(|ui| {
+                                                            ui.label(format!(
+                                                                "{}: x{}",
+                                                                item.name.clone(),
+                                                                item.stack_size
+                                                            ));
+                                                        });
+                                                    let mut modified_rect = image.rect.clone();
+                                                    modified_rect.min.y +=
+                                                        modified_rect.size().y / 2.0;
+                                                    ui.allocate_ui_at_rect(modified_rect, |ui| {
+                                                        egui::Frame::none()
+                                                            .fill(Color32::from_rgba_unmultiplied(
+                                                                0, 0, 0, 164,
+                                                            ))
+                                                            .show(ui, |ui| {
+                                                                ui.add(egui::Label::new(format!(
+                                                                    "{}",
+                                                                    item.stack_size
+                                                                )));
+                                                            });
+                                                    });
+                                                    if image.clicked() {
+                                                        grab_stack(
+                                                            &mut held_items,
+                                                            &mut inventory,
+                                                            &mut holding,
+                                                            hotbar_num,
+                                                            item_num,
+                                                            true,
+                                                        );
+                                                    }
+                                                } else if ui
+                                                    .add(
+                                                        egui::widgets::Image::new(
+                                                            contexts
+                                                                .image_id(
+                                                                    loadable_assets
+                                                                        .item_textures
+                                                                        .get(&"empty".to_string())
+                                                                        .unwrap(),
+                                                                )
+                                                                .unwrap(),
+                                                            [48.0, 48.0],
+                                                        )
+                                                        .tint(color)
+                                                        .sense(Sense::click()),
+                                                    )
+                                                    .clicked()
+                                                {
+                                                    grab_stack(
+                                                        &mut held_items,
+                                                        &mut inventory,
+                                                        &mut holding,
+                                                        hotbar_num,
+                                                        item_num,
+                                                        true,
+                                                    );
+                                                }
+                                            },
                                         );
-                                    }
-                                    ui.separator();
-                                });
-                        }
-                    }
+                                    });
+                                }
+                            }
+                        });
                 }
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     ui.separator();
@@ -104,6 +169,7 @@ pub fn status_bar(
                     ui.label(format!("Hunger: {}", 100.0));
                     ui.separator();
                     ui.label(format!("Health: {}", 100.0));
+                    ui.separator();
                 });
             });
         });
@@ -214,14 +280,19 @@ pub fn inventory(
     mut holding: ResMut<Holding>,
     mut contexts: EguiContexts,
     options: Res<GameOptions>,
+    loadable_assets: Res<LoadableAssets>,
 ) {
     if !options.dark_theme {
         catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
     }
+
+    let ctx = contexts.ctx_mut().clone();
     if let Ok(mut inventory) = player_query.get_single_mut() {
         if inventory.open {
-            egui::Window::new("inventory").show(contexts.ctx_mut(), |ui| {
-                ui.with_layout(egui::Layout::bottom_up(egui::Align::Center), |ui| {
+            egui::Window::new("inventory")
+                .resizable(false)
+                .constrain(true)
+                .show(&ctx, |ui| {
                     ui.ctx().set_style(egui::Style {
                         text_styles: {
                             let mut texts = BTreeMap::new();
@@ -240,70 +311,144 @@ pub fn inventory(
                         ..Default::default()
                     });
                     let cloned_inv = inventory.clone();
-                    for (row_num, row_section) in cloned_inv.slots.iter().cloned().enumerate() {
-                        ui.separator();
-                        ui.horizontal(|ui| {
-                            for (item_num, item) in row_section.iter().clone().enumerate() {
-                                let color = if *inventory.current_inv_item == item_num
-                                    && *inventory.current_inv_bar == row_num
-                                    && **holding
-                                {
-                                    Color32::WHITE
-                                } else {
-                                    ui.style().visuals.window_fill
-                                };
-
-                                egui::Frame::none()
-                                    .fill(color)
-                                    .outer_margin(2.0)
-                                    .show(ui, |ui| {
-                                        ui.separator();
-                                        if let Some(item) = item {
-                                            if ui
-                                                .add(
-                                                    egui::Label::new(format!(
-                                                        "{}: {}",
-                                                        item.name, item.stack_size
-                                                    ))
-                                                    .sense(Sense::click()),
-                                                )
-                                                .clicked()
+                    StripBuilder::new(ui)
+                        .size(Size::exact(50.0))
+                        .size(Size::exact(50.0))
+                        .size(Size::exact(50.0))
+                        .size(Size::exact(50.0))
+                        .size(Size::exact(50.0))
+                        .vertical(|mut strip| {
+                            for (row_num, row_section) in
+                                cloned_inv.slots.iter().cloned().enumerate()
+                            {
+                                strip.cell(|ui| {
+                                    StripBuilder::new(ui)
+                                        .size(Size::exact(50.0))
+                                        .size(Size::exact(50.0))
+                                        .size(Size::exact(50.0))
+                                        .size(Size::exact(50.0))
+                                        .size(Size::exact(50.0))
+                                        .size(Size::exact(50.0))
+                                        .size(Size::exact(50.0))
+                                        .size(Size::exact(50.0))
+                                        .size(Size::exact(50.0))
+                                        .horizontal(|mut strip| {
+                                            for (item_num, item) in
+                                                row_section.iter().clone().enumerate()
                                             {
-                                                inventory.current_inv_item =
-                                                    CurrentInvItem(item_num);
-                                                inventory.current_inv_bar = CurrentInvBar(row_num);
-                                                grab_stack(
-                                                    &mut held_items,
-                                                    &mut inventory,
-                                                    &mut holding,
-                                                    row_num,
-                                                    item_num,
-                                                    false,
-                                                );
+                                                strip.cell(|ui| {
+                                                    let color = if *inventory.current_inv_item
+                                                        == item_num
+                                                        && *inventory.current_inv_bar == row_num
+                                                        && **holding
+                                                    {
+                                                        Color32::from_white_alpha(128)
+                                                    } else {
+                                                        Color32::WHITE
+                                                    };
+                                                    egui::Frame::none()
+                                                        .outer_margin(2.0)
+                                                        .fill(color)
+                                                        .show(ui, |ui| {
+                                                            if let Some(item) = item {
+                                                            let image = ui
+                                                    .add(
+                                                        egui::widgets::Image::new(
+                                                            contexts
+                                                                .image_id(
+                                                                    loadable_assets
+                                                                        .item_textures
+                                                                        .get(&name_to_identifier(
+                                                                            item.namespace.clone(),
+                                                                            item.name.clone(),
+                                                                        ))
+                                                                        .unwrap(),
+                                                                )
+                                                                .unwrap(),
+                                                            [48.0, 48.0],
+                                                        )
+                                                        .tint(color)
+                                                        .sense(Sense::click()),
+                                                    )
+                                                    .on_hover_ui(|ui| {
+                                                        ui.label(format!(
+                                                            "{}: x{}",
+                                                            item.name.clone(),
+                                                            item.stack_size
+                                                        ));
+                                                    });
+                                                            let mut modified_rect =
+                                                                image.rect.clone();
+                                                            modified_rect.min.y +=
+                                                                modified_rect.size().y / 2.0;
+                                                            ui.allocate_ui_at_rect(
+                                                                modified_rect,
+                                                                |ui| {
+                                                                    egui::Frame::none()
+                                                        .fill(Color32::from_rgba_unmultiplied(
+                                                            0, 0, 0, 164,
+                                                        ))
+                                                        .show(ui, |ui| {
+                                                            ui.add(egui::Label::new(format!(
+                                                                "{}",
+                                                                item.stack_size
+                                                            )));
+                                                        });
+                                                                },
+                                                            );
+                                                            if image.clicked() {
+                                                                inventory.current_inv_item = CurrentInvItem(item_num);
+                                                                inventory.current_inv_bar = CurrentInvBar(row_num);
+                                                                grab_stack(
+                                                                    &mut held_items,
+                                                                    &mut inventory,
+                                                                    &mut holding,
+                                                                    row_num,
+                                                                    item_num,
+                                                                    false,
+                                                                );
+                                                            }
+                                                        } else if ui
+                                                            .add(
+                                                                egui::widgets::Image::new(
+                                                                    contexts
+                                                                        .image_id(
+                                                                            loadable_assets
+                                                                                .item_textures
+                                                                                .get(
+                                                                                    &"empty"
+                                                                                        .to_string(
+                                                                                        ),
+                                                                                )
+                                                                                .unwrap(),
+                                                                        )
+                                                                        .unwrap(),
+                                                                    [48.0, 48.0],
+                                                                )
+                                                                .tint(color)
+                                                                .sense(Sense::click()),
+                                                            )
+                                                            .clicked()
+                                                        {
+                                                            inventory.current_inv_item = CurrentInvItem(item_num);
+                                                            inventory.current_inv_bar = CurrentInvBar(row_num);
+                                                            grab_stack(
+                                                                &mut held_items,
+                                                                &mut inventory,
+                                                                &mut holding,
+                                                                row_num,
+                                                                item_num,
+                                                                false,
+                                                            );
+                                                        }
+                                                        });
+                                                });
                                             }
-                                        } else if ui
-                                            .add(egui::Label::new("None").sense(Sense::click()))
-                                            .clicked()
-                                        {
-                                            inventory.current_inv_item = CurrentInvItem(item_num);
-                                            inventory.current_inv_bar = CurrentInvBar(row_num);
-                                            grab_stack(
-                                                &mut held_items,
-                                                &mut inventory,
-                                                &mut holding,
-                                                row_num,
-                                                item_num,
-                                                false,
-                                            );
-                                        }
-                                        ui.separator();
-                                    });
+                                        });
+                                });
                             }
                         });
-                        ui.separator();
-                    }
                 });
-            });
         }
     }
 }

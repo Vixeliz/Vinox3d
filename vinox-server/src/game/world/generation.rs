@@ -1,8 +1,8 @@
 use bevy::prelude::*;
 use bracket_noise::prelude::*;
 use noise::{
-    BasicMulti, Blend, Cache, Clamp, Curve, Fbm, Min, MultiFractal, NoiseFn, OpenSimplex, Perlin,
-    RidgedMulti, RotatePoint, ScaleBias,
+    BasicMulti, Billow, Blend, Cache, Clamp, Curve, Fbm, HybridMulti, Min, MultiFractal, NoiseFn,
+    OpenSimplex, Perlin, RidgedMulti, RotatePoint, ScaleBias, SuperSimplex, Worley,
 };
 use std::collections::HashMap;
 // use rand::{rngs::StdRng, Rng, SeedableRng};
@@ -138,31 +138,35 @@ fn world_noise(seed: u32) -> impl NoiseFn<f64, 3> {
 
 pub fn generate_chunk(pos: IVec3, seed: u32, block_table: &BlockTable) -> RawChunk {
     //TODO: Switch to using ron files to determine biomes and what blocks they should use. For now hardcoding a simplex noise
-    let ridged_noise: RidgedMulti<OpenSimplex> =
-        RidgedMulti::new(seed).set_octaves(4).set_frequency(0.00622);
+    let ridged_noise: HybridMulti<OpenSimplex> =
+        HybridMulti::new(seed).set_octaves(4).set_frequency(0.02122);
     let d_noise: RidgedMulti<OpenSimplex> = RidgedMulti::new(seed.wrapping_add(1))
-        .set_octaves(2)
-        .set_frequency(0.00781);
-    let final_noise = Blend::new(
-        RotatePoint {
-            source: ridged_noise,
-            x_angle: 0.212,
-            y_angle: 0.321,
-            z_angle: -0.1204,
-            u_angle: 0.11,
-        },
-        RotatePoint {
-            source: d_noise,
-            x_angle: -0.124,
-            y_angle: -0.564,
-            z_angle: 0.231,
-            u_angle: -0.1151,
-        },
-        BasicMulti::<OpenSimplex>::new(seed)
-            .set_octaves(1)
-            .set_frequency(0.003415),
-    );
+        .set_octaves(4)
+        .set_frequency(0.01881);
+    let a_noise = Fbm::<OpenSimplex>::new(seed)
+        .set_octaves(3)
+        .set_persistence(0.5)
+        .set_frequency(0.02);
 
+    // let final_noise = Blend::new(
+    //     RotatePoint {
+    //         source: ridged_noise,
+    //         x_angle: 0.212,
+    //         y_angle: 0.321,
+    //         z_angle: -0.1204,
+    //         u_angle: 0.11,
+    //     },
+    //     RotatePoint {
+    //         source: d_noise,
+    //         x_angle: -0.124,
+    //         y_angle: -0.564,
+    //         z_angle: 0.231,
+    //         u_angle: -0.1151,
+    //     },
+    //     BasicMulti::<OpenSimplex>::new(seed)
+    //         .set_octaves(1)
+    //         .set_frequency(0.015415),
+    // );
     let mut raw_chunk = ChunkData::default();
     for x in 0..=CHUNK_SIZE - 1 {
         for z in 0..=CHUNK_SIZE - 1 {
@@ -171,16 +175,25 @@ pub fn generate_chunk(pos: IVec3, seed: u32, block_table: &BlockTable) -> RawChu
                 let full_z = z as i32 + ((CHUNK_SIZE as i32) * pos.z);
                 let full_y = y as i32 + ((CHUNK_SIZE as i32) * pos.y);
                 let (x, y, z) = (x as u32, y as u32, z as u32);
-                let noise_val =
-                    final_noise.get([full_x as f64, full_y as f64, full_z as f64]) * 45.152;
+                let is_cave = ridged_noise
+                    .get([full_x as f64, full_y as f64, full_z as f64])
+                    .abs()
+                    < 0.1
+                    && d_noise
+                        .get([full_x as f64, full_y as f64, full_z as f64])
+                        .abs()
+                        < 0.1
+                    && (a_noise.get([full_x as f64, full_y as f64, full_z as f64]) < 0.45);
+                // let noise_val =
+                //     final_noise.get([full_x as f64, full_y as f64, full_z as f64]) * 45.152;
                 // let noise_val =
                 // world_noise(seed).get([full_x as f64, full_y as f64, full_z as f64]) * 45.152;
-                if full_y as f64 <= noise_val {
+                if !is_cave {
                     raw_chunk.set(
                         x,
                         y,
                         z,
-                        BlockData::new("vinox".to_string(), "stone".to_string()),
+                        BlockData::new("vinox".to_string(), "worley".to_string()),
                         block_table,
                     );
                 } else {
@@ -196,6 +209,6 @@ pub fn generate_chunk(pos: IVec3, seed: u32, block_table: &BlockTable) -> RawChu
         }
     }
     // add_grass(&mut raw_chunk, &noise, pos, block_table);
-    add_sea(&mut raw_chunk, pos, block_table);
+    // add_sea(&mut raw_chunk, pos, block_table);
     raw_chunk.to_raw()
 }
