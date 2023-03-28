@@ -145,7 +145,7 @@ pub fn spawn_camera(
                 ..default()
             }
         };
-        commands.insert_resource(ClearColor(Color::rgba(0.5, 0.8, 0.9, 1.0)));
+        commands.insert_resource(ClearColor(Color::rgba(0.1, 0.1, 0.1, 1.0)));
         commands.entity(player_entity).with_children(|c| {
             c.spawn((
                 GlobalTransform::default(),
@@ -155,13 +155,13 @@ pub fn spawn_camera(
                 FPSCamera::default(),
                 camera,
                 FogSettings {
-                    color: Color::rgba(0.5, 0.8, 0.9, 1.0),
+                    color: Color::rgba(0.1, 0.1, 0.1, 1.0),
                     directional_light_color: Color::WHITE,
-                    directional_light_exponent: 30.0,
+                    directional_light_exponent: 10.0,
                     falloff: FogFalloff::Linear {
                         start: (HORIZONTAL_DISTANCE * CHUNK_SIZE) as f32
-                            - (CHUNK_SIZE * (HORIZONTAL_DISTANCE / 2)) as f32,
-                        end: (HORIZONTAL_DISTANCE * CHUNK_SIZE) as f32 + (CHUNK_SIZE * 2) as f32,
+                            - (CHUNK_SIZE * (HORIZONTAL_DISTANCE / 3)) as f32,
+                        end: (HORIZONTAL_DISTANCE * CHUNK_SIZE) as f32 + (CHUNK_SIZE) as f32,
                     },
                 },
             ));

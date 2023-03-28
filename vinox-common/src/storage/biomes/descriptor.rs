@@ -14,23 +14,12 @@ pub enum TerrainCarver {
     Overhangs,
 }
 
-#[derive(EnumString, Default, Deserialize, Serialize, PartialEq, Eq, Debug, Clone)]
-pub enum TerrainType {
-    #[default]
-    Standard, //Doesn't affect normal noise at all,
-    Flat,     // Makes noise more flat
-    Mountain, // Self explanatory
-    RollingHills,
-}
-
 // Anything optional here that is necessary for the game to function but we have a default value for ie texture or geometry
 #[derive(Serialize, Deserialize, Debug, PartialEq, Default, Clone)]
 pub struct BiomeDescriptor {
     pub namespace: String,
     pub name: String,
-    pub terrain_type: TerrainType,
-    pub terrain_carver: TerrainCarver,
-    pub amplitude: Option<f32>, // This is what terrain type sets for simplicity
+    // pub terrain_carver: TerrainCarver,
     pub heat: f32,
     pub humidity: f32,
     pub surface_block: Option<String>,
