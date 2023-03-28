@@ -143,6 +143,10 @@ pub fn generate_chunk(pos: IVec3, seed: u32, block_table: &BlockTable) -> RawChu
     let d_noise: RidgedMulti<OpenSimplex> = RidgedMulti::new(seed.wrapping_add(1))
         .set_octaves(4)
         .set_frequency(0.01881);
+    let a_noise = Fbm::<OpenSimplex>::new(seed)
+        .set_octaves(3)
+        .set_persistence(0.5)
+        .set_frequency(0.02);
 
     // let final_noise = Blend::new(
     //     RotatePoint {
@@ -178,7 +182,8 @@ pub fn generate_chunk(pos: IVec3, seed: u32, block_table: &BlockTable) -> RawChu
                     && d_noise
                         .get([full_x as f64, full_y as f64, full_z as f64])
                         .abs()
-                        < 0.1;
+                        < 0.1
+                    && (a_noise.get([full_x as f64, full_y as f64, full_z as f64]) < 0.45);
                 // let noise_val =
                 //     final_noise.get([full_x as f64, full_y as f64, full_z as f64]) * 45.152;
                 // let noise_val =
