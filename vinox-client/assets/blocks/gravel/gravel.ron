@@ -1,0 +1,10 @@
+BlockDescriptor(
+    namespace: "vinox",
+    name: "gravel",
+    textures: Some({
+    Some("front"): Some("gravel.png"),
+    }),
+    has_item: Some(true),
+    visibility: Some(Opaque)
+
+)
