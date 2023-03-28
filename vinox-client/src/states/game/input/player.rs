@@ -703,9 +703,9 @@ pub fn interact(
                     }
                 }
             } else if let Ok((_, mut block_visibility)) = cube_position.get_single_mut() {
-                if *block_visibility == Visibility::Visible {
-                    *block_visibility = Visibility::Hidden;
-                }
+                *block_visibility = Visibility::Hidden;
+                player_targeted.block = None;
+                player_targeted.pos = None;
             }
         }
     }

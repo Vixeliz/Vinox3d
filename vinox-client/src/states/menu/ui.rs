@@ -193,7 +193,7 @@ pub fn create_ui(
 
     if !*is_initialized {
         *is_initialized = true;
-        *rendered_texture_id = contexts.add_image(asset_server.load("cover.png").clone_weak());
+        // *rendered_texture_id = contexts.add_image(asset_server.load("cover.png").clone_weak());
     }
     egui::SidePanel::left("menu_side_panel")
         .default_width(250.0)
@@ -251,11 +251,11 @@ pub fn create_ui(
         egui::warn_if_debug_build(ui);
         let ratio = 16.0 / 10.0;
         let (width, height) = (ui.available_height() * ratio, ui.available_height());
-        ui.add(egui::widgets::Image::new(
-            *rendered_texture_id,
-            [width, height],
-        ));
         ui.separator();
+        // ui.add(egui::widgets::Image::new(
+        //     *rendered_texture_id,
+        //     [width, height],
+        // ));
     });
 }
 
