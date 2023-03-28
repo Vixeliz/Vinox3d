@@ -55,24 +55,6 @@ pub fn create_ui(
             .vscroll(true)
             .show(contexts.ctx_mut(), |ui| {
                 ui.with_layout(egui::Layout::top_down(egui::Align::LEFT), |ui| {
-                    ui.ctx().set_style(egui::Style {
-                        text_styles: {
-                            let mut texts = BTreeMap::new();
-                            texts.insert(egui::style::TextStyle::Small, FontId::proportional(16.0));
-                            texts.insert(egui::style::TextStyle::Body, FontId::proportional(16.0));
-                            texts.insert(
-                                egui::style::TextStyle::Heading,
-                                FontId::proportional(20.0),
-                            );
-                            texts
-                                .insert(egui::style::TextStyle::Monospace, FontId::monospace(16.0));
-                            texts
-                                .insert(egui::style::TextStyle::Button, FontId::proportional(16.0));
-                            texts
-                        },
-                        ..Default::default()
-                    });
-
                     egui::TopBottomPanel::bottom("text_box")
                         .resizable(false)
                         .show_inside(ui, |ui| {

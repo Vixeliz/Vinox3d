@@ -33,18 +33,6 @@ pub fn status_bar(
         .max_height(75.0)
         .show(&ctx, |ui| {
             ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
-                ui.ctx().set_style(egui::Style {
-                    text_styles: {
-                        let mut texts = BTreeMap::new();
-                        texts.insert(egui::style::TextStyle::Small, FontId::proportional(18.0));
-                        texts.insert(egui::style::TextStyle::Body, FontId::proportional(18.0));
-                        texts.insert(egui::style::TextStyle::Heading, FontId::proportional(20.0));
-                        texts.insert(egui::style::TextStyle::Monospace, FontId::monospace(18.0));
-                        texts.insert(egui::style::TextStyle::Button, FontId::proportional(18.0));
-                        texts
-                    },
-                    ..Default::default()
-                });
                 if let Ok(mut inventory) = player_query.get_single_mut() {
                     StripBuilder::new(ui)
                         .size(Size::exact(50.0))
@@ -293,23 +281,6 @@ pub fn inventory(
                 .resizable(false)
                 .constrain(true)
                 .show(&ctx, |ui| {
-                    ui.ctx().set_style(egui::Style {
-                        text_styles: {
-                            let mut texts = BTreeMap::new();
-                            texts.insert(egui::style::TextStyle::Small, FontId::proportional(18.0));
-                            texts.insert(egui::style::TextStyle::Body, FontId::proportional(18.0));
-                            texts.insert(
-                                egui::style::TextStyle::Heading,
-                                FontId::proportional(20.0),
-                            );
-                            texts
-                                .insert(egui::style::TextStyle::Monospace, FontId::monospace(18.0));
-                            texts
-                                .insert(egui::style::TextStyle::Button, FontId::proportional(18.0));
-                            texts
-                        },
-                        ..Default::default()
-                    });
                     let cloned_inv = inventory.clone();
                     StripBuilder::new(ui)
                         .size(Size::exact(50.0))

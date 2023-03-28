@@ -28,42 +28,40 @@ pub fn debug(
     }
     if options.debug {
         if let Ok(player_transform) = player_query.get_single() {
-            egui::Window::new("Debug").show(contexts.ctx_mut(), |ui| {
-                ui.with_layout(egui::Layout::top_down(egui::Align::LEFT), |ui| {
-                    ui.ctx().set_style(egui::Style {
-                        text_styles: {
-                            let mut texts = BTreeMap::new();
-                            texts.insert(egui::style::TextStyle::Small, FontId::proportional(16.0));
-                            texts.insert(egui::style::TextStyle::Body, FontId::proportional(16.0));
-                            texts.insert(
-                                egui::style::TextStyle::Heading,
-                                FontId::proportional(36.0),
-                            );
-                            texts
-                                .insert(egui::style::TextStyle::Monospace, FontId::monospace(16.0));
-                            texts
-                                .insert(egui::style::TextStyle::Button, FontId::proportional(26.0));
-                            texts
-                        },
-                        ..Default::default()
+            let style = contexts.ctx_mut().style().clone();
+            egui::Window::new("Debug")
+                .frame(egui::Frame {
+                    fill: egui::Color32::from_rgba_unmultiplied(0, 0, 0, 224),
+                    rounding: style.visuals.window_rounding,
+                    ..Default::default()
+                })
+                .show(contexts.ctx_mut(), |ui| {
+                    ui.with_layout(egui::Layout::top_down(egui::Align::LEFT), |ui| {
+                        egui::ScrollArea::vertical()
+                            .auto_shrink([false; 2])
+                            .max_width(2000.0)
+                            .show(ui, |ui| {
+                                // HERE: This is where you put your own debug
+                                ui.separator();
+                                ui.label(format!("{:<20}{}", "Chunk", player_chunk.chunk_pos));
+                                ui.separator();
+                                ui.label(format!("{:<15}{}", "Global Block", player_block.pos));
+                                ui.separator();
+                                ui.label(format!(
+                                    "{:<14}{}",
+                                    "Chunk Block",
+                                    world_to_offsets(player_block.pos.as_vec3())
+                                ));
+                                ui.separator();
+                                ui.label(format!(
+                                    "{:<17}{}",
+                                    "Raw Pos", player_transform.translation
+                                ));
+                                ui.separator();
+                                ui.label(format!("{:<20}{:?}", "Facing", **player_direction));
+                            });
                     });
-                    egui::ScrollArea::vertical()
-                        .auto_shrink([false; 2])
-                        .max_width(2000.0)
-                        .show(ui, |ui| {
-                            // HERE: This is where you put your own debug
-                            ui.separator();
-                            ui.label(format!("Player Chunk: {}", player_chunk.chunk_pos));
-                            ui.label(format!("Player Global Block: {}", player_block.pos));
-                            ui.label(format!(
-                                "Player Local Block: {}",
-                                world_to_offsets(player_block.pos.as_vec3())
-                            ));
-                            ui.label(format!("Player Raw Pos: {}", player_transform.translation));
-                            ui.label(format!("Player Facing Direction: {:?}", **player_direction));
-                        });
                 });
-            });
         }
     }
 }
@@ -77,18 +75,6 @@ pub fn targeted_block(
         catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
     }
     if options.looking_at {
-        contexts.ctx_mut().set_style(egui::Style {
-            text_styles: {
-                let mut texts = BTreeMap::new();
-                texts.insert(egui::style::TextStyle::Small, FontId::proportional(14.0));
-                texts.insert(egui::style::TextStyle::Body, FontId::proportional(14.0));
-                texts.insert(egui::style::TextStyle::Heading, FontId::proportional(16.0));
-                texts.insert(egui::style::TextStyle::Monospace, FontId::monospace(14.0));
-                texts.insert(egui::style::TextStyle::Button, FontId::proportional(14.0));
-                texts
-            },
-            ..Default::default()
-        });
         egui::Window::new("Targeted Block")
             .anchor(Align2::CENTER_TOP, [0.0, 0.0])
             .default_width(200.0)

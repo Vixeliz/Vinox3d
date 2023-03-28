@@ -95,23 +95,6 @@ pub fn crafting_ui(
         if inventory.open {
             egui::SidePanel::left("crafting").show(contexts.ctx_mut(), |ui| {
                 ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-                    ui.ctx().set_style(egui::Style {
-                        text_styles: {
-                            let mut texts = BTreeMap::new();
-                            texts.insert(egui::style::TextStyle::Small, FontId::proportional(18.0));
-                            texts.insert(egui::style::TextStyle::Body, FontId::proportional(18.0));
-                            texts.insert(
-                                egui::style::TextStyle::Heading,
-                                FontId::proportional(20.0),
-                            );
-                            texts
-                                .insert(egui::style::TextStyle::Monospace, FontId::monospace(18.0));
-                            texts
-                                .insert(egui::style::TextStyle::Button, FontId::proportional(18.0));
-                            texts
-                        },
-                        ..Default::default()
-                    });
                     let mut sorted_recipe_table = Vec::new();
                     ui.horizontal(|ui| {
                         ui.label("Search: ");
