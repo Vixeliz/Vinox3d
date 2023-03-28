@@ -30,35 +30,48 @@ pub fn debug(
         if let Ok(player_transform) = player_query.get_single() {
             let style = contexts.ctx_mut().style().clone();
             egui::Window::new("Debug")
+                .default_size([256.0, 125.0])
                 .frame(egui::Frame {
                     fill: egui::Color32::from_rgba_unmultiplied(0, 0, 0, 224),
                     rounding: style.visuals.window_rounding,
                     ..Default::default()
                 })
                 .show(contexts.ctx_mut(), |ui| {
-                    ui.with_layout(egui::Layout::top_down(egui::Align::LEFT), |ui| {
+                    ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
                         egui::ScrollArea::vertical()
                             .auto_shrink([false; 2])
-                            .max_width(2000.0)
+                            .max_width(512.0)
                             .show(ui, |ui| {
-                                // HERE: This is where you put your own debug
-                                ui.separator();
-                                ui.label(format!("{:<20}{}", "Chunk", player_chunk.chunk_pos));
-                                ui.separator();
-                                ui.label(format!("{:<15}{}", "Global Block", player_block.pos));
-                                ui.separator();
-                                ui.label(format!(
-                                    "{:<14}{}",
-                                    "Chunk Block",
-                                    world_to_offsets(player_block.pos.as_vec3())
-                                ));
-                                ui.separator();
-                                ui.label(format!(
-                                    "{:<17}{}",
-                                    "Raw Pos", player_transform.translation
-                                ));
-                                ui.separator();
-                                ui.label(format!("{:<20}{:?}", "Facing", **player_direction));
+                                egui::Grid::new("debug_info").show(ui, |ui| {
+                                    // HERE: This is where you put your own debug
+                                    ui.label("Chunk:");
+                                    ui.label(format!("{}", player_chunk.chunk_pos));
+                                    ui.end_row();
+
+                                    ui.label("Global Block:");
+                                    ui.label(format!("{}", player_block.pos));
+                                    ui.end_row();
+
+                                    ui.label("Chunk Block:");
+                                    ui.label(format!(
+                                        "{}",
+                                        world_to_offsets(player_block.pos.as_vec3())
+                                    ));
+                                    ui.end_row();
+
+                                    ui.label("Raw Pos:");
+                                    ui.label(format!(
+                                        "[{:.3}, {:.3}, {:.3}]",
+                                        player_transform.translation.x,
+                                        player_transform.translation.y,
+                                        player_transform.translation.z
+                                    ));
+                                    ui.end_row();
+
+                                    ui.label("Facing:");
+                                    ui.label(format!("{:?}", **player_direction));
+                                    ui.end_row();
+                                });
                             });
                     });
                 });
@@ -75,12 +88,18 @@ pub fn targeted_block(
         catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
     }
     if options.looking_at {
+        let style = contexts.ctx_mut().style().clone();
         egui::Window::new("Targeted Block")
             .anchor(Align2::CENTER_TOP, [0.0, 0.0])
             .default_width(200.0)
             .collapsible(false)
             .constrain(true)
             .vscroll(true)
+            .frame(egui::Frame {
+                fill: egui::Color32::from_rgba_unmultiplied(0, 0, 0, 224),
+                rounding: style.visuals.window_rounding,
+                ..Default::default()
+            })
             .show(contexts.ctx_mut(), |ui| {
                 ui.with_layout(egui::Layout::top_down(egui::Align::LEFT), |ui| {
                     if let Some(block) = player_looking.block.clone() {

@@ -65,11 +65,11 @@ pub fn options(
     contexts.ctx_mut().set_style(egui::Style {
         text_styles: {
             let mut texts = BTreeMap::new();
-            texts.insert(egui::style::TextStyle::Small, FontId::proportional(16.0));
-            texts.insert(egui::style::TextStyle::Body, FontId::proportional(16.0));
-            texts.insert(egui::style::TextStyle::Heading, FontId::proportional(20.0));
-            texts.insert(egui::style::TextStyle::Monospace, FontId::monospace(16.0));
-            texts.insert(egui::style::TextStyle::Button, FontId::proportional(16.0));
+            texts.insert(egui::style::TextStyle::Small, FontId::monospace(14.0));
+            texts.insert(egui::style::TextStyle::Body, FontId::monospace(14.0));
+            texts.insert(egui::style::TextStyle::Heading, FontId::monospace(16.0));
+            texts.insert(egui::style::TextStyle::Monospace, FontId::monospace(14.0));
+            texts.insert(egui::style::TextStyle::Button, FontId::monospace(14.0));
             texts
         },
         ..Default::default()
