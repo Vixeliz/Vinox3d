@@ -1,3 +1,4 @@
+use leafwing_input_manager::{prelude::ActionState, InputManagerBundle};
 use std::collections::BTreeMap;
 use vinox_server::create_server;
 
@@ -111,17 +112,17 @@ pub fn options(
                             for (input, action) in options.input.iter() {
                                 ui.horizontal(|ui| {
                                     ui.label(format!("{action:?}"));
-                                    if let Some(key) =
-                                        input.get_at(0).unwrap().raw_inputs().keycodes.get(0)
-                                    {
-                                        if ui.small_button(format!("{key:?}")).clicked() {
-                                            *current_change = Some(action);
-                                        }
-                                    } else if let Some(mouse) =
-                                        input.get_at(0).unwrap().raw_inputs().mouse_buttons.get(0)
-                                    {
-                                        if ui.small_button(format!("{mouse:?}")).clicked() {
-                                            *current_change = Some(action);
+                                    if let Some(input) = input.get_at(0) {
+                                        if let Some(key) = input.raw_inputs().keycodes.get(0) {
+                                            if ui.small_button(format!("{key:?}")).clicked() {
+                                                *current_change = Some(action);
+                                            }
+                                        } else if let Some(mouse) =
+                                            input.raw_inputs().mouse_buttons.get(0)
+                                        {
+                                            if ui.small_button(format!("{mouse:?}")).clicked() {
+                                                *current_change = Some(action);
+                                            }
                                         }
                                     };
                                 });
@@ -141,6 +142,13 @@ pub fn options(
                                     .clicked()
                                 {
                                     options.standard_bar = !options.standard_bar;
+                                }
+                            });
+                            ui.separator();
+                            ui.horizontal(|ui| {
+                                ui.label("Looking At Window: ");
+                                if ui.small_button(format!("{}", options.looking_at)).clicked() {
+                                    options.looking_at = !options.looking_at;
                                 }
                             });
                             ui.separator();
@@ -270,6 +278,6 @@ pub fn create_ui(
 
 pub fn ui_events() {}
 
-pub fn start(mut commands: Commands) {
+pub fn start(mut commands: Commands, options: Res<GameOptions>) {
     commands.spawn((Camera2dBundle::default(), Menu));
 }

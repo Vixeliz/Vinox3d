@@ -794,3 +794,15 @@ pub fn ui_input(
         }
     }
 }
+
+pub fn debug_input(
+    mut is_open: ResMut<GameOptions>,
+    player_actions: Query<&ActionState<GameActions>, With<ControlledPlayer>>,
+    // mut in_ui: ResMut<InUi>,
+) {
+    if let Ok(action_state) = player_actions.get_single() {
+        if action_state.just_pressed(GameActions::Debug) {
+            is_open.debug = !is_open.debug;
+        }
+    }
+}

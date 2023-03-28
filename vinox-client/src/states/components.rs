@@ -39,6 +39,7 @@ pub enum GameActions {
     SecondaryInteract,
     Run,
     Inventory,
+    Debug,
 }
 
 #[derive(Resource, Clone, Debug, Serialize, Deserialize)]
@@ -50,6 +51,8 @@ pub struct GameOptions {
     pub standard_bar: bool,
     pub meshes_frame: usize,
     pub vsync: bool,
+    pub looking_at: bool,
+    pub debug: bool,
 }
 
 impl Default for GameOptions {
@@ -62,6 +65,7 @@ impl Default for GameOptions {
             (KeyCode::T, GameActions::Chat),
             (KeyCode::E, GameActions::Inventory),
             (KeyCode::Space, GameActions::Jump),
+            (KeyCode::Period, GameActions::Debug),
             (KeyCode::LShift, GameActions::Run),
         ]);
 
@@ -76,6 +80,8 @@ impl Default for GameOptions {
             standard_bar: true,
             meshes_frame: 256,
             vsync: true,
+            looking_at: true,
+            debug: false,
         }
     }
 }

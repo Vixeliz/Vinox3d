@@ -2,6 +2,7 @@ use crate::states::components::GameState;
 
 use super::{
     crafting::crafting_ui,
+    debug::debug,
     dropdown::{create_ui, ConsoleOpen, Toast},
     inventory::{inventory, status_bar, CurrentItemsHeld, Holding},
 };
@@ -20,7 +21,7 @@ impl Plugin for UiPlugin {
             .insert_resource(InUi(false))
             .insert_resource(Toast::default())
             .add_systems(
-                (create_ui, status_bar, inventory, crafting_ui)
+                (create_ui, status_bar, inventory, crafting_ui, debug)
                     .chain()
                     .in_set(OnUpdate(GameState::Game)),
             );

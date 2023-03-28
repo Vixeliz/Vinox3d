@@ -13,9 +13,10 @@ use bevy_quinnet::client::QuinnetClientPlugin;
 use bevy_tweening::TweeningPlugin;
 use directories::*;
 use fs_extra::dir::{copy, CopyOptions};
+use leafwing_input_manager::prelude::InputManagerPlugin;
 use ron::de::from_reader;
 use states::{
-    components::{save_game_options, GameOptions, GameState, ProjectPath},
+    components::{save_game_options, GameActions, GameOptions, GameState, ProjectPath},
     game::{plugin::GamePlugin, rendering::meshing::BasicMaterial},
     loading::plugin::LoadingPlugin,
     menu::plugin::MenuPlugin,
