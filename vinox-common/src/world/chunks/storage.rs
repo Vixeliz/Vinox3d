@@ -85,6 +85,7 @@ pub struct RenderedBlockData {
     pub top: Option<bool>,
     // pub geo: BlockGeo,
     pub geo_index: usize,
+    pub match_index: usize,
     pub visibility: VoxelVisibility,
     pub has_direction: bool,
     pub exclusive_direction: bool,
@@ -136,6 +137,7 @@ impl Default for RenderedBlockData {
             exclusive_direction: false,
             direction: None,
             top: None,
+            match_index: 0,
             // geo: block_geo().unwrap(),
             light: 0,
         }

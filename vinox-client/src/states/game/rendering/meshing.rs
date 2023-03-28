@@ -25,7 +25,10 @@ use vinox_common::{
     world::chunks::{
         ecs::{ChunkManager, CurrentChunks, NeedsMesh, PriorityMesh},
         positions::{voxel_to_world, world_to_global_voxel, ChunkPos},
-        storage::{self, BlockTable, ChunkData, RenderedBlockData, VoxelVisibility, CHUNK_SIZE},
+        storage::{
+            self, trim_geo_identifier, BlockTable, ChunkData, RenderedBlockData, VoxelVisibility,
+            CHUNK_SIZE,
+        },
     },
 };
 
@@ -1180,7 +1183,9 @@ pub fn generate_mesh(chunk: &ChunkBoundary, solid_pass: bool, buffer: &mut QuadG
                                         match (visibility, other) {
                                             (OPAQUE, EMPTY) | (OPAQUE, TRANSPARENT) => true,
 
-                                            (TRANSPARENT, TRANSPARENT) => voxel != *neighbor,
+                                            (TRANSPARENT, TRANSPARENT) => {
+                                                voxel.match_index != neighbor.match_index
+                                            }
 
                                             (_, _) => false,
                                         }
@@ -1188,7 +1193,9 @@ pub fn generate_mesh(chunk: &ChunkBoundary, solid_pass: bool, buffer: &mut QuadG
                                         match (visibility, other) {
                                             (TRANSPARENT, EMPTY) => true,
 
-                                            (TRANSPARENT, TRANSPARENT) => voxel != *neighbor,
+                                            (TRANSPARENT, TRANSPARENT) => {
+                                                voxel.match_index != neighbor.match_index
+                                            }
 
                                             (_, _) => false,
                                         }
@@ -1528,8 +1535,8 @@ pub fn create_chunk_material(
                 .clone(),
         ),
         alpha_mode: AlphaMode::Blend,
-        perceptual_roughness: 0.5,
-        ..Default::default() // discard_pix: 0,
+        unlit: true,
+        ..Default::default()
     });
     chunk_material.opaque = materials.add(StandardMaterial {
         base_color: Color::WHITE,

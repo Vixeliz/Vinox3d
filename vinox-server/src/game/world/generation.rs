@@ -1,5 +1,9 @@
 use bevy::prelude::*;
 use bracket_noise::prelude::*;
+use noise::{
+    BasicMulti, Blend, Cache, Clamp, Curve, Fbm, Min, MultiFractal, NoiseFn, OpenSimplex, Perlin,
+    RidgedMulti, RotatePoint, ScaleBias,
+};
 use std::collections::HashMap;
 // use rand::{rngs::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
@@ -15,7 +19,7 @@ pub const SEA_LEVEL: i32 = 0;
 
 // Just some interesting stuff to look at while testing
 #[allow(clippy::type_complexity)]
-pub fn add_grass(raw_chunk: &mut ChunkData, pos: IVec3, block_table: &BlockTable) {
+pub fn add_surface(raw_chunk: &mut ChunkData, pos: IVec3, block_table: &BlockTable) {
     for z in 0..=CHUNK_SIZE - 1 {
         for y in 0..=CHUNK_SIZE - 1 {
             for x in 0..=CHUNK_SIZE - 1 {
@@ -104,39 +108,60 @@ pub fn add_sea(raw_chunk: &mut ChunkData, pos: IVec3, block_table: &BlockTable) 
 
 // pub fn add_missing_blocks(raw_chunk: &mut RawChunk, to_be_placed: &ToBePlaced) {}
 
+fn world_noise(seed: u32) -> impl NoiseFn<f64, 3> {
+    let ridged_noise: RidgedMulti<OpenSimplex> =
+        RidgedMulti::new(seed).set_octaves(4).set_frequency(0.00622);
+    let d_noise: RidgedMulti<OpenSimplex> = RidgedMulti::new(seed.wrapping_add(1))
+        .set_octaves(2)
+        .set_frequency(0.00781);
+    let final_noise = Blend::new(
+        RotatePoint {
+            source: ridged_noise,
+            x_angle: 0.212,
+            y_angle: 0.321,
+            z_angle: -0.1204,
+            u_angle: 0.11,
+        },
+        RotatePoint {
+            source: d_noise,
+            x_angle: -0.124,
+            y_angle: -0.564,
+            z_angle: 0.231,
+            u_angle: -0.1151,
+        },
+        BasicMulti::<OpenSimplex>::new(seed)
+            .set_octaves(1)
+            .set_frequency(0.003415),
+    );
+    final_noise
+}
+
 pub fn generate_chunk(pos: IVec3, seed: u32, block_table: &BlockTable) -> RawChunk {
     //TODO: Switch to using ron files to determine biomes and what blocks they should use. For now hardcoding a simplex noise
-    // let ridged_noise: RidgedMulti<OpenSimplex> =
-    //     RidgedMulti::new(seed).set_octaves(4).set_frequency(0.00622);
-    // let d_noise: RidgedMulti<OpenSimplex> = RidgedMulti::new(seed.wrapping_add(1))
-    //     .set_octaves(2)
-    //     .set_frequency(0.00781);
-    // let final_noise = Blend::new(
-    //     RotatePoint {
-    //         source: ridged_noise,
-    //         x_angle: 0.212,
-    //         y_angle: 0.321,
-    //         z_angle: -0.1204,
-    //         u_angle: 0.11,
-    //     },
-    //     RotatePoint {
-    //         source: d_noise,
-    //         x_angle: -0.124,
-    //         y_angle: -0.564,
-    //         z_angle: 0.231,
-    //         u_angle: -0.1151,
-    //     },
-    //     BasicMulti::<OpenSimplex>::new(seed)
-    //         .set_octaves(1)
-    //         .set_frequency(0.003415),
-    // );
-    let mut noise = FastNoise::seeded(seed as u64);
-    noise.set_noise_type(NoiseType::SimplexFractal);
-    noise.set_fractal_type(FractalType::RigidMulti);
-    noise.set_fractal_octaves(8);
-    noise.set_fractal_gain(0.55);
-    noise.set_fractal_lacunarity(2.0);
-    noise.set_frequency(0.0005);
+    let ridged_noise: RidgedMulti<OpenSimplex> =
+        RidgedMulti::new(seed).set_octaves(4).set_frequency(0.00622);
+    let d_noise: RidgedMulti<OpenSimplex> = RidgedMulti::new(seed.wrapping_add(1))
+        .set_octaves(2)
+        .set_frequency(0.00781);
+    let final_noise = Blend::new(
+        RotatePoint {
+            source: ridged_noise,
+            x_angle: 0.212,
+            y_angle: 0.321,
+            z_angle: -0.1204,
+            u_angle: 0.11,
+        },
+        RotatePoint {
+            source: d_noise,
+            x_angle: -0.124,
+            y_angle: -0.564,
+            z_angle: 0.231,
+            u_angle: -0.1151,
+        },
+        BasicMulti::<OpenSimplex>::new(seed)
+            .set_octaves(1)
+            .set_frequency(0.003415),
+    );
 
     let mut raw_chunk = ChunkData::default();
     for x in 0..=CHUNK_SIZE - 1 {
@@ -146,11 +171,11 @@ pub fn generate_chunk(pos: IVec3, seed: u32, block_table: &BlockTable) -> RawChu
                 let full_z = z as i32 + ((CHUNK_SIZE as i32) * pos.z);
                 let full_y = y as i32 + ((CHUNK_SIZE as i32) * pos.y);
                 let (x, y, z) = (x as u32, y as u32, z as u32);
-                // let noise_val =
-                //     final_noise.get([full_x as f64, full_y as f64, full_z as f64]) * 45.152;
                 let noise_val =
-                    noise.get_noise3d(full_x as f32, full_y as f32, full_z as f32) * 120.412;
-                if full_y as f32 <= noise_val {
+                    final_noise.get([full_x as f64, full_y as f64, full_z as f64]) * 45.152;
+                // let noise_val =
+                // world_noise(seed).get([full_x as f64, full_y as f64, full_z as f64]) * 45.152;
+                if full_y as f64 <= noise_val {
                     raw_chunk.set(
                         x,
                         y,

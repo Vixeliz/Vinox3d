@@ -3,7 +3,7 @@ use ndshape::{ConstShape, ConstShape3usize};
 use serde_big_array::Array;
 use vinox_common::{
     storage::geometry::descriptor::BlockGeo,
-    world::chunks::storage::{BlockTable, ChunkData, RenderedBlockData},
+    world::chunks::storage::{trim_geo_identifier, BlockTable, ChunkData, RenderedBlockData},
 };
 
 use crate::states::assets::load::LoadableAssets;
@@ -31,6 +31,7 @@ impl ChunkBoundary {
         const MAX: usize = ChunkData::edge();
         const BOUND: usize = MAX + 1;
         let mut pal = Vec::new();
+        let mut matching_voxels = Vec::new();
         let voxels: Box<[RenderedBlockData; BoundaryShape::SIZE]> = (0..BoundaryShape::SIZE)
             .map(|idx| {
                 let [x, y, z] = BoundaryShape::delinearize(idx);
@@ -45,6 +46,7 @@ impl ChunkBoundary {
                         loadable_assets,
                         &mut pal,
                         texture_atlas,
+                        &mut matching_voxels,
                     ),
                     (0, 0, 1..=MAX) => get_rend(
                         &neighbors[1],
@@ -56,6 +58,7 @@ impl ChunkBoundary {
                         loadable_assets,
                         &mut pal,
                         texture_atlas,
+                        &mut matching_voxels,
                     ),
                     (0, 0, BOUND) => get_rend(
                         &neighbors[2],
@@ -67,6 +70,7 @@ impl ChunkBoundary {
                         loadable_assets,
                         &mut pal,
                         texture_atlas,
+                        &mut matching_voxels,
                     ),
                     (0, 1..=MAX, 0) => get_rend(
                         &neighbors[3],
@@ -78,6 +82,7 @@ impl ChunkBoundary {
                         loadable_assets,
                         &mut pal,
                         texture_atlas,
+                        &mut matching_voxels,
                     ),
                     (0, 1..=MAX, 1..=MAX) => get_rend(
                         &neighbors[4],
@@ -89,6 +94,7 @@ impl ChunkBoundary {
                         loadable_assets,
                         &mut pal,
                         texture_atlas,
+                        &mut matching_voxels,
                     ),
                     (0, 1..=MAX, BOUND) => get_rend(
                         &neighbors[5],
@@ -100,6 +106,7 @@ impl ChunkBoundary {
                         loadable_assets,
                         &mut pal,
                         texture_atlas,
+                        &mut matching_voxels,
                     ),
                     (0, BOUND, 0) => get_rend(
                         &neighbors[6],
@@ -111,6 +118,7 @@ impl ChunkBoundary {
                         loadable_assets,
                         &mut pal,
                         texture_atlas,
+                        &mut matching_voxels,
                     ),
                     (0, BOUND, 1..=MAX) => get_rend(
                         &neighbors[7],
@@ -122,6 +130,7 @@ impl ChunkBoundary {
                         loadable_assets,
                         &mut pal,
                         texture_atlas,
+                        &mut matching_voxels,
                     ),
                     (0, BOUND, BOUND) => get_rend(
                         &neighbors[8],
@@ -133,6 +142,7 @@ impl ChunkBoundary {
                         loadable_assets,
                         &mut pal,
                         texture_atlas,
+                        &mut matching_voxels,
                     ),
                     (1..=MAX, 0, 0) => get_rend(
                         &neighbors[9],
@@ -144,6 +154,7 @@ impl ChunkBoundary {
                         loadable_assets,
                         &mut pal,
                         texture_atlas,
+                        &mut matching_voxels,
                     ),
                     (1..=MAX, 0, 1..=MAX) => get_rend(
                         &neighbors[10],
@@ -155,6 +166,7 @@ impl ChunkBoundary {
                         loadable_assets,
                         &mut pal,
                         texture_atlas,
+                        &mut matching_voxels,
                     ),
                     (1..=MAX, 0, BOUND) => get_rend(
                         &neighbors[11],
@@ -166,6 +178,7 @@ impl ChunkBoundary {
                         loadable_assets,
                         &mut pal,
                         texture_atlas,
+                        &mut matching_voxels,
                     ),
                     (1..=MAX, 1..=MAX, 0) => get_rend(
                         &neighbors[12],
@@ -177,6 +190,7 @@ impl ChunkBoundary {
                         loadable_assets,
                         &mut pal,
                         texture_atlas,
+                        &mut matching_voxels,
                     ),
                     (1..=MAX, 1..=MAX, 1..=MAX) => get_rend(
                         &center,
@@ -188,6 +202,7 @@ impl ChunkBoundary {
                         loadable_assets,
                         &mut pal,
                         texture_atlas,
+                        &mut matching_voxels,
                     ),
                     (1..=MAX, 1..=MAX, BOUND) => get_rend(
                         &neighbors[13],
@@ -199,6 +214,7 @@ impl ChunkBoundary {
                         loadable_assets,
                         &mut pal,
                         texture_atlas,
+                        &mut matching_voxels,
                     ),
                     (1..=MAX, BOUND, 0) => get_rend(
                         &neighbors[14],
@@ -210,6 +226,7 @@ impl ChunkBoundary {
                         loadable_assets,
                         &mut pal,
                         texture_atlas,
+                        &mut matching_voxels,
                     ),
                     (1..=MAX, BOUND, 1..=MAX) => get_rend(
                         &neighbors[15],
@@ -221,6 +238,7 @@ impl ChunkBoundary {
                         loadable_assets,
                         &mut pal,
                         texture_atlas,
+                        &mut matching_voxels,
                     ),
                     (1..=MAX, BOUND, BOUND) => get_rend(
                         &neighbors[16],
@@ -232,6 +250,7 @@ impl ChunkBoundary {
                         loadable_assets,
                         &mut pal,
                         texture_atlas,
+                        &mut matching_voxels,
                     ),
                     (BOUND, 0, 0) => get_rend(
                         &neighbors[17],
@@ -243,6 +262,7 @@ impl ChunkBoundary {
                         loadable_assets,
                         &mut pal,
                         texture_atlas,
+                        &mut matching_voxels,
                     ),
                     (BOUND, 0, 1..=MAX) => get_rend(
                         &neighbors[18],
@@ -254,6 +274,7 @@ impl ChunkBoundary {
                         loadable_assets,
                         &mut pal,
                         texture_atlas,
+                        &mut matching_voxels,
                     ),
                     (BOUND, 0, BOUND) => get_rend(
                         &neighbors[19],
@@ -265,6 +286,7 @@ impl ChunkBoundary {
                         loadable_assets,
                         &mut pal,
                         texture_atlas,
+                        &mut matching_voxels,
                     ),
                     (BOUND, 1..=MAX, 0) => get_rend(
                         &neighbors[20],
@@ -276,6 +298,7 @@ impl ChunkBoundary {
                         loadable_assets,
                         &mut pal,
                         texture_atlas,
+                        &mut matching_voxels,
                     ),
                     (BOUND, 1..=MAX, 1..=MAX) => get_rend(
                         &neighbors[21],
@@ -287,6 +310,7 @@ impl ChunkBoundary {
                         loadable_assets,
                         &mut pal,
                         texture_atlas,
+                        &mut matching_voxels,
                     ),
                     (BOUND, 1..=MAX, BOUND) => get_rend(
                         &neighbors[22],
@@ -298,6 +322,7 @@ impl ChunkBoundary {
                         loadable_assets,
                         &mut pal,
                         texture_atlas,
+                        &mut matching_voxels,
                     ),
                     (BOUND, BOUND, 0) => get_rend(
                         &neighbors[23],
@@ -309,6 +334,7 @@ impl ChunkBoundary {
                         loadable_assets,
                         &mut pal,
                         texture_atlas,
+                        &mut matching_voxels,
                     ),
                     (BOUND, BOUND, 1..=MAX) => get_rend(
                         &neighbors[24],
@@ -320,6 +346,7 @@ impl ChunkBoundary {
                         loadable_assets,
                         &mut pal,
                         texture_atlas,
+                        &mut matching_voxels,
                     ),
                     (BOUND, BOUND, BOUND) => get_rend(
                         &neighbors[25],
@@ -331,6 +358,7 @@ impl ChunkBoundary {
                         loadable_assets,
                         &mut pal,
                         texture_atlas,
+                        &mut matching_voxels,
                     ),
 
                     (_, _, _) => RenderedBlockData::default(),
@@ -391,6 +419,7 @@ pub fn get_rend(
     loadable_assets: &LoadableAssets,
     pal: &mut Vec<BlockGeo>,
     texture_atlas: &TextureAtlas,
+    matching_blocks: &mut Vec<String>,
 ) -> RenderedBlockData {
     let (x, y, z) = (x as u32, y as u32, z as u32);
     // return RenderedBlockData::default();
@@ -414,6 +443,19 @@ pub fn get_rend(
         pal.push(geo_data_new.clone());
         pal.iter().position(|r| r.clone() == geo_data_new).unwrap()
     };
+    let trimed_identifier = trim_geo_identifier(identifier.clone());
+    let match_index = if matching_blocks.contains(&trimed_identifier) {
+        matching_blocks
+            .iter()
+            .position(|r| r.clone().eq(&trimed_identifier))
+            .unwrap()
+    } else {
+        matching_blocks.push(trimed_identifier.clone());
+        matching_blocks
+            .iter()
+            .position(|r| r.clone().eq(&trimed_identifier))
+            .unwrap()
+    };
     let tex_variance = block_data.tex_variance.unwrap_or_default();
     let tex_variance = [
         tex_variance[0].unwrap_or(false),
@@ -435,6 +477,7 @@ pub fn get_rend(
         geo_index,
         direction: voxel.direction,
         top: voxel.top,
+        match_index,
         // geo: geo_data.unwrap().element.clone(),
         textures,
         visibility: block_data.visibility.unwrap_or_default(),
