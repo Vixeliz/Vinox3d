@@ -139,34 +139,33 @@ fn world_noise(seed: u32) -> impl NoiseFn<f64, 3> {
 pub fn generate_chunk(pos: IVec3, seed: u32, block_table: &BlockTable) -> RawChunk {
     //TODO: Switch to using ron files to determine biomes and what blocks they should use. For now hardcoding a simplex noise
     let ridged_noise: HybridMulti<OpenSimplex> =
-        HybridMulti::new(seed).set_octaves(4).set_frequency(0.03122);
+        HybridMulti::new(seed).set_octaves(4).set_frequency(0.02122);
     // let ridged_noise: RidgedMulti<OpenSimplex> =
     //     RidgedMulti::new(seed).set_octaves(4).set_frequency(0.02122);
     // .set_octaves(4)
     // .set_frequency(0.02122);
     let d_noise: RidgedMulti<OpenSimplex> = RidgedMulti::new(seed.wrapping_add(1))
-        .set_octaves(2)
-        .set_frequency(0.04881);
-    let final_noise = Blend::new(
-        RotatePoint {
-            source: ridged_noise,
-            x_angle: 0.212,
-            y_angle: 0.321,
-            z_angle: -0.1204,
-            u_angle: 0.11,
-        },
-        RotatePoint {
-            source: d_noise,
-            x_angle: -0.124,
-            y_angle: -0.564,
-            z_angle: 0.231,
-            u_angle: -0.1151,
-        },
-        BasicMulti::<OpenSimplex>::new(seed)
-            .set_octaves(1)
-            .set_frequency(0.015415),
-    );
-
+        .set_octaves(4)
+        .set_frequency(0.01881);
+    // let final_noise = Blend::new(
+    //     RotatePoint {
+    //         source: ridged_noise,
+    //         x_angle: 0.212,
+    //         y_angle: 0.321,
+    //         z_angle: -0.1204,
+    //         u_angle: 0.11,
+    //     },
+    //     RotatePoint {
+    //         source: d_noise,
+    //         x_angle: -0.124,
+    //         y_angle: -0.564,
+    //         z_angle: 0.231,
+    //         u_angle: -0.1151,
+    //     },
+    //     BasicMulti::<OpenSimplex>::new(seed)
+    //         .set_octaves(1)
+    //         .set_frequency(0.015415),
+    // );
     let mut raw_chunk = ChunkData::default();
     for x in 0..=CHUNK_SIZE - 1 {
         for z in 0..=CHUNK_SIZE - 1 {
@@ -175,11 +174,18 @@ pub fn generate_chunk(pos: IVec3, seed: u32, block_table: &BlockTable) -> RawChu
                 let full_z = z as i32 + ((CHUNK_SIZE as i32) * pos.z);
                 let full_y = y as i32 + ((CHUNK_SIZE as i32) * pos.y);
                 let (x, y, z) = (x as u32, y as u32, z as u32);
-                let noise_val =
-                    final_noise.get([full_x as f64, full_y as f64, full_z as f64]) * 45.152;
+                let is_cave = ridged_noise
+                    .get([full_x as f64, full_y as f64, full_z as f64]).abs() < 0.1 && 
+                    // .powi(2)
+                    d_noise
+                        .get([full_x as f64, full_y as f64, full_z as f64]).abs() < 0.1;
+                        // .powi(2)
+                        // * 10.0;
+                // let noise_val =
+                //     final_noise.get([full_x as f64, full_y as f64, full_z as f64]) * 45.152;
                 // let noise_val =
                 // world_noise(seed).get([full_x as f64, full_y as f64, full_z as f64]) * 45.152;
-                if 0.5 < noise_val {
+                if !is_cave {
                     raw_chunk.set(
                         x,
                         y,

@@ -23,8 +23,6 @@ pub fn status_bar(
     mut held_items: ResMut<CurrentItemsHeld>,
     mut holding: ResMut<Holding>,
     loadable_assets: Res<LoadableAssets>,
-    // mut egui_textures: ResMut<EguiUserTextures>,
-    // mut texture_ids: Local<[Option<egui::TextureId>; 9]>,
 ) {
     if !options.dark_theme {
         catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
