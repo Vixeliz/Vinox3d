@@ -5,6 +5,9 @@ BlockDescriptor(
     Some("front"): Some("water.png"),
     }),
     visibility: Some(Transparent), 
-    geometry: Some(Custom("vinox:divot")),
+    // geometry: Some(Custom("vinox:divot")),
+    auto_geo: Some([
+        Custom("vinox:divot"),
+    ]),
     has_item: Some(false)
 )

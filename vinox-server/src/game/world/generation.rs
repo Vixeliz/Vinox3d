@@ -48,7 +48,10 @@ pub fn add_sea(raw_chunk: &mut ChunkData, pos: IVec3, block_table: &BlockTable) 
                 let full_z = z as i32 + ((CHUNK_SIZE as i32) * pos.z);
                 let full_y = y as i32 + ((CHUNK_SIZE as i32) * pos.y);
                 let (x, y, z) = (x as u32, y as u32, z as u32);
-                if full_y < SEA_LEVEL && raw_chunk.get(x, y, z).is_empty(block_table) {
+                if full_y == SEA_LEVEL && raw_chunk.get(x, y, z).is_empty(block_table) {
+                    let water = BlockData::new("vinox".to_string(), "water.divot".to_string());
+                    raw_chunk.set(x, y, z, water, block_table);
+                } else if full_y < SEA_LEVEL && raw_chunk.get(x, y, z).is_empty(block_table) {
                     let water = BlockData::new("vinox".to_string(), "water".to_string());
                     raw_chunk.set(x, y, z, water, block_table);
                 }
