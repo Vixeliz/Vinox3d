@@ -504,7 +504,7 @@ pub fn interact(
             let hit = raycast_world(
                 camera_transform.translation(),
                 camera_transform.forward(),
-                50.0,
+                6.0,
                 &chunk_manager,
             );
             if let Some((chunk_pos, voxel_pos, normal, _)) = hit {

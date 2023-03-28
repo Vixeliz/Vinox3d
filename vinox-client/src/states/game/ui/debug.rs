@@ -5,7 +5,10 @@ use bevy_egui::{
     egui::{Align2, FontId},
     *,
 };
-use vinox_common::world::chunks::{positions::world_to_offsets, storage::name_to_identifier};
+use vinox_common::world::chunks::{
+    positions::{world_to_offsets, ChunkPos},
+    storage::name_to_identifier,
+};
 
 use crate::states::{
     components::GameOptions,
@@ -22,6 +25,7 @@ pub fn debug(
     player_block: Res<PlayerBlock>,
     player_direction: Res<PlayerDirection>,
     player_query: Query<&Transform, With<ControlledPlayer>>,
+    chunks: Query<&ChunkPos>,
 ) {
     if !options.dark_theme {
         catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
@@ -71,6 +75,10 @@ pub fn debug(
 
                                     ui.label("Facing:");
                                     ui.label(format!("{:?}", **player_direction));
+                                    ui.end_row();
+
+                                    ui.label("Chunk Entities:");
+                                    ui.label(format!("{}", chunks.iter().len()));
                                     ui.end_row();
                                 });
                             });
