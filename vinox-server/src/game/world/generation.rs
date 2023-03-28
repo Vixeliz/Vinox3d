@@ -139,10 +139,10 @@ fn world_noise(seed: u32) -> impl NoiseFn<f64, 3> {
 pub fn generate_chunk(pos: IVec3, seed: u32, block_table: &BlockTable) -> RawChunk {
     //TODO: Switch to using ron files to determine biomes and what blocks they should use. For now hardcoding a simplex noise
     let ridged_noise: RidgedMulti<OpenSimplex> =
-        RidgedMulti::new(seed).set_octaves(4).set_frequency(0.01122);
+        RidgedMulti::new(seed).set_octaves(4).set_frequency(0.02122);
     let d_noise: RidgedMulti<OpenSimplex> = RidgedMulti::new(seed.wrapping_add(1))
         .set_octaves(2)
-        .set_frequency(0.00981);
+        .set_frequency(0.01881);
     let final_noise = Blend::new(
         RotatePoint {
             source: ridged_noise,
@@ -160,7 +160,7 @@ pub fn generate_chunk(pos: IVec3, seed: u32, block_table: &BlockTable) -> RawChu
         },
         BasicMulti::<OpenSimplex>::new(seed)
             .set_octaves(1)
-            .set_frequency(0.008415),
+            .set_frequency(0.009415),
     );
 
     let mut raw_chunk = ChunkData::default();
