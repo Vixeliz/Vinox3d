@@ -30,8 +30,11 @@ pub struct PlayerBlock {
     pub pos: IVec3,
 }
 
-#[derive(Default, Resource, Debug, Deref, DerefMut)]
-pub struct PlayerTargetedBlock(pub Option<BlockData>);
+#[derive(Default, Resource, Debug)]
+pub struct PlayerTargetedBlock {
+    pub block: Option<BlockData>,
+    pub pos: Option<IVec3>,
+}
 
 #[derive(Default, Debug)]
 pub enum VoxelAxis {
@@ -92,10 +95,12 @@ pub fn update_player_location(
     }
 }
 pub fn update_player_direction(
-    player_query: Query<&Transform, With<ControlledPlayer>>,
     mut player_direction: ResMut<PlayerDirection>,
+    camera_query: Query<&GlobalTransform, With<Camera>>,
 ) {
-    if let Ok(player_transform) = player_query.get_single() {}
+    if let Ok(camera) = camera_query.get_single() {
+        let forward = camera.forward();
+    }
 }
 pub fn unload_chunks(
     mut commands: Commands,

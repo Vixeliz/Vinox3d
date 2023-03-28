@@ -509,12 +509,13 @@ pub fn interact(
             );
             if let Some((chunk_pos, voxel_pos, normal, _)) = hit {
                 let point = voxel_to_world(voxel_pos.as_vec3().as_uvec3(), *chunk_pos);
-                **player_targeted = chunk_manager
-                    .get_block(world_to_global_voxel(relative_voxel_to_world(
-                        voxel_pos.as_vec3().as_ivec3(),
-                        *chunk_pos,
-                    )))
-                    .clone();
+                let global_voxel = world_to_global_voxel(relative_voxel_to_world(
+                    voxel_pos.as_vec3().as_ivec3(),
+                    *chunk_pos,
+                ));
+
+                player_targeted.block = chunk_manager.get_block(global_voxel).clone();
+                player_targeted.pos = Some(global_voxel);
 
                 if let Ok((mut block_transform, mut block_visibility)) =
                     cube_position.get_single_mut()
