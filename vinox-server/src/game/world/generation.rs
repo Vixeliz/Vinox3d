@@ -140,13 +140,10 @@ pub fn generate_chunk(pos: IVec3, seed: u32, block_table: &BlockTable) -> RawChu
     //TODO: Switch to using ron files to determine biomes and what blocks they should use. For now hardcoding a simplex noise
     let ridged_noise: HybridMulti<OpenSimplex> =
         HybridMulti::new(seed).set_octaves(4).set_frequency(0.02122);
-    // let ridged_noise: RidgedMulti<OpenSimplex> =
-    //     RidgedMulti::new(seed).set_octaves(4).set_frequency(0.02122);
-    // .set_octaves(4)
-    // .set_frequency(0.02122);
     let d_noise: RidgedMulti<OpenSimplex> = RidgedMulti::new(seed.wrapping_add(1))
         .set_octaves(4)
         .set_frequency(0.01881);
+
     // let final_noise = Blend::new(
     //     RotatePoint {
     //         source: ridged_noise,
@@ -175,12 +172,13 @@ pub fn generate_chunk(pos: IVec3, seed: u32, block_table: &BlockTable) -> RawChu
                 let full_y = y as i32 + ((CHUNK_SIZE as i32) * pos.y);
                 let (x, y, z) = (x as u32, y as u32, z as u32);
                 let is_cave = ridged_noise
-                    .get([full_x as f64, full_y as f64, full_z as f64]).abs() < 0.1 && 
-                    // .powi(2)
-                    d_noise
-                        .get([full_x as f64, full_y as f64, full_z as f64]).abs() < 0.1;
-                        // .powi(2)
-                        // * 10.0;
+                    .get([full_x as f64, full_y as f64, full_z as f64])
+                    .abs()
+                    < 0.1
+                    && d_noise
+                        .get([full_x as f64, full_y as f64, full_z as f64])
+                        .abs()
+                        < 0.1;
                 // let noise_val =
                 //     final_noise.get([full_x as f64, full_y as f64, full_z as f64]) * 45.152;
                 // let noise_val =
