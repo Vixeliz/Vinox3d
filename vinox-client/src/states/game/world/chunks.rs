@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use tokio::sync::mpsc::{Receiver, Sender};
 
-use bevy::{prelude::*, tasks::AsyncComputeTaskPool};
+use bevy::{prelude::*, tasks::AsyncComputeTaskPool, utils::FloatOrd};
 use bevy_tweening::*;
 use vinox_common::world::chunks::{
     ecs::{
@@ -100,6 +100,22 @@ pub fn update_player_direction(
 ) {
     if let Ok(camera) = camera_query.get_single() {
         let forward = camera.forward();
+
+        let east_dot = forward.dot(Vec3::X);
+        let west_dot = forward.dot(Vec3::NEG_X);
+        let north_dot = forward.dot(Vec3::Z);
+        let south_dot = forward.dot(Vec3::NEG_Z);
+        let numbers = [east_dot, west_dot, north_dot, south_dot];
+        let closest = numbers.iter().max_by_key(|&num| FloatOrd(*num)).unwrap();
+        **player_direction = if *closest == east_dot {
+            VoxelAxis::East
+        } else if *closest == west_dot {
+            VoxelAxis::West
+        } else if *closest == north_dot {
+            VoxelAxis::North
+        } else {
+            VoxelAxis::South
+        };
     }
 }
 pub fn unload_chunks(
