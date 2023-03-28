@@ -1,8 +1,8 @@
 use bevy::prelude::*;
 use bracket_noise::prelude::*;
 use noise::{
-    BasicMulti, Blend, Cache, Clamp, Curve, Fbm, Min, MultiFractal, NoiseFn, OpenSimplex, Perlin,
-    RidgedMulti, RotatePoint, ScaleBias,
+    BasicMulti, Billow, Blend, Cache, Clamp, Curve, Fbm, HybridMulti, Min, MultiFractal, NoiseFn,
+    OpenSimplex, Perlin, RidgedMulti, RotatePoint, ScaleBias, SuperSimplex, Worley,
 };
 use std::collections::HashMap;
 // use rand::{rngs::StdRng, Rng, SeedableRng};
@@ -138,11 +138,15 @@ fn world_noise(seed: u32) -> impl NoiseFn<f64, 3> {
 
 pub fn generate_chunk(pos: IVec3, seed: u32, block_table: &BlockTable) -> RawChunk {
     //TODO: Switch to using ron files to determine biomes and what blocks they should use. For now hardcoding a simplex noise
-    let ridged_noise: RidgedMulti<OpenSimplex> =
-        RidgedMulti::new(seed).set_octaves(4).set_frequency(0.02122);
+    let ridged_noise: HybridMulti<OpenSimplex> =
+        HybridMulti::new(seed).set_octaves(4).set_frequency(0.03122);
+    // let ridged_noise: RidgedMulti<OpenSimplex> =
+    //     RidgedMulti::new(seed).set_octaves(4).set_frequency(0.02122);
+    // .set_octaves(4)
+    // .set_frequency(0.02122);
     let d_noise: RidgedMulti<OpenSimplex> = RidgedMulti::new(seed.wrapping_add(1))
         .set_octaves(2)
-        .set_frequency(0.01881);
+        .set_frequency(0.04881);
     let final_noise = Blend::new(
         RotatePoint {
             source: ridged_noise,
@@ -160,7 +164,7 @@ pub fn generate_chunk(pos: IVec3, seed: u32, block_table: &BlockTable) -> RawChu
         },
         BasicMulti::<OpenSimplex>::new(seed)
             .set_octaves(1)
-            .set_frequency(0.009415),
+            .set_frequency(0.015415),
     );
 
     let mut raw_chunk = ChunkData::default();

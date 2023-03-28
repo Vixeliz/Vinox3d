@@ -93,7 +93,7 @@ pub fn crafting_ui(
     }
     if let Ok(mut inventory) = player_query.get_single_mut() {
         if inventory.open {
-            egui::Window::new("crafting").show(contexts.ctx_mut(), |ui| {
+            egui::SidePanel::left("crafting").show(contexts.ctx_mut(), |ui| {
                 ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
                     ui.ctx().set_style(egui::Style {
                         text_styles: {

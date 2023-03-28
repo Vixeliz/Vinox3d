@@ -1,4 +1,5 @@
 use bevy::{asset::LoadState, math::Vec3A, prelude::*, render::primitives::Aabb};
+use bevy_egui::EguiUserTextures;
 use bevy_quinnet::client::{
     certificate::CertificateVerificationMode,
     connection::{ConnectionConfiguration, ConnectionEvent},
@@ -109,6 +110,8 @@ pub fn setup_resources(
     mut item_table: ResMut<ItemTable>,
     mut recipe_table: ResMut<RecipeTable>,
     mut geo_table: ResMut<GeometryTable>,
+    mut loadable_assets: ResMut<LoadableAssets>,
+    mut egui_textures: ResMut<EguiUserTextures>,
 ) {
     let player_handle = asset_server.load("base_player.gltf#Scene0");
     loading.push(player_handle.clone_untyped());
@@ -148,7 +151,33 @@ pub fn setup_resources(
         let mut name = item.clone().namespace;
         name.push(':');
         name.push_str(&item.name);
+
         item_table.insert(name, item);
+    }
+
+    for item in item_table.values() {
+        let mut name = item.clone().namespace;
+        name.push(':');
+        name.push_str(&item.name);
+        if let Some(path) = item.texture.clone() {
+            let texture_handle = asset_server.load(path);
+            loading.push(texture_handle.clone_untyped());
+            loadable_assets
+                .item_textures
+                .insert(name.clone(), texture_handle);
+        } else {
+            let texture_handle: Handle<Image> = asset_server.load("outline.png");
+            loadable_assets
+                .item_textures
+                .insert(name.clone(), texture_handle);
+        }
+    }
+    let texture_handle: Handle<Image> = asset_server.load("outline.png");
+    loadable_assets
+        .item_textures
+        .insert("empty".to_string(), texture_handle);
+    for item_texture in loadable_assets.item_textures.values() {
+        egui_textures.add_image(item_texture.clone_weak());
     }
 }
 
