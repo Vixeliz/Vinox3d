@@ -1,0 +1,10 @@
+BlockDescriptor(
+    namespace: "vinox",
+    name: "andesite",
+    textures: Some({
+    Some("front"): Some("andesite.png"),
+    }),
+    has_item: Some(true),
+    visibility: Some(Opaque)
+
+)

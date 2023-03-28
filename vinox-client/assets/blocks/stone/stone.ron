@@ -1,0 +1,10 @@
+BlockDescriptor(
+    namespace: "vinox",
+    name: "stone",
+    textures: Some({
+    Some("front"): Some("stone.png"),
+    }),
+    break_tool: "pickaxe",
+    visibility: Some(Opaque), 
+    has_item: Some(true),
+)
