@@ -67,6 +67,7 @@ pub struct BlockDescriptor {
     pub tex_variance: Option<[Option<bool>; 6]>,
     pub durability: Option<u32>,
     pub tool_type: Option<ToolType>,
+    pub tool_tier: Option<u8>,
     pub friction: Option<u32>,
     pub walk_sound: Option<String>,
     pub break_sound: Option<String>,

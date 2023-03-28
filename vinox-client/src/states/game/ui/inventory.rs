@@ -280,6 +280,7 @@ pub fn inventory(
             egui::Window::new("inventory")
                 .resizable(false)
                 .constrain(true)
+                .default_pos([400.0, 200.0])
                 .show(&ctx, |ui| {
                     let cloned_inv = inventory.clone();
                     StripBuilder::new(ui)

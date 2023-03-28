@@ -31,6 +31,7 @@ pub fn debug(
             let style = contexts.ctx_mut().style().clone();
             egui::Window::new("Debug")
                 .default_size([256.0, 125.0])
+                .anchor(Align2::RIGHT_TOP, [0.0, 0.0])
                 .frame(egui::Frame {
                     fill: egui::Color32::from_rgba_unmultiplied(0, 0, 0, 224),
                     rounding: style.visuals.window_rounding,
