@@ -1,0 +1,50 @@
+GeometryDescriptor(
+    namespace: "vinox",
+    name: "divot",
+    blocks: (
+        true,
+        true,
+	    true,
+	    true,
+        true,
+        true
+    ),
+    element:
+    BlockGeo(
+        pivot: (0, 0, 0),
+        rotation: (0, 0, 0),
+
+        cubes: [
+            FaceDescript(
+                uv:(
+                    ((0, 0), (16, 13)), // West
+                    ((0, 0), (16, 13)), // East
+                    ((16, 16), (-16, -16)), // Down
+                    ((16, 16), (-16, -16)), // Up
+                    ((0, 0), (16, 13)), // South
+                    ((0, 0), (16, 13)), // North
+                ),
+                cull: (
+            	     true,
+				     true,
+				     true,
+				     true,
+			         true,
+				     true,
+                ),
+                discard: (
+            	     false,
+				     false,
+				     false,
+				     false,
+			         false,
+				     false,
+                ),
+                origin: (0, 0, 0),
+                end: (16, 13, 16),
+                rotation: (0, 0, 0),
+                pivot: (0, 0, 0)
+        )
+    ]
+    )
+)

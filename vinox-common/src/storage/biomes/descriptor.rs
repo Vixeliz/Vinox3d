@@ -29,6 +29,7 @@ pub struct BiomeDescriptor {
     pub namespace: String,
     pub name: String,
     pub terrain_type: TerrainType,
+    pub terrain_carver: TerrainCarver,
     pub amplitude: Option<f32>, // This is what terrain type sets for simplicity
     pub heat: f32,
     pub humidity: f32,

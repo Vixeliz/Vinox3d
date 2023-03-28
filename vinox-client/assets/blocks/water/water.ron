@@ -1,0 +1,10 @@
+BlockDescriptor(
+    namespace: "vinox",
+    name: "water",
+    textures: Some({
+    Some("front"): Some("water.png"),
+    }),
+    visibility: Some(Transparent), 
+    geometry: Some(Custom("vinox:divot")),
+    has_item: Some(false)
+)

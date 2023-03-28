@@ -17,7 +17,6 @@ pub fn load_all_blocks() -> Vec<BlockDescriptor> {
                     let ron_result = ron::from_str::<BlockDescriptor>(ron_string.as_str());
                     if let Ok(block) = ron_result {
                         if let Some(auto_geo) = block.clone().auto_geo {
-                            result.push(block.clone());
                             for geo in auto_geo.iter() {
                                 let mut new_block = block.clone();
                                 new_block.auto_geo = None;

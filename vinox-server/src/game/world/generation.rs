@@ -11,21 +11,11 @@ use vinox_common::{
 #[derive(Resource, Default, Serialize, Deserialize)]
 pub struct ToBePlaced(HashMap<IVec3, Vec<(UVec3, BlockDescriptor)>>);
 
+pub const SEA_LEVEL: i32 = 0;
+
 // Just some interesting stuff to look at while testing
 #[allow(clippy::type_complexity)]
-pub fn add_grass(
-    raw_chunk: &mut ChunkData,
-    // noisefn: &noise::Blend<
-    //     f64,
-    //     noise::RotatePoint<noise::RidgedMulti<noise::OpenSimplex>>,
-    //     noise::RotatePoint<noise::RidgedMulti<noise::OpenSimplex>>,
-    //     noise::BasicMulti<noise::OpenSimplex>,
-    //     3,
-    // >,
-    noisefn: &FastNoise,
-    pos: IVec3,
-    block_table: &BlockTable,
-) {
+pub fn add_grass(raw_chunk: &mut ChunkData, pos: IVec3, block_table: &BlockTable) {
     for z in 0..=CHUNK_SIZE - 1 {
         for y in 0..=CHUNK_SIZE - 1 {
             for x in 0..=CHUNK_SIZE - 1 {
@@ -34,10 +24,8 @@ pub fn add_grass(
                     let full_x = x as i32 + ((CHUNK_SIZE as i32) * pos.x);
                     let full_z = z as i32 + ((CHUNK_SIZE as i32) * pos.z);
                     let full_y = y as i32 + ((CHUNK_SIZE as i32) * pos.y) + 1;
-                    let noise_val =
-                        noisefn.get_noise3d(full_x as f32, full_y as f32, full_z as f32) * 120.412;
-                    if full_y as f32 > noise_val && raw_chunk.get_identifier(x, y, z) != "vinox:air"
-                    {
+                    if raw_chunk.get_identifier(x, y, z) != "vinox:air" {
+                        // We need to add a vec for adding blocks in a new chunk when out of range
                         let grass = BlockData::new("vinox".to_string(), "grass".to_string());
                         raw_chunk.set(x, y, z, grass, block_table);
                     }
@@ -46,6 +34,23 @@ pub fn add_grass(
                 {
                     let grass = BlockData::new("vinox".to_string(), "grass".to_string());
                     raw_chunk.set(x, y, z, grass, block_table);
+                }
+            }
+        }
+    }
+}
+
+pub fn add_sea(raw_chunk: &mut ChunkData, pos: IVec3, block_table: &BlockTable) {
+    for z in 0..CHUNK_SIZE {
+        for y in 0..CHUNK_SIZE {
+            for x in 0..CHUNK_SIZE {
+                let full_x = x as i32 + ((CHUNK_SIZE as i32) * pos.x);
+                let full_z = z as i32 + ((CHUNK_SIZE as i32) * pos.z);
+                let full_y = y as i32 + ((CHUNK_SIZE as i32) * pos.y);
+                let (x, y, z) = (x as u32, y as u32, z as u32);
+                if full_y < SEA_LEVEL && raw_chunk.get(x, y, z).is_empty(block_table) {
+                    let water = BlockData::new("vinox".to_string(), "water".to_string());
+                    raw_chunk.set(x, y, z, water, block_table);
                 }
             }
         }
@@ -162,6 +167,7 @@ pub fn generate_chunk(pos: IVec3, seed: u32, block_table: &BlockTable) -> RawChu
             }
         }
     }
-    add_grass(&mut raw_chunk, &noise, pos, block_table);
+    // add_grass(&mut raw_chunk, &noise, pos, block_table);
+    add_sea(&mut raw_chunk, pos, block_table);
     raw_chunk.to_raw()
 }

@@ -671,6 +671,25 @@ pub fn interact(
                                         },
                                     );
                                 }
+                            } else {
+                                chunk_manager.set_block(
+                                    voxel_to_global_voxel(voxel_pos, *chunk_pos),
+                                    BlockData::new("vinox".to_string(), "air".to_string()),
+                                );
+                                client.connection_mut().try_send_message(
+                                    ClientMessage::SentBlock {
+                                        chunk_pos: *chunk_pos,
+                                        voxel_pos: [
+                                            voxel_pos.x as u8,
+                                            voxel_pos.y as u8,
+                                            voxel_pos.z as u8,
+                                        ],
+                                        block_type: BlockData::new(
+                                            "vinox".to_string(),
+                                            "air".to_string(),
+                                        ),
+                                    },
+                                );
                             }
                         }
                     }

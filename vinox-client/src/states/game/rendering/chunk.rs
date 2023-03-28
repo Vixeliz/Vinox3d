@@ -404,6 +404,9 @@ pub fn get_rend(
             .unwrap_or_default()
             .get_geo_namespace(),
     );
+    // if block_data.clone().name.eq("water") {
+    //     println!("{:?}", block_data.clone().geometry);
+    // }
     let geo_data_new = geo_data.unwrap().element.clone();
     let geo_index = if pal.contains(&geo_data_new) {
         pal.iter().position(|r| r.clone() == geo_data_new).unwrap()
