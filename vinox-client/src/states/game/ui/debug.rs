@@ -1,6 +1,9 @@
 use std::collections::BTreeMap;
 
-use bevy::prelude::*;
+use bevy::{
+    diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin},
+    prelude::*,
+};
 use bevy_egui::{
     egui::{Align2, FontId},
     *,
@@ -26,7 +29,11 @@ pub fn debug(
     player_direction: Res<PlayerDirection>,
     player_query: Query<&Transform, With<ControlledPlayer>>,
     chunks: Query<&ChunkPos>,
+    diagnostics: Res<Diagnostics>,
 ) {
+    let fps = diagnostics
+        .get(FrameTimeDiagnosticsPlugin::FPS)
+        .and_then(|fps| fps.average());
     if !options.dark_theme {
         catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
     }
@@ -34,7 +41,7 @@ pub fn debug(
         if let Ok(player_transform) = player_query.get_single() {
             let style = contexts.ctx_mut().style().clone();
             egui::Window::new("Debug")
-                .default_size([256.0, 125.0])
+                .default_size([256.0, 150.0])
                 .anchor(Align2::RIGHT_TOP, [0.0, 0.0])
                 .frame(egui::Frame {
                     fill: egui::Color32::from_rgba_unmultiplied(0, 0, 0, 224),
@@ -49,6 +56,12 @@ pub fn debug(
                             .show(ui, |ui| {
                                 egui::Grid::new("debug_info").show(ui, |ui| {
                                     // HERE: This is where you put your own debug
+                                    if let Some(fps) = fps {
+                                        ui.label("Fps:");
+                                        ui.label(format!("{fps:.1?}"));
+                                        ui.end_row();
+                                    }
+
                                     ui.label("Chunk:");
                                     ui.label(format!("{}", player_chunk.chunk_pos));
                                     ui.end_row();

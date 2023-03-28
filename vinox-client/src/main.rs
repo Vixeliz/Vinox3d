@@ -1,6 +1,6 @@
 pub mod states;
 use bevy::{
-    // diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
+    diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
     pbr::wireframe::WireframePlugin,
     prelude::*,
     render::{
@@ -86,7 +86,7 @@ fn main() {
         )
         .add_plugin(WireframePlugin)
         // .add_plugin(LogDiagnosticsPlugin::default())
-        // .add_plugin(FrameTimeDiagnosticsPlugin::default())
+        .add_plugin(FrameTimeDiagnosticsPlugin::default())
         .insert_resource(ProjectPath(asset_path))
         .insert_resource(final_options)
         .add_plugin(MaterialPlugin::<BasicMaterial>::default())
