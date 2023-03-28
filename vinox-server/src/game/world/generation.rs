@@ -180,7 +180,7 @@ pub fn generate_chunk(pos: IVec3, seed: u32, block_table: &BlockTable) -> RawChu
                         x,
                         y,
                         z,
-                        BlockData::new("vinox".to_string(), "dirt".to_string()),
+                        BlockData::new("vinox".to_string(), "stone".to_string()),
                         block_table,
                     );
                 } else {
