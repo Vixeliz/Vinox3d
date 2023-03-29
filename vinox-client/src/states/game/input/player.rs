@@ -15,7 +15,10 @@ use bevy_quinnet::client::Client;
 use vinox_common::{
     ecs::bundles::Inventory,
     networking::protocol::ClientMessage,
-    physics::{collision::raycast::raycast_world, simulate::Velocity},
+    physics::{
+        collision::raycast::raycast_world,
+        simulate::{CollidesWithWorld, Velocity},
+    },
     storage::blocks::descriptor::BlockGeometry,
     world::chunks::{
         ecs::{ChunkManager, CurrentChunks},
@@ -176,7 +179,12 @@ pub struct MouseSensitivity(pub f32);
 pub fn handle_movement(
     mut player: Query<&mut FPSCamera>,
     mut player_position: Query<
-        (&mut Transform, &mut Velocity, &ActionState<GameActions>),
+        (
+            &mut Transform,
+            &mut Velocity,
+            &ActionState<GameActions>,
+            Option<&CollidesWithWorld>,
+        ),
         With<ControlledPlayer>,
     >,
     mut camera_transform: Query<&mut Transform, (With<Camera>, Without<ControlledPlayer>)>,
@@ -210,54 +218,83 @@ pub fn handle_movement(
         }
     }
     // Update velocity with movement input
-    if let Ok((translation, mut velocity, action_state)) = player_position.get_single_mut() {
-        let mut movement = Vec3::ZERO;
+    if let Ok((translation, mut velocity, action_state, world_collide)) =
+        player_position.get_single_mut()
+    {
+        if world_collide.is_some() {
+            let mut movement = Vec3::ZERO;
 
-        if velocity.0.y.abs() < 0.001 && *stationary_frames < 10 {
-            *stationary_frames += 4;
-        } else if *stationary_frames >= 0 {
-            *stationary_frames -= 1;
+            if velocity.0.y.abs() < 0.001 && *stationary_frames < 10 {
+                *stationary_frames += 4;
+            } else if *stationary_frames >= 0 {
+                *stationary_frames -= 1;
+            }
+
+            let gravity = 35.0 * Vec3::NEG_Y;
+            velocity.0 += gravity * time.delta().as_secs_f32().clamp(0.0, 0.1);
+
+            let chunk_pos = world_to_chunk(translation.translation);
+            if window.cursor.grab_mode == CursorGrabMode::Locked {
+                if current_chunks.get_entity(ChunkPos(chunk_pos)).is_none() {
+                    return;
+                }
+
+                if action_state.pressed(GameActions::Forward) {
+                    let mut fwd = transform.forward();
+                    fwd.y = 0.0;
+                    let fwd = fwd.normalize();
+                    movement += fwd;
+                }
+                if action_state.pressed(GameActions::Left) {
+                    movement += transform.left()
+                }
+                if action_state.pressed(GameActions::Right) {
+                    movement += transform.right()
+                }
+                if action_state.pressed(GameActions::Backward) {
+                    let mut back = transform.back();
+                    back.y = 0.0;
+                    let back = back.normalize();
+                    movement += back;
+                }
+                movement = movement.normalize_or_zero();
+                if action_state.pressed(GameActions::Run) {
+                    movement *= 10.0;
+                } else {
+                    movement *= 5.0;
+                }
+                if action_state.pressed(GameActions::Jump) && *stationary_frames > 2 {
+                    *stationary_frames = 0;
+                    velocity.0.y = 10.0;
+                }
+            }
+            velocity.0 = Vec3::new(movement.x, velocity.0.y, movement.z);
+        } else {
+            velocity.0 = Vec3::ZERO;
+            if window.cursor.grab_mode == CursorGrabMode::Locked {
+                if action_state.pressed(GameActions::Forward) {
+                    velocity.0 += transform.forward().normalize();
+                }
+                if action_state.pressed(GameActions::Left) {
+                    velocity.0 += transform.left()
+                }
+                if action_state.pressed(GameActions::Right) {
+                    velocity.0 += transform.right()
+                }
+                if action_state.pressed(GameActions::Backward) {
+                    velocity.0 += transform.back().normalize();
+                }
+                velocity.0 = velocity.0.normalize_or_zero();
+                if action_state.pressed(GameActions::Run) {
+                    velocity.0 *= 10.0;
+                } else {
+                    velocity.0 *= 5.0;
+                }
+                if action_state.pressed(GameActions::Jump) {
+                    velocity.0.y = 10.0;
+                }
+            }
         }
-
-        let gravity = 35.0 * Vec3::NEG_Y;
-        velocity.0 += gravity * time.delta().as_secs_f32().clamp(0.0, 0.1);
-
-        let chunk_pos = world_to_chunk(translation.translation);
-        if window.cursor.grab_mode == CursorGrabMode::Locked {
-            if current_chunks.get_entity(ChunkPos(chunk_pos)).is_none() {
-                return;
-            }
-
-            if action_state.pressed(GameActions::Forward) {
-                let mut fwd = transform.forward();
-                fwd.y = 0.0;
-                let fwd = fwd.normalize();
-                movement += fwd;
-            }
-            if action_state.pressed(GameActions::Left) {
-                movement += transform.left()
-            }
-            if action_state.pressed(GameActions::Right) {
-                movement += transform.right()
-            }
-            if action_state.pressed(GameActions::Backward) {
-                let mut back = transform.back();
-                back.y = 0.0;
-                let back = back.normalize();
-                movement += back;
-            }
-            movement = movement.normalize_or_zero();
-            if action_state.pressed(GameActions::Run) {
-                movement *= 10.0;
-            } else {
-                movement *= 5.0;
-            }
-            if action_state.pressed(GameActions::Jump) && *stationary_frames > 2 {
-                *stationary_frames = 0;
-                velocity.0.y = 10.0;
-            }
-        }
-        velocity.0 = Vec3::new(movement.x, velocity.0.y, movement.z);
     }
 }
 
