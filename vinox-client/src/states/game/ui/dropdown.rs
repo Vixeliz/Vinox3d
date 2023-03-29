@@ -2,7 +2,7 @@ use bevy_quinnet::client::Client;
 use brigadier_rs::*;
 use egui_notify::Toasts;
 use std::{collections::BTreeMap, convert::Infallible};
-use vinox_common::networking::protocol::ClientMessage;
+use vinox_common::{networking::protocol::ClientMessage, physics::simulate::CollidesWithWorld};
 
 use bevy::{pbr::wireframe::WireframeConfig, prelude::*};
 use bevy_egui::{
@@ -10,7 +10,10 @@ use bevy_egui::{
     *,
 };
 
-use crate::states::{components::GameOptions, game::networking::components::ChatMessages};
+use crate::states::{
+    components::GameOptions,
+    game::{networking::components::ChatMessages, world::chunks::ControlledPlayer},
+};
 
 #[derive(Resource, Default, Deref, DerefMut)]
 pub struct ConsoleOpen(pub bool);
@@ -20,7 +23,9 @@ pub struct Toast(pub Toasts);
 
 #[allow(clippy::too_many_arguments)]
 pub fn create_ui(
-    // mut commands: Commands,
+    mut commands: Commands,
+    player_query: Query<Entity, With<ControlledPlayer>>,
+    collider_query: Query<&CollidesWithWorld>,
     mut client: ResMut<Client>,
     is_open: Res<ConsoleOpen>, // mut username_res: ResMut<UserName>,
     mut current_message: Local<String>,
@@ -38,6 +43,15 @@ pub fn create_ui(
         let parser = literal("/wireframe")
             .then(boolean("bool").build_exec(|_ctx: (), bar| {
                 println!("Toggled wireframe to {bar}");
+                Ok::<(), Infallible>(())
+            }))
+            .build_exec(|_ctx: ()| {
+                println!("Called foo with no arguments");
+                Ok::<(), Infallible>(())
+            });
+        let parser_spec = literal("/spectator")
+            .then(boolean("bool").build_exec(|_ctx: (), bar| {
+                println!("Toggled spectator to {bar}");
                 Ok::<(), Infallible>(())
             }))
             .build_exec(|_ctx: ()| {
@@ -66,9 +80,23 @@ pub fn create_ui(
                                 let input_send = response.lost_focus()
                                     && ui.input(|input| input.key_pressed(egui::Key::Enter));
                                 if input_send {
+                                    // TODO: Switch this to a better system
                                     if let Ok((result, _)) = parser.parse((), &current_message) {
                                         messages.push(("Console".to_string(), result.to_string()));
                                         wireframe_config.global = !wireframe_config.global;
+                                    } else if let Ok((result, _)) =
+                                        parser_spec.parse((), &current_message)
+                                    {
+                                        messages.push(("Console".to_string(), result.to_string()));
+                                        if let Ok(player) = player_query.get_single() {
+                                            if collider_query.get(player).is_ok() {
+                                                commands
+                                                    .entity(player)
+                                                    .remove::<CollidesWithWorld>();
+                                            } else {
+                                                commands.entity(player).insert(CollidesWithWorld);
+                                            }
+                                        }
                                     } else {
                                         client.connection_mut().try_send_message(
                                             ClientMessage::ChatMessage {
