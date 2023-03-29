@@ -29,7 +29,7 @@ pub fn load_all_blocks() -> Vec<BlockDescriptor> {
 
                         result.push(block);
                     } else {
-                        println!("{ron_result:?}");
+                        println!("{ron_result:?}, {:?}", entry.path());
                     }
                 }
             }
