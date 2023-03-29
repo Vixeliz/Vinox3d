@@ -12,7 +12,8 @@ use crate::world::chunks::{
     storage::{BlockData, BlockTable, ChunkData},
 };
 
-const MARGIN: Vec3A = Vec3A::new(0.001, 0.001, 0.001);
+const EPSILON: f32 = 0.0001;
+const MARGIN: Vec3A = Vec3A::new(EPSILON, EPSILON, EPSILON);
 
 #[derive(Clone)]
 pub struct CollisionInfo {
@@ -33,6 +34,96 @@ impl std::fmt::Display for CollisionInfo {
     }
 }
 
+pub fn aabb_intersects_world(
+    aabb: &Aabb,
+    chunks: &Query<&ChunkData>,
+    current_chunks: &CurrentChunks,
+    block_table: &BlockTable,
+) -> bool {
+    let area_to_check = (
+        (-aabb.half_extents).floor().as_ivec3() + IVec3::NEG_ONE,
+        (aabb.half_extents).ceil().as_ivec3() + IVec3::ONE,
+    );
+    for x in area_to_check.0.x..=area_to_check.1.x {
+        for y in area_to_check.0.y..=area_to_check.1.y {
+            for z in area_to_check.0.z..=area_to_check.1.z {
+                let (check_chunk_pos, check_block_cpos) = world_to_voxel(
+                    Vec3::from(aabb.center) + Vec3::new(x as f32, y as f32, z as f32),
+                );
+                if let Some(chunk_entity) = current_chunks.get_entity(ChunkPos(check_chunk_pos)) {
+                    if let Ok(chunk) = chunks.get(chunk_entity) {
+                        let block_data: BlockData =
+                            chunk.get(check_block_cpos.x, check_block_cpos.y, check_block_cpos.z);
+                        let voxel_pos = voxel_to_global_voxel(check_block_cpos, check_chunk_pos);
+                        if !block_data.is_empty(block_table) {
+                            let block_aabb = Aabb {
+                                center: voxel_pos.as_vec3a() + Vec3A::new(0.5, 0.5, 0.5),
+                                half_extents: Vec3A::new(0.5, 0.5, 0.5),
+                            };
+                            if aabbs_intersect(&aabb, &block_aabb) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    false
+}
+
+pub fn get_aabb_world_intersectors(
+    aabb: &Aabb,
+    chunks: &Query<&ChunkData>,
+    current_chunks: &CurrentChunks,
+    block_table: &BlockTable,
+) -> Vec<IVec3> {
+    let mut intersectors: Vec<IVec3> = Vec::new();
+    let area_to_check = (
+        (-aabb.half_extents).floor().as_ivec3() + IVec3::NEG_ONE,
+        (aabb.half_extents).ceil().as_ivec3() + IVec3::ONE,
+    );
+    for x in area_to_check.0.x..=area_to_check.1.x {
+        for y in area_to_check.0.y..=area_to_check.1.y {
+            for z in area_to_check.0.z..=area_to_check.1.z {
+                let (check_chunk_pos, check_block_cpos) = world_to_voxel(
+                    Vec3::from(aabb.center) + Vec3::new(x as f32, y as f32, z as f32),
+                );
+                if let Some(chunk_entity) = current_chunks.get_entity(ChunkPos(check_chunk_pos)) {
+                    if let Ok(chunk) = chunks.get(chunk_entity) {
+                        let block_data: BlockData =
+                            chunk.get(check_block_cpos.x, check_block_cpos.y, check_block_cpos.z);
+                        let voxel_pos = voxel_to_global_voxel(check_block_cpos, check_chunk_pos);
+                        if !block_data.is_empty(block_table) {
+                            let block_aabb = Aabb {
+                                center: voxel_pos.as_vec3a() + Vec3A::new(0.5, 0.5, 0.5),
+                                half_extents: Vec3A::new(0.5, 0.5, 0.5),
+                            };
+                            if aabbs_intersect(&aabb, &block_aabb) {
+                                intersectors.push(voxel_pos);
+                                let yint = block_aabb.max().y <= aabb.min().y;
+                                println!(
+                                    "Intersecting with {} which is {}, chunk_pos {}, chunk_offsets, {}, voxel_pos {}, block_aabb {:?}, player_aabb {aabb:?}, {} <= {} ? {yint}, diff {}, eval {}",
+                                    block_aabb.center.as_ivec3(),
+                                    block_data.name,
+                                    check_chunk_pos,
+                                    check_block_cpos,
+                                    voxel_pos,
+                                    block_aabb,
+                                    block_aabb.max().y,
+                                    aabb.min().y,
+                                    block_aabb.max().y - aabb.min().y,
+                                    (block_aabb.max().y - aabb.min().y).abs() < 0.001,
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    intersectors
+}
 pub fn aabb_vs_world(
     aabb: &Aabb,
     chunks: &Query<&ChunkData>,
@@ -86,28 +177,13 @@ pub fn aabb_vs_world(
 }
 
 #[inline]
-// Returns if two AABBs are inside each other.
-// Returns false if exactly touching but not inside.
+// Checks whether AABBs are at least within MARGIN distance of each other
+// (Couldn't use exact comparison because of floating point imprecision)
 pub fn aabbs_intersect(a: &Aabb, b: &Aabb) -> bool {
-    let amin = a.min();
-    let amax = a.max();
-    let bmin = b.min();
-    let bmax = b.max();
-    !(amin.x >= bmax.x
-        || bmin.x >= amax.x
-        || amin.y >= bmax.y
-        || bmin.y >= amax.y
-        || amin.z >= bmax.z
-        || bmin.z >= amax.z)
-}
-
-#[inline]
-// Returns if two AABBs are inside each other, or touching.
-pub fn aabbs_intersect_or_touch(a: &Aabb, b: &Aabb) -> bool {
-    let amin = a.min();
-    let amax = a.max();
-    let bmin = b.min();
-    let bmax = b.max();
+    let amin = a.min() - MARGIN;
+    let amax = a.max() + MARGIN;
+    let bmin = b.min() - MARGIN;
+    let bmax = b.max() + MARGIN;
     !(amin.x > bmax.x
         || bmin.x > amax.x
         || amin.y > bmax.y
@@ -187,7 +263,7 @@ pub fn get_collision_info(a: &Aabb, b: &Aabb, a_velocity: &Vec3) -> Option<Colli
     let enter_time = max(max(FloatOrd(enter.x), FloatOrd(enter.y)), FloatOrd(enter.z));
     let exit_time = min(min(FloatOrd(exit.x), FloatOrd(exit.y)), FloatOrd(exit.z));
     if enter_time > exit_time
-        || enter.x < -MARGIN.x && enter.y < -MARGIN.y && enter.z < -MARGIN.z
+        || (enter.x < -EPSILON && enter.y < -EPSILON && enter.z < -EPSILON)
         || enter.x > 1.0
         || enter.y > 1.0
         || enter.z > 1.0
@@ -197,30 +273,39 @@ pub fn get_collision_info(a: &Aabb, b: &Aabb, a_velocity: &Vec3) -> Option<Colli
     } else {
         // This might be a collision this frame
         let dist: f32;
-        if inv_enter.x == 0.0 && inv_enter.z == 0.0 {
-            if a_velocity.x.abs() > a_velocity.z.abs() {
-                normal.z = if a_velocity.z < 0.0 { 1.0 } else { -1.0 };
-                dist = inv_enter.z.abs();
-            } else {
-                normal.x = if a_velocity.x < 0.0 { 1.0 } else { -1.0 };
-                dist = inv_enter.x.abs();
-            }
-        } else if inv_enter.x == 0.0 && inv_enter.y == 0.0 {
-            if a_velocity.x.abs() > a_velocity.y.abs() {
-                normal.y = if a_velocity.y < 0.0 { 1.0 } else { -1.0 };
-                dist = inv_enter.y.abs();
-            } else {
-                normal.x = if a_velocity.x < 0.0 { 1.0 } else { -1.0 };
-                dist = inv_enter.x.abs();
-            }
-        } else if inv_enter.y == 0.0 && inv_enter.z == 0.0 {
-            if a_velocity.y.abs() > a_velocity.z.abs() {
-                normal.z = if a_velocity.z < 0.0 { 1.0 } else { -1.0 };
-                dist = inv_enter.z.abs();
-            } else {
-                normal.y = if a_velocity.y < 0.0 { 1.0 } else { -1.0 };
-                dist = inv_enter.y.abs();
-            }
+        // if inv_enter.x == 0.0 && inv_enter.z == 0.0 {
+        //     if a_velocity.x.abs() > a_velocity.z.abs() {
+        //         normal.z = if a_velocity.z < 0.0 { 1.0 } else { -1.0 };
+        //         dist = inv_enter.z.abs();
+        //     } else {
+        //         normal.x = if a_velocity.x < 0.0 { 1.0 } else { -1.0 };
+        //         dist = inv_enter.x.abs();
+        //     }
+        // } else if inv_enter.x == 0.0 && inv_enter.y == 0.0 {
+        //     if a_velocity.x.abs() > a_velocity.y.abs() {
+        //         normal.y = if a_velocity.y < 0.0 { 1.0 } else { -1.0 };
+        //         dist = inv_enter.y.abs();
+        //     } else {
+        //         normal.x = if a_velocity.x < 0.0 { 1.0 } else { -1.0 };
+        //         dist = inv_enter.x.abs();
+        //     }
+        // } else if inv_enter.y == 0.0 && inv_enter.z == 0.0 {
+        //     if a_velocity.y.abs() > a_velocity.z.abs() {
+        //         normal.z = if a_velocity.z < 0.0 { 1.0 } else { -1.0 };
+        //         dist = inv_enter.z.abs();
+        //     } else {
+        //         normal.y = if a_velocity.y < 0.0 { 1.0 } else { -1.0 };
+        //         dist = inv_enter.y.abs();
+        //     }
+        if inv_enter.x == 0.0 && a_velocity.x == 0.0 {
+            normal.x = if inv_exit.x < 0.0 { 1.0 } else { -1.0 };
+            dist = inv_enter.x.abs();
+        } else if inv_enter.y == 0.0 && a_velocity.y == 0.0 {
+            normal.y = if inv_exit.y < 0.0 { 1.0 } else { -1.0 };
+            dist = inv_enter.y.abs();
+        } else if inv_enter.z == 0.0 && a_velocity.z == 0.0 {
+            normal.z = if inv_exit.z < 0.0 { 1.0 } else { -1.0 };
+            dist = inv_enter.z.abs();
         } else if enter.x == 0.0 {
             normal.x = if inv_exit.x < 0.0 { 1.0 } else { -1.0 };
             dist = inv_enter.x.abs();
