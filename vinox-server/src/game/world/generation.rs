@@ -4,6 +4,7 @@ use noise::{
     BasicMulti, Billow, Blend, Cache, Clamp, Curve, Fbm, HybridMulti, Min, MultiFractal, NoiseFn,
     OpenSimplex, Perlin, RidgedMulti, RotatePoint, ScaleBias, SuperSimplex, Worley,
 };
+use rand::{rngs::StdRng, seq::SliceRandom, SeedableRng};
 use std::collections::HashMap;
 // use rand::{rngs::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
@@ -19,7 +20,13 @@ pub const SEA_LEVEL: i32 = 0;
 
 // Just some interesting stuff to look at while testing
 #[allow(clippy::type_complexity)]
-pub fn add_surface(raw_chunk: &mut ChunkData, pos: IVec3, block_table: &BlockTable) {
+pub fn add_surface(
+    raw_chunk: &mut ChunkData,
+    pos: IVec3,
+    block_table: &BlockTable,
+    block_types: Vec<(BlockData, i32)>,
+    rng: &mut StdRng,
+) {
     for z in 0..=CHUNK_SIZE - 1 {
         for y in 0..=CHUNK_SIZE - 1 {
             for x in 0..=CHUNK_SIZE - 1 {
@@ -30,14 +37,61 @@ pub fn add_surface(raw_chunk: &mut ChunkData, pos: IVec3, block_table: &BlockTab
                     let full_y = y as i32 + ((CHUNK_SIZE as i32) * pos.y) + 1;
                     if raw_chunk.get_identifier(x, y, z) != "vinox:air" {
                         // We need to add a vec for adding blocks in a new chunk when out of range
-                        let grass = BlockData::new("vinox".to_string(), "grass".to_string());
-                        raw_chunk.set(x, y, z, grass, block_table);
+                        // raw_chunk.set(x, y, z, grass, block_table);
                     }
                 } else if raw_chunk.get_identifier(x, y + 1, z) == "vinox:air"
                     && raw_chunk.get_identifier(x, y, z) != "vinox:air"
                 {
-                    let grass = BlockData::new("vinox".to_string(), "grass".to_string());
-                    raw_chunk.set(x, y, z, grass, block_table);
+                    raw_chunk.set(
+                        x,
+                        y,
+                        z,
+                        block_types
+                            .choose_weighted(rng, |item| item.1)
+                            .unwrap()
+                            .clone()
+                            .0,
+                        block_table,
+                    );
+                }
+            }
+        }
+    }
+}
+#[allow(clippy::type_complexity)]
+pub fn add_ceiling(
+    raw_chunk: &mut ChunkData,
+    pos: IVec3,
+    block_table: &BlockTable,
+    block_types: Vec<(BlockData, i32)>,
+    rng: &mut StdRng,
+) {
+    for z in 0..=CHUNK_SIZE - 1 {
+        for y in 0..=CHUNK_SIZE - 1 {
+            for x in 0..=CHUNK_SIZE - 1 {
+                let (x, y, z) = (x as u32, y as u32, z as u32);
+                if y == 0 {
+                    let full_x = x as i32 + ((CHUNK_SIZE as i32) * pos.x);
+                    let full_z = z as i32 + ((CHUNK_SIZE as i32) * pos.z);
+                    let full_y = y as i32 + ((CHUNK_SIZE as i32) * pos.y) + 1;
+                    if raw_chunk.get_identifier(x, y, z) != "vinox:air" {
+                        // We need to add a vec for adding blocks in a new chunk when out of range
+                        // raw_chunk.set(x, y, z, grass, block_table);
+                    }
+                } else if raw_chunk.get_identifier(x, y - 1, z) == "vinox:air"
+                    && raw_chunk.get_identifier(x, y, z) != "vinox:air"
+                {
+                    raw_chunk.set(
+                        x,
+                        y,
+                        z,
+                        block_types
+                            .choose_weighted(rng, |item| item.1)
+                            .unwrap()
+                            .clone()
+                            .0,
+                        block_table,
+                    );
                 }
             }
         }
@@ -136,8 +190,14 @@ fn world_noise(seed: u32) -> impl NoiseFn<f64, 3> {
     final_noise
 }
 
+// NOTE: A main design goal i have is most things should be completely generatable per chunk without needing other chunks. The only exception
+// will hopefully be structures. Even then i hope to find a system where some can still be generated determinitely such as pillars.
+// I like this as 1) it makes designing generation much easier and 2) makes it so you can generate any given chunk and hopefully see what itll look like
+// regardless of if you are generating the neighbors
+// I also just generally like procedural generation and would like to push my self to see what I can do.
 pub fn generate_chunk(pos: IVec3, seed: u32, block_table: &BlockTable) -> RawChunk {
     //TODO: Switch to using ron files to determine biomes and what blocks they should use. For now hardcoding a simplex noise
+    let mut rng: StdRng = SeedableRng::seed_from_u64(seed as u64);
     let ridged_noise: HybridMulti<OpenSimplex> =
         HybridMulti::new(seed).set_octaves(4).set_frequency(0.02122);
     let d_noise: RidgedMulti<OpenSimplex> = RidgedMulti::new(seed.wrapping_add(1))
@@ -208,7 +268,30 @@ pub fn generate_chunk(pos: IVec3, seed: u32, block_table: &BlockTable) -> RawChu
             }
         }
     }
-    // add_grass(&mut raw_chunk, &noise, pos, block_table);
+    add_surface(
+        &mut raw_chunk,
+        pos,
+        block_table,
+        vec![
+            (BlockData::new("vinox".to_string(), "ignis".to_string()), 3),
+            (BlockData::new("vinox".to_string(), "slate".to_string()), 1),
+            (BlockData::new("vinox".to_string(), "gravel".to_string()), 1),
+        ],
+        &mut rng,
+    );
+    add_ceiling(
+        &mut raw_chunk,
+        pos,
+        block_table,
+        vec![
+            (BlockData::new("vinox".to_string(), "worley".to_string()), 4),
+            (
+                BlockData::new("vinox".to_string(), "granite".to_string()),
+                1,
+            ),
+        ],
+        &mut rng,
+    );
     // add_sea(&mut raw_chunk, pos, block_table);
     raw_chunk.to_raw()
 }
