@@ -16,7 +16,7 @@ use vinox_common::{
     ecs::bundles::Inventory,
     networking::protocol::ClientMessage,
     physics::{collision::raycast::raycast_world, simulate::Velocity},
-    storage::{blocks::descriptor::BlockGeometry, items::descriptor::ItemData},
+    storage::blocks::descriptor::BlockGeometry,
     world::chunks::{
         ecs::{ChunkManager, CurrentChunks},
         positions::{relative_voxel_to_world, voxel_to_world, world_to_chunk, world_to_voxel},

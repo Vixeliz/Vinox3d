@@ -79,11 +79,23 @@ pub fn move_and_collide(
             aabb_collisions.retain(|col| {
                 let v_filt;
                 if col.normal.y != 0.0 {
-                    v_filt = Vec3::new(v_after.x, movement.y, v_after.z);
+                    v_filt = Vec3::new(
+                        v_after.x,
+                        movement.y - max_move.y.copysign(movement.y),
+                        v_after.z,
+                    );
                 } else if col.normal.x != 0.0 {
-                    v_filt = Vec3::new(movement.x, v_after.y, v_after.z);
+                    v_filt = Vec3::new(
+                        movement.x - max_move.x.copysign(movement.x),
+                        v_after.y,
+                        v_after.z,
+                    );
                 } else {
-                    v_filt = Vec3::new(v_after.x, v_after.y, movement.z);
+                    v_filt = Vec3::new(
+                        v_after.x,
+                        v_after.y,
+                        movement.z - max_move.z.copysign(movement.z),
+                    );
                 }
                 let hypth_aabb = Aabb {
                     center: aabb.center + Vec3A::from(max_move.copysign(movement) + v_filt),
@@ -108,13 +120,14 @@ pub fn move_and_collide(
                         center: aabb.center + Vec3A::from(fm),
                         half_extents: aabb.half_extents,
                     };
-                    get_collision_info(&hypth_aabb, &col.collision_aabb, &v_filt)
+                    let colinfo = get_collision_info(&hypth_aabb, &col.collision_aabb, &v_filt);
+                    colinfo
                 })
                 .collect();
             // Re-evaluate the new set of collisions
             let mut v_after = movement;
             let mut max_move = movement.abs();
-            for col in aabb_collisions {
+            for col in aabb_collisions.iter() {
                 if col.normal.x != 0.0 {
                     max_move.x = f32::min(max_move.x, col.dist);
                     v_after.x = 0.0;
@@ -131,11 +144,53 @@ pub fn move_and_collide(
                     normal: col.normal,
                 });
             }
+            // Apply updated velocity
+            velocity.0 = v_after / time.delta().as_secs_f32();
+            let final_move = max_move.copysign(movement);
+            aabb.center += Vec3A::from(final_move);
+            transform.translation = Vec3::from(aabb.center - Vec3A::Y * aabb.half_extents);
+            // // Auto-step
+            // for col in aabb_collisions {
+            //     if col.normal.y == 0.0 {
+            //         let step_height: f32 = 1.1;
+            //         let block_step_height = col.collision_aabb.max().y - aabb.min().y;
+            //         let hypth_aabb = Aabb {
+            //             center: aabb.center
+            //                 + Vec3A::from(-col.normal * 0.05)
+            //                 + Vec3A::Y * (block_step_height + 0.005),
+            //             half_extents: aabb.half_extents,
+            //         };
+            //         if block_step_height > 0.0 && block_step_height < step_height {
+            //             if !aabb_intersects_world(
+            //                 &hypth_aabb,
+            //                 &chunks,
+            //                 &current_chunks,
+            //                 &block_table,
+            //             ) {
+            //                 aabb.center = hypth_aabb.center;
+            //                 transform.translation =
+            //                     Vec3::from(aabb.center - Vec3A::Y * aabb.half_extents);
+            //                 return;
+            //             } else {
+            //                 let intersectors = get_aabb_world_intersectors(
+            //                     &hypth_aabb,
+            //                     &chunks,
+            //                     &current_chunks,
+            //                     &block_table,
+            //                 );
+            //                 println!(
+            //                     "Not stepping for collision {col} because it intersects with {intersectors:?}"
+            //                 );
+            //             }
+            //         }
+            //     }
+            // }
+        } else {
+            // Apply updated velocity
+            velocity.0 = v_after / time.delta().as_secs_f32();
+            let final_move = max_move.copysign(movement);
+            aabb.center += Vec3A::from(final_move);
+            transform.translation = Vec3::from(aabb.center - Vec3A::Y * aabb.half_extents);
         }
-        // Apply updated velocity
-        velocity.0 = v_after / time.delta().as_secs_f32();
-        let final_move = max_move.copysign(movement);
-        aabb.center += Vec3A::from(final_move);
-        transform.translation = Vec3::from(aabb.center - Vec3A::Y * aabb.half_extents)
     }
 }
