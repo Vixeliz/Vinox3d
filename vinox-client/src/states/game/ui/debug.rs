@@ -40,12 +40,15 @@ pub fn debug(
     if options.debug {
         if let Ok(player_transform) = player_query.get_single() {
             let style = contexts.ctx_mut().style().clone();
+            let new_color = style.visuals.window_fill;
+            let new_color = new_color.gamma_multiply(0.9);
             egui::Window::new("Debug")
                 .default_size([256.0, 150.0])
                 .anchor(Align2::RIGHT_TOP, [0.0, 0.0])
                 .frame(egui::Frame {
-                    fill: egui::Color32::from_rgba_unmultiplied(0, 0, 0, 224),
+                    fill: new_color,
                     rounding: style.visuals.window_rounding,
+                    stroke: style.visuals.window_stroke,
                     ..Default::default()
                 })
                 .show(contexts.ctx_mut(), |ui| {
@@ -111,6 +114,8 @@ pub fn targeted_block(
     }
     if options.looking_at {
         let style = contexts.ctx_mut().style().clone();
+        let new_color = style.visuals.window_fill;
+        let new_color = new_color.gamma_multiply(0.9);
         egui::Window::new("Targeted Block")
             .anchor(Align2::CENTER_TOP, [0.0, 0.0])
             .default_width(200.0)
@@ -118,12 +123,13 @@ pub fn targeted_block(
             .constrain(true)
             .vscroll(true)
             .frame(egui::Frame {
-                fill: egui::Color32::from_rgba_unmultiplied(0, 0, 0, 224),
+                fill: new_color,
+                stroke: style.visuals.window_stroke,
                 rounding: style.visuals.window_rounding,
                 ..Default::default()
             })
             .show(contexts.ctx_mut(), |ui| {
-                ui.with_layout(egui::Layout::top_down(egui::Align::LEFT), |ui| {
+                ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
                     if let Some(block) = player_looking.block.clone() {
                         if let Some(pos) = player_looking.pos.clone() {
                             let identifier = name_to_identifier(block.namespace, block.name);

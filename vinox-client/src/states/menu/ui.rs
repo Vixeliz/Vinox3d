@@ -1,5 +1,5 @@
 use leafwing_input_manager::{prelude::ActionState, InputManagerBundle};
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, sync::Arc};
 use vinox_server::create_server;
 
 use bevy::{
@@ -8,7 +8,12 @@ use bevy::{
     window::{PresentMode, PrimaryWindow},
 };
 use bevy_egui::{
-    egui::{self, FontId, Rounding},
+    egui::{
+        self,
+        epaint::Shadow,
+        style::{Selection, Spacing, WidgetVisuals, Widgets},
+        Color32, FontId, Margin, Rounding, Stroke, Visuals,
+    },
     EguiContexts, EguiSettings,
 };
 use vinox_common::networking::protocol::NetworkIP;
@@ -19,13 +24,6 @@ use crate::states::components::{
 
 #[derive(Resource, Default, Deref, DerefMut)]
 pub struct InOptions(pub bool);
-
-pub fn configure_visuals(mut contexts: EguiContexts) {
-    contexts.ctx_mut().set_visuals(egui::Visuals {
-        window_rounding: Rounding::from(0.0),
-        ..Default::default()
-    });
-}
 
 pub fn update_ui_scale_factor(
     keyboard_input: Res<Input<KeyCode>>,
@@ -61,19 +59,9 @@ pub fn options(
     mut keys: EventReader<KeyboardInput>,
     mut mouse_buttons: EventReader<MouseButtonInput>,
     mut windows: Query<&mut Window>,
+    egui_theme: Res<EguiTheme>,
 ) {
-    contexts.ctx_mut().set_style(egui::Style {
-        text_styles: {
-            let mut texts = BTreeMap::new();
-            texts.insert(egui::style::TextStyle::Small, FontId::monospace(14.0));
-            texts.insert(egui::style::TextStyle::Body, FontId::monospace(14.0));
-            texts.insert(egui::style::TextStyle::Heading, FontId::monospace(16.0));
-            texts.insert(egui::style::TextStyle::Monospace, FontId::monospace(14.0));
-            texts.insert(egui::style::TextStyle::Button, FontId::monospace(14.0));
-            texts
-        },
-        ..Default::default()
-    });
+    contexts.ctx_mut().set_style(egui_theme.clone());
     if **in_options {
         if let Some(current_action) = *current_change {
             if let Some(keyboard_input) = keys.iter().next() {
@@ -261,6 +249,104 @@ pub fn create_ui(
 
 pub fn ui_events() {}
 
-pub fn start(mut commands: Commands, options: Res<GameOptions>) {
+#[derive(Resource, Deref, DerefMut)]
+pub struct EguiTheme(pub egui::Style);
+
+impl Default for EguiTheme {
+    fn default() -> Self {
+        let dark_widgets = WidgetVisuals {
+            rounding: Rounding::same(2.0),
+            bg_fill: Color32::from_rgb(64, 64, 64),
+            bg_stroke: Stroke::new(1.0, Color32::from_rgb(90, 90, 90)),
+            fg_stroke: Stroke::new(2.0, Color32::from_rgb(200, 200, 200)),
+            expansion: 1.0,
+            weak_bg_fill: Color32::from_rgb(64, 64, 64),
+        };
+        let style = egui::Style {
+            spacing: Spacing {
+                button_padding: egui::Vec2::new(10.0, 10.0),
+                item_spacing: egui::Vec2::new(10.0, 10.0),
+                window_margin: Margin::same(10.0),
+                interact_size: egui::Vec2::new(40.0, 18.0),
+                combo_height: 200.0,
+                indent: 28.0,
+                slider_width: 150.0,
+                text_edit_width: 280.0,
+                scroll_bar_width: 8.0,
+                tooltip_width: 500.0,
+                ..Default::default()
+            },
+            wrap: Some(false),
+            visuals: Visuals {
+                dark_mode: true,
+                faint_bg_color: Color32::from_rgb(64, 64, 64),
+                extreme_bg_color: Color32::from_rgb(48, 48, 48),
+                code_bg_color: Color32::from_rgb(72, 72, 72),
+                selection: Selection {
+                    bg_fill: Color32::from_rgb(115, 115, 115),
+                    stroke: Default::default(),
+                },
+                widgets: Widgets {
+                    noninteractive: WidgetVisuals {
+                        bg_fill: Color32::from_rgb(90, 90, 90),
+                        ..dark_widgets
+                    },
+                    inactive: WidgetVisuals {
+                        bg_fill: Color32::from_rgb(100, 100, 100),
+                        ..dark_widgets
+                    },
+                    hovered: dark_widgets,
+                    active: dark_widgets,
+                    open: dark_widgets,
+                },
+                window_rounding: Rounding::same(3.0),
+                window_shadow: Shadow::small_dark(),
+                popup_shadow: Shadow::small_dark(),
+                resize_corner_size: 12.0,
+                clip_rect_margin: 3.0,
+                button_frame: true,
+                collapsing_header_frame: false,
+                hyperlink_color: Color32::from_rgb(110, 100, 110),
+
+                override_text_color: None,
+                text_cursor_width: 0.0,
+                text_cursor_preview: false,
+                ..Default::default()
+            },
+            // interaction: Interaction {
+            //     resize_grab_radius_corner: 10.0,
+            //     resize_grab_radius_side: 8.0,
+            //     show_tooltips_only_when_still: false,
+            // },
+            animation_time: 150.0,
+
+            text_styles: {
+                let mut texts = BTreeMap::new();
+                texts.insert(egui::TextStyle::Small, FontId::monospace(14.0));
+                texts.insert(egui::TextStyle::Body, FontId::monospace(14.0));
+                texts.insert(egui::TextStyle::Heading, FontId::monospace(16.0));
+                texts.insert(egui::TextStyle::Monospace, FontId::monospace(14.0));
+                texts.insert(egui::TextStyle::Button, FontId::monospace(14.0));
+                texts
+            },
+
+            override_text_style: None,
+            override_font_id: None,
+
+            debug: Default::default(),
+            explanation_tooltips: false,
+            ..Default::default()
+        };
+        Self(style)
+    }
+}
+
+pub fn start(
+    mut commands: Commands,
+    options: Res<GameOptions>,
+    mut contexts: EguiContexts,
+    egui_theme: Res<EguiTheme>,
+) {
+    contexts.ctx_mut().set_style(egui_theme.clone());
     commands.spawn((Camera2dBundle::default(), Menu));
 }

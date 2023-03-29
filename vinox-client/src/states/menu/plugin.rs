@@ -7,7 +7,7 @@ use vinox_common::networking::protocol::NetworkIP;
 use crate::states::components::{despawn_with, GameState, Menu};
 
 use super::ui::{
-    configure_visuals, create_ui, options, save_options, start, ui_events, update_ui_scale_factor,
+    create_ui, options, save_options, start, ui_events, update_ui_scale_factor, EguiTheme,
     InOptions,
 };
 
@@ -29,13 +29,9 @@ impl Plugin for MenuPlugin {
         app.add_plugin(EguiPlugin)
             .insert_resource(InOptions(false))
             .insert_resource(NetworkIP(ip))
+            .insert_resource(EguiTheme::default())
             .add_systems(
-                (
-                    create_ui,
-                    ui_events,
-                    configure_visuals,
-                    update_ui_scale_factor,
-                )
+                (create_ui, ui_events, update_ui_scale_factor)
                     .chain()
                     .in_set(OnUpdate(GameState::Menu)),
             )

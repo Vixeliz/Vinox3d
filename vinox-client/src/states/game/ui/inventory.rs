@@ -28,6 +28,7 @@ pub fn status_bar(
         catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
     }
     let ctx = contexts.ctx_mut().clone();
+    let style = ctx.style().clone();
     egui::TopBottomPanel::bottom("status_bar")
         .default_height(40.0)
         .max_height(75.0)
@@ -55,7 +56,11 @@ pub fn status_bar(
                                         {
                                             Color32::from_white_alpha(128)
                                         } else {
-                                            Color32::WHITE
+                                            if item.is_none() {
+                                                style.visuals.faint_bg_color
+                                            } else {
+                                                Color32::WHITE
+                                            }
                                         };
                                         egui::Frame::none().outer_margin(2.0).fill(color).show(
                                             ui,
@@ -275,6 +280,7 @@ pub fn inventory(
     }
 
     let ctx = contexts.ctx_mut().clone();
+    let style = ctx.style().clone();
     if let Ok(mut inventory) = player_query.get_single_mut() {
         if inventory.open {
             egui::Window::new("inventory")
@@ -316,7 +322,11 @@ pub fn inventory(
                                                     {
                                                         Color32::from_white_alpha(128)
                                                     } else {
-                                                        Color32::WHITE
+                                                        if item.is_none() {
+                                                            style.visuals.faint_bg_color
+                                                        } else {
+                                                            Color32::WHITE
+                                                        }
                                                     };
                                                     egui::Frame::none()
                                                         .outer_margin(2.0)

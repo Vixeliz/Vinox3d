@@ -112,8 +112,8 @@ pub fn crafting_ui(
                         .auto_shrink([false; 2])
                         .max_width(2000.0)
                         .show(ui, |ui| {
-                            for (_, recipe) in sorted_recipe_table.iter().rev() {
-                                ui.horizontal(|ui| {
+                            egui::Grid::new("crafting").show(ui, |ui| {
+                                for (_, recipe) in sorted_recipe_table.iter().rev() {
                                     ui.label(format!("{}: x{}", recipe.name, recipe.output_item.1))
                                         .on_hover_ui(|ui| {
                                             for (required_item, item_amount) in recipe
@@ -140,8 +140,9 @@ pub fn crafting_ui(
                                             );
                                         }
                                     }
-                                });
-                            }
+                                    ui.end_row();
+                                }
+                            });
                         });
                 });
             });
