@@ -13,7 +13,7 @@ use vinox_common::world::chunks::{
 use crate::game::networking::components::SaveGame;
 
 use super::{
-    generation::generate_chunk,
+    generation::{generate_chunk, ToBePlaced},
     storage::{load_chunk, save_chunks, ChunksToSave, WorldDatabase, WorldInfo},
 };
 
@@ -143,6 +143,7 @@ pub fn process_queue(
     current_chunks: Res<CurrentChunks>,
     world_info: Res<WorldInfo>,
     mut chunks_to_save: ResMut<ChunksToSave>,
+    mut to_be_placed: ResMut<ToBePlaced>,
     block_table: Res<BlockTable>,
     save: Res<SaveGame>,
 ) {
@@ -150,9 +151,15 @@ pub fn process_queue(
     let task_pool = AsyncComputeTaskPool::get();
     for chunk_pos in chunk_queue.create.drain(..) {
         let cloned_table = block_table.clone();
+        // let cloned_place = to_be_placed.clone();
         let task = task_pool.spawn(async move {
             (
-                ChunkData::from_raw(generate_chunk(*chunk_pos, cloned_seed, &cloned_table)),
+                ChunkData::from_raw(generate_chunk(
+                    *chunk_pos,
+                    cloned_seed,
+                    &cloned_table,
+                    // &cloned_place,
+                )),
                 chunk_pos,
             )
         });
@@ -179,6 +186,7 @@ impl Plugin for ChunkPlugin {
         app.insert_resource(ChunksToSave::default())
             .insert_resource(CurrentChunks::default())
             .insert_resource(ChunkQueue::default())
+            .insert_resource(ToBePlaced::default())
             .insert_resource(ViewRadius {
                 horizontal: HORIZONTAL_DISTANCE as i32,
                 vertical: VERTICAL_DISTANCE as i32,

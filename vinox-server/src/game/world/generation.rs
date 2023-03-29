@@ -13,8 +13,8 @@ use vinox_common::{
     world::chunks::storage::{BlockData, BlockTable, ChunkData, RawChunk, CHUNK_SIZE},
 };
 
-#[derive(Resource, Default, Serialize, Deserialize)]
-pub struct ToBePlaced(HashMap<IVec3, Vec<(UVec3, BlockDescriptor)>>);
+#[derive(Resource, Default, Serialize, Deserialize, Deref, DerefMut, Clone)]
+pub struct ToBePlaced(pub HashMap<IVec3, Vec<(UVec3, BlockData)>>);
 
 pub const SEA_LEVEL: i32 = 0;
 
@@ -94,6 +94,65 @@ pub fn add_ceiling(
                     );
                 }
             }
+        }
+    }
+}
+
+#[allow(clippy::type_complexity)]
+pub fn add_blobs(
+    raw_chunk: &mut ChunkData,
+    pos: IVec3,
+    block_table: &BlockTable,
+    block_types: Vec<(BlockData, i32)>,
+    seed: u32,
+    rng: &mut StdRng,
+) {
+    let blob_noise = BasicMulti::<OpenSimplex>::new(seed)
+        .set_octaves(1)
+        .set_frequency(0.1531515);
+    for z in 0..=CHUNK_SIZE - 1 {
+        for y in 0..=CHUNK_SIZE - 1 {
+            for x in 0..=CHUNK_SIZE - 1 {
+                let (x, y, z) = (x as u32, y as u32, z as u32);
+                let full_x = x as i32 + ((CHUNK_SIZE as i32) * pos.x);
+                let full_z = z as i32 + ((CHUNK_SIZE as i32) * pos.z);
+                let full_y = y as i32 + ((CHUNK_SIZE as i32) * pos.y) + 1;
+                if raw_chunk.get(x, y, z).is_opaque(block_table) {
+                    let final_noise = blob_noise.get([full_x as f64, full_y as f64, full_z as f64]);
+                    if final_noise < -0.15 {
+                        raw_chunk.set(
+                            x,
+                            y,
+                            z,
+                            block_types
+                                .choose_weighted(rng, |item| item.1)
+                                .unwrap()
+                                .clone()
+                                .0,
+                            block_table,
+                        );
+                    }
+                }
+            }
+        }
+    }
+}
+
+pub fn add_to_be(
+    raw_chunk: &mut ChunkData,
+    pos: IVec3,
+    block_table: &BlockTable,
+    to_be_placed: &ToBePlaced,
+) {
+    if let Some(blocks) = to_be_placed.get(&pos) {
+        for block in blocks.iter() {
+            raw_chunk.set(
+                block.0.x,
+                block.0.y,
+                block.0.z,
+                block.1.clone(),
+                block_table,
+            );
         }
     }
 }
@@ -195,7 +254,12 @@ fn world_noise(seed: u32) -> impl NoiseFn<f64, 3> {
 // I like this as 1) it makes designing generation much easier and 2) makes it so you can generate any given chunk and hopefully see what itll look like
 // regardless of if you are generating the neighbors
 // I also just generally like procedural generation and would like to push my self to see what I can do.
-pub fn generate_chunk(pos: IVec3, seed: u32, block_table: &BlockTable) -> RawChunk {
+pub fn generate_chunk(
+    pos: IVec3,
+    seed: u32,
+    block_table: &BlockTable,
+    // to_be_placed: &ToBePlaced,
+) -> RawChunk {
     //TODO: Switch to using ron files to determine biomes and what blocks they should use. For now hardcoding a simplex noise
     let mut rng: StdRng = SeedableRng::seed_from_u64(seed as u64);
     let ridged_noise: HybridMulti<OpenSimplex> =
@@ -292,6 +356,28 @@ pub fn generate_chunk(pos: IVec3, seed: u32, block_table: &BlockTable) -> RawChu
         ],
         &mut rng,
     );
-    // add_sea(&mut raw_chunk, pos, block_table);
+    add_blobs(
+        &mut raw_chunk,
+        pos,
+        block_table,
+        // This would be a vector of different type of biome blocks
+        vec![
+            (
+                vec![(BlockData::new("vinox".to_string(), "light".to_string()), 1)],
+                1,
+            ),
+            (
+                vec![(BlockData::new("vinox".to_string(), "dirt".to_string()), 1)],
+                1,
+            ),
+        ]
+        .choose_weighted(&mut rng, |item| item.1)
+        .unwrap()
+        .0
+        .clone(),
+        seed,
+        &mut rng,
+    );
+    // add_to_be(&mut raw_chunk, pos, block_table, to_be_placed);
     raw_chunk.to_raw()
 }
