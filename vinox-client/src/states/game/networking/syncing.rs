@@ -20,7 +20,11 @@ use vinox_common::{
     ecs::bundles::PlayerBundleBuilder,
     networking::protocol::{ClientMessage, EntityBuffer, ServerMessage},
     physics::simulate::{CollidesWithWorld, Velocity},
-    world::chunks::{ecs::ChunkCell, storage::RawChunk},
+    world::chunks::{
+        ecs::{ChunkCell, LoadPoint},
+        positions::{ChunkPos, RelativeVoxelPos},
+        storage::RawChunk,
+    },
 };
 use zstd::stream::copy_decode;
 
@@ -123,6 +127,7 @@ pub fn get_messages(
                             .insert(CollidesWithWorld)
                             .insert(FloatingOrigin)
                             .insert(ChunkCell::default())
+                            .insert(LoadPoint::default())
                             .insert(Velocity(Vec3::ZERO));
                         if let Ok(boiler) = boiler_player.get_single() {
                             cmd2.entity(boiler).despawn_recursive();
@@ -170,12 +175,12 @@ pub fn get_messages(
                     voxel_pos,
                     block_type,
                 } => block_event.send(SetBlockEvent {
-                    chunk_pos,
-                    voxel_pos: UVec3::new(
+                    chunk_pos: ChunkPos(chunk_pos),
+                    voxel_pos: RelativeVoxelPos(UVec3::new(
                         voxel_pos[0] as u32,
                         voxel_pos[1] as u32,
                         voxel_pos[2] as u32,
-                    ),
+                    )),
                     block_type,
                 }),
                 ServerMessage::NetworkedEntities { networked_entities } => {
@@ -189,7 +194,7 @@ pub fn get_messages(
                     let level_data: RawChunk = bincode::deserialize(temp_output.get_ref()).unwrap();
                     chunk_event.send(CreateChunkEvent {
                         raw_chunk: level_data,
-                        pos,
+                        pos: ChunkPos(pos),
                     });
                 }
                 ServerMessage::ChatMessage {

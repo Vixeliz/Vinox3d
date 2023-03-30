@@ -7,7 +7,7 @@ use serde_with::{serde_as, Bytes};
 
 use super::{
     ecs::{CurrentChunks, PriorityMesh},
-    positions::{global_voxel_positions, ChunkPos},
+    positions::{ChunkPos, RelativeVoxelPos, VoxelPos},
     storage::{BlockData, BlockTable, ChunkData},
 };
 
@@ -85,22 +85,22 @@ struct LightRemNode {
 }
 
 pub struct VoxelAddedEvent {
-    pos: IVec3,
+    pos: VoxelPos,
     value: BlockData,
 }
 
 impl VoxelAddedEvent {
-    pub fn new(pos: IVec3, value: BlockData) -> Self {
+    pub fn new(pos: VoxelPos, value: BlockData) -> Self {
         Self { pos, value }
     }
 }
 
 pub struct VoxelRemovedEvent {
-    pos: IVec3,
+    pos: VoxelPos,
 }
 
 impl VoxelRemovedEvent {
-    pub fn new(pos: IVec3) -> Self {
+    pub fn new(pos: VoxelPos) -> Self {
         Self { pos }
     }
 }
@@ -118,8 +118,8 @@ pub fn propagate_lighting(
     let mut changed = HashSet::new();
 
     for event in voxel_rem_event.iter() {
-        let (chunk_pos, local_pos) = global_voxel_positions(event.pos);
-        let Some(chunk_entity) = loaded_chunks.get_entity(ChunkPos(chunk_pos)) else { continue; };
+        let (local_pos, chunk_pos) = event.pos.to_offsets();
+        let Some(chunk_entity) = loaded_chunks.get_entity(chunk_pos) else { continue; };
         let Ok((_pos, mut chunk_data)) = chunks.get_mut(chunk_entity) else { continue; };
 
         let source_level = chunk_data.get_torchlight(local_pos.x, local_pos.y, local_pos.z);
@@ -133,11 +133,11 @@ pub fn propagate_lighting(
     }
 
     for event in voxel_add_event.iter() {
-        let (chunk_pos, local_pos) = global_voxel_positions(event.pos);
-        let Some(chunk_entity) = loaded_chunks.get_entity(ChunkPos(chunk_pos)) else { continue; };
+        let (local_pos, chunk_pos) = event.pos.to_offsets();
+        let Some(chunk_entity) = loaded_chunks.get_entity(chunk_pos) else { continue; };
         let Ok((_pos, mut chunk_data)) = chunks.get_mut(chunk_entity) else { continue; };
         let light_val = block_table
-            .get(&chunk_data.get_identifier(local_pos.x, local_pos.y, local_pos.z))
+            .get(&chunk_data.get_identifier(local_pos))
             .unwrap()
             .light
             .unwrap_or_default();
@@ -455,7 +455,9 @@ fn check_neighbor_simple_add(
     new_level: u8,
     block_table: &BlockTable,
 ) {
-    if chunk_data.get(x, y, z).is_true_empty(block_table)
+    if chunk_data
+        .get(RelativeVoxelPos(UVec3::new(x, y, z)))
+        .is_true_empty(block_table)
         && chunk_data.get_torchlight(x, y, z) + 2 < source_level
     {
         chunk_data.set_torchlight(x, y, z, new_level);

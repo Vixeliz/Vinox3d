@@ -9,6 +9,12 @@ use super::player::{
 
 pub struct InputPlugin;
 
+#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
+pub enum InputSet {
+    WorldInteraction,
+    Movement,
+}
+
 impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(MouseSensitivity(1.0)).add_systems(

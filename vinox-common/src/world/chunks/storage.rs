@@ -12,7 +12,7 @@ use crate::storage::{
     crafting::descriptor::RecipeDescriptor, items::descriptor::ItemDescriptor,
 };
 
-use super::light::LightStorage;
+use super::{light::LightStorage, positions::RelativeVoxelPos};
 
 pub const HORIZONTAL_DISTANCE: usize = 10;
 pub const VERTICAL_DISTANCE: usize = 10;
@@ -488,17 +488,24 @@ impl Default for ChunkData {
 
 #[allow(dead_code)]
 impl ChunkData {
-    pub fn get(&self, x: u32, y: u32, z: u32) -> BlockData {
-        self.voxels.get(Self::linearize(x, y, z))
+    pub fn get(&self, voxel_pos: RelativeVoxelPos) -> BlockData {
+        self.voxels
+            .get(Self::linearize(voxel_pos.x, voxel_pos.y, voxel_pos.z))
     }
 
-    pub fn get_identifier(&self, x: u32, y: u32, z: u32) -> String {
-        let voxel = self.voxels.get(Self::linearize(x, y, z));
+    pub fn get_identifier(&self, voxel_pos: RelativeVoxelPos) -> String {
+        let voxel = self
+            .voxels
+            .get(Self::linearize(voxel_pos.x, voxel_pos.y, voxel_pos.z));
+
         name_to_identifier(voxel.namespace, voxel.name)
     }
 
-    pub fn set(&mut self, x: u32, y: u32, z: u32, voxel: BlockData, _block_table: &BlockTable) {
-        self.voxels.set(Self::linearize(x, y, z), voxel);
+    pub fn set(&mut self, voxel_pos: RelativeVoxelPos, voxel: BlockData) {
+        self.voxels.set(
+            Self::linearize(voxel_pos.x, voxel_pos.y, voxel_pos.z),
+            voxel,
+        );
         self.change_count += 1;
         self.set_dirty(true);
 
@@ -506,40 +513,6 @@ impl ChunkData {
             self.voxels.trim();
             self.change_count = 0;
         }
-        // let descriptor = block_table.get(&self.get_identifier(x, y, z)).unwrap();
-        // let self_light = self.get_light(Self::linearize(x, y, z));
-        // if let Some(light) = descriptor.light {
-        //     let light = LightData {
-        //         r: light.0,
-        //         g: light.1,
-        //         b: light.2,
-        //         a: light.3,
-        //     };
-        //     if self_light != light {
-        //         if light != LightData::default() {
-        //             self.set_light(Self::linearize(x, y, z), light);
-        //             // self.calculate_all_light(block_table);
-        //         } else {
-        //             self.remove_light(Self::linearize(x, y, z), self_light);
-        //             // self.calculate_all_remove_lights();
-        //             self.set_light(Self::linearize(x, y, z), light);
-        //             // self.calculate_all_light(block_table);
-        //         }
-        //     }
-        // } else {
-        //     self.remove_light(Self::linearize(x, y, z), self_light);
-        //     // self.calculate_all_remove_lights();
-        //     self.set_light(
-        //         Self::linearize(x, y, z),
-        //         LightData {
-        //             r: 0,
-        //             b: 0,
-        //             g: 0,
-        //             a: 0,
-        //         },
-        //     );
-        // self.calculate_all_light(block_table);
-        // }
     }
 
     pub fn is_uniform(&self) -> bool {
@@ -573,7 +546,10 @@ impl ChunkData {
         self.clone()
     }
     pub fn is_empty(&self, block_table: &BlockTable) -> bool {
-        self.is_uniform() && self.get(0, 0, 0).is_empty(block_table)
+        self.is_uniform()
+            && self
+                .get(RelativeVoxelPos(UVec3::default()))
+                .is_empty(block_table)
     }
 
     pub fn is_dirty(&self) -> bool {
@@ -638,15 +614,5 @@ impl ChunkData {
     /// Input is bounded between 0 and 15
     pub fn set_torchlight(&mut self, x: u32, y: u32, z: u32, value: u8) {
         self.lights.set_torchlight(Self::linearize(x, y, z), value);
-    }
-
-    /// Output is bounded between 0 and 15
-    pub fn get_sunlight(&self, x: u32, y: u32, z: u32) -> u8 {
-        self.lights.get_sunlight(Self::linearize(x, y, z))
-    }
-
-    /// Input is bounded between 0 and 15
-    pub fn set_sunlight(&mut self, x: u32, y: u32, z: u32, value: u8) {
-        self.lights.set_sunlight(Self::linearize(x, y, z), value);
     }
 }

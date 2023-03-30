@@ -9,7 +9,7 @@ use crate::{
     physics::collision::aabb::{get_collision_info, CollisionInfo},
     world::chunks::{
         ecs::CurrentChunks,
-        positions::{world_to_chunk, ChunkPos},
+        positions::{ChunkPos, VoxelPos},
         storage::{BlockTable, ChunkData},
     },
 };
@@ -51,7 +51,9 @@ pub fn move_and_collide(
 ) {
     for (entity, mut aabb, mut velocity, mut transform) in moving_entities.iter_mut() {
         if current_chunks
-            .get_entity(ChunkPos(world_to_chunk(Vec3::from(aabb.center))))
+            .get_entity(ChunkPos::from_world(VoxelPos::from_world(Vec3::from(
+                aabb.center,
+            ))))
             .is_none()
         {
             return;

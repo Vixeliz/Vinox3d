@@ -23,8 +23,7 @@ use vinox_common::{
     storage::blocks::descriptor::BlockGeometry,
     world::chunks::{
         ecs::{ChunkCell, ChunkManager, CurrentChunks},
-        positions::{relative_voxel_to_world, voxel_to_world, world_to_chunk, world_to_voxel},
-        positions::{voxel_to_global_voxel, world_to_global_voxel, ChunkPos},
+        positions::{ChunkPos, RelativeVoxelPos, VoxelPos},
         storage::{
             self, name_to_identifier, trim_geo_identifier, BlockData, ItemTable, CHUNK_SIZE,
             HORIZONTAL_DISTANCE,
@@ -241,9 +240,9 @@ pub fn handle_movement(
             let gravity = 35.0 * Vec3::NEG_Y;
             velocity.0 += gravity * time.delta().as_secs_f32().clamp(0.0, 0.1);
 
-            let chunk_pos = world_to_chunk(translation.translation);
+            let chunk_pos = ChunkPos::from_world(VoxelPos::from_world(translation.translation));
             if window.cursor.grab_mode == CursorGrabMode::Locked {
-                if current_chunks.get_entity(ChunkPos(chunk_pos)).is_none() {
+                if current_chunks.get_entity(chunk_pos).is_none() {
                     return;
                 }
 
@@ -550,11 +549,12 @@ pub fn interact(
                 &chunk_manager,
             );
             if let Some((chunk_pos, voxel_pos, normal, _)) = hit {
-                let point = voxel_to_world(voxel_pos.as_vec3().as_uvec3(), *chunk_pos);
-                let global_voxel = world_to_global_voxel(relative_voxel_to_world(
-                    voxel_pos.as_vec3().as_ivec3(),
-                    *chunk_pos,
-                ));
+                let point = VoxelPos::from_offsets(voxel_pos, chunk_pos);
+                let global_voxel = point.clone();
+                //     world_to_global_voxel(relative_voxel_to_world(
+                //     voxel_pos.as_vec3().as_ivec3(),
+                //     *chunk_pos,
+                // ));
 
                 player_targeted.block = chunk_manager.get_block(global_voxel).clone();
                 player_targeted.pos = Some(global_voxel);
@@ -565,23 +565,26 @@ pub fn interact(
                     if *block_visibility == Visibility::Hidden {
                         *block_visibility = Visibility::Visible;
                     }
-                    block_transform.translation = point + Vec3::splat(0.5);
+                    block_transform.translation = point.as_vec3() + Vec3::splat(0.5);
                 }
                 if mouse_left || (mouse_right && place_item.is_some()) {
                     if mouse_right {
                         inventory.item_decrement("hotbar", *cur_bar, *cur_item);
 
-                        if (point.x <= player_transform.center.x - 0.5
-                            || point.x >= player_transform.center.x + 0.5)
-                            || (point.z <= player_transform.center.z - 0.5
-                                || point.z >= player_transform.center.z + 0.5)
-                            || (point.y <= player_transform.center.y - 1.0
-                                || point.y >= player_transform.center.y + 1.0)
+                        if (point.x as f32 <= player_transform.center.x - 0.5
+                            || point.x as f32 >= player_transform.center.x + 0.5)
+                            || (point.z as f32 <= player_transform.center.z - 0.5
+                                || point.z as f32 >= player_transform.center.z + 0.5)
+                            || (point.y as f32 <= player_transform.center.y - 1.0
+                                || point.y as f32 >= player_transform.center.y + 1.0)
                         {
-                            let (chunk_pos, voxel_pos) = world_to_voxel(relative_voxel_to_world(
-                                voxel_pos.as_vec3().as_ivec3() + normal.as_ivec3(),
-                                *chunk_pos,
-                            ));
+                            let (voxel_pos, chunk_pos) = VoxelPos::from_offsets(
+                                RelativeVoxelPos(
+                                    (voxel_pos.as_vec3().as_ivec3() + normal.as_ivec3()).as_uvec3(),
+                                ),
+                                chunk_pos,
+                            )
+                            .to_offsets();
                             if let Some(mut modified_item) = place_item.clone() {
                                 modified_item.name = if chunk_manager
                                     .block_table
@@ -651,7 +654,7 @@ pub fn interact(
                                     {
                                         let translation: Vec3 = player_transform.center.into();
                                         if modified_item.direction.is_none() {
-                                            let difference = translation - point;
+                                            let difference = translation - point.as_vec3();
                                             if difference.x > difference.z {
                                                 if difference.x < 0.0 {
                                                     modified_item.direction =
@@ -669,7 +672,7 @@ pub fn interact(
                                             }
                                         }
                                         if modified_item.top.is_none() {
-                                            let difference: Vec3 = translation - point;
+                                            let difference: Vec3 = translation - point.as_vec3();
                                             if difference.y > 0.0 {
                                                 modified_item.top = Some(true);
                                             } else {
@@ -680,12 +683,12 @@ pub fn interact(
                                 }
 
                                 chunk_manager.set_block(
-                                    voxel_to_global_voxel(voxel_pos, chunk_pos),
+                                    VoxelPos::from_offsets(voxel_pos, chunk_pos),
                                     place_item.unwrap(),
                                 );
                                 client.connection_mut().try_send_message(
                                     ClientMessage::SentBlock {
-                                        chunk_pos,
+                                        chunk_pos: *chunk_pos,
                                         voxel_pos: [
                                             voxel_pos.x as u8,
                                             voxel_pos.y as u8,
@@ -698,13 +701,13 @@ pub fn interact(
                         }
                     } else if mouse_left {
                         if let Some(identifier) = chunk_manager
-                            .get_identifier(voxel_to_global_voxel(voxel_pos, *chunk_pos))
+                            .get_identifier(VoxelPos::from_offsets(voxel_pos, chunk_pos))
                         {
                             let identifier = trim_geo_identifier(identifier);
                             if let Some(item_def) = item_table.get(&identifier) {
                                 if inventory.add_item(item_def).is_ok() {
                                     chunk_manager.set_block(
-                                        voxel_to_global_voxel(voxel_pos, *chunk_pos),
+                                        VoxelPos::from_offsets(voxel_pos, chunk_pos),
                                         BlockData::new("vinox".to_string(), "air".to_string()),
                                     );
                                     client.connection_mut().try_send_message(
@@ -724,7 +727,7 @@ pub fn interact(
                                 }
                             } else {
                                 chunk_manager.set_block(
-                                    voxel_to_global_voxel(voxel_pos, *chunk_pos),
+                                    VoxelPos::from_offsets(voxel_pos, chunk_pos),
                                     BlockData::new("vinox".to_string(), "air".to_string()),
                                 );
                                 client.connection_mut().try_send_message(

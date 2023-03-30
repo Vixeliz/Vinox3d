@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::world::chunks::{
     ecs::ChunkManager,
-    positions::{world_to_global_voxel, world_to_voxel, ChunkPos},
+    positions::{ChunkPos, RelativeVoxelPos, VoxelPos},
 };
 // Takes in absolute world positions returns a chunk pos and a voxel pos for whatever face it hits and a normal
 pub fn raycast_world(
@@ -10,7 +10,7 @@ pub fn raycast_world(
     direction: Vec3,
     radius: f32,
     chunk_manager: &ChunkManager,
-) -> Option<(ChunkPos, UVec3, Vec3, f32)> {
+) -> Option<(ChunkPos, RelativeVoxelPos, Vec3, f32)> {
     // TMax needs the fractional part of origin to work.
     let mut tmax = Vec3::new(
         intbound(origin.x, direction.x),
@@ -18,7 +18,7 @@ pub fn raycast_world(
         intbound(origin.z, direction.z),
     );
 
-    let mut current_block = world_to_global_voxel(origin).as_vec3();
+    let mut current_block = VoxelPos::from_world(origin).as_vec3();
     let step = direction.signum();
 
     let tdelta = step / direction;
@@ -40,11 +40,11 @@ pub fn raycast_world(
         if counter > (radius * 4.0) as u32 {
             break;
         }
-        let (chunk_pos, voxel_pos) = world_to_voxel(current_block);
-        if let Some(block) = chunk_manager.get_block(world_to_global_voxel(current_block)) {
+        let (voxel_pos, chunk_pos) = VoxelPos::from_world(current_block).to_offsets();
+        if let Some(block) = chunk_manager.get_block(VoxelPos::from_world(current_block)) {
             if !block.is_empty(&chunk_manager.block_table) {
                 let toi = lastmax * direction.length();
-                return Some((ChunkPos(chunk_pos), voxel_pos, face, toi));
+                return Some((chunk_pos, voxel_pos, face, toi));
             }
         }
 

@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use vinox_common::{
     ecs::bundles::PlayerBundleBuilder,
     world::chunks::{
+        ecs::CommonPlugin,
         light::LightPlugin,
         storage::{BlockTable, ItemTable, RecipeTable},
     },
@@ -17,6 +18,7 @@ impl Plugin for GamePlugin {
             .insert_resource(BlockTable::default())
             .insert_resource(RecipeTable::default())
             .insert_resource(PlayerBundleBuilder::default())
+            .add_plugin(CommonPlugin)
             .add_plugin(ChunkPlugin)
             .add_plugin(NetworkingPlugin)
             .add_plugin(LightPlugin);
