@@ -5,7 +5,7 @@ BlockDescriptor(
     Some("front"): Some("limestone.png"),
     }),
     has_item: Some(true),
-    visibility: Some(Opaque)
+    visibility: Some(Opaque),
     tex_variance: Some(
         (Some(true), Some(true), Some(true), Some(true), Some(true), Some(true))
 

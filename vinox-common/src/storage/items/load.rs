@@ -20,7 +20,12 @@ pub fn load_all_items() -> Vec<ItemDescriptor> {
                     if let Ok(block) = ron_result {
                         let mut new_block = block.clone();
                         let block = if let Some(texture_path) = block.texture {
-                            new_block.texture = Some(new_block.name.clone() + "/" + &texture_path);
+                            new_block.texture = Some(
+                                "items/".to_string()
+                                    + &new_block.name.clone()
+                                    + "/"
+                                    + &texture_path,
+                            );
                             new_block
                         } else {
                             block
