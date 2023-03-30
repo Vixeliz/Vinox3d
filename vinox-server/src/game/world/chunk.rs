@@ -25,6 +25,9 @@ pub struct ChunkQueue {
     pub remove: Vec<ChunkPos>,
 }
 
+#[derive(Default, Component, Debug)]
+pub struct GeneratingChunk;
+
 pub fn generate_chunks_world(
     load_points: Query<&LoadPoint>,
     mut chunk_queue: ResMut<ChunkQueue>,
@@ -51,6 +54,7 @@ pub fn generate_chunks_world(
             }
             chunk_queue.create.push(pos);
             commands.entity(entity).remove::<NeedsChunkData>();
+            commands.entity(entity).insert(GeneratingChunk);
         }
     }
 }
@@ -121,6 +125,7 @@ pub fn process_queue(
             }
             if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos) {
                 commands.entity(chunk_entity).insert(chunk);
+                commands.entity(chunk_entity).remove::<GeneratingChunk>();
             }
             commands.entity(entity).despawn_recursive();
         }

@@ -24,7 +24,7 @@ use std::{collections::HashSet, ops::Deref, time::Duration};
 use vinox_common::{
     storage::geometry::descriptor::{BlockGeo, GeometryDescriptor},
     world::chunks::{
-        ecs::{ChunkManager, CurrentChunks, NeedsMesh, PriorityMesh},
+        ecs::{ChunkManager, CurrentChunks, NeedsChunkData, NeedsMesh, PriorityMesh},
         positions::{ChunkPos, RelativeVoxelPos, VoxelPos},
         storage::{
             self, trim_geo_identifier, BlockTable, ChunkData, RawChunk, RenderedBlockData,
@@ -1486,7 +1486,7 @@ pub fn build_mesh(
     mut commands: Commands,
     mut chunk_queue: ResMut<MeshQueue>,
     chunk_manager: ChunkManager,
-    chunks: Query<&ChunkPos, With<NeedsMesh>>,
+    chunks: Query<&ChunkPos, (With<NeedsMesh>, Without<NeedsChunkData>)>,
     player_chunk: Res<PlayerChunk>,
     options: Res<GameOptions>,
 ) {
@@ -1500,18 +1500,14 @@ pub fn build_mesh(
         if count > options.meshes_frame {
             return;
         }
-        if chunk_manager.current_chunks.all_neighbors_exist(*chunk) {
-            if let Some(neighbors) = chunk_manager.get_neighbors(*chunk) {
-                if let Ok(neighbors) = neighbors.try_into() {
-                    if let Some(chunk_entity) = chunk_manager.current_chunks.get_entity(*chunk) {
-                        if let Some(chunk_data) = chunk_manager.get_chunk(chunk_entity) {
-                            chunk_queue.mesh.push((
-                                **chunk,
-                                chunk_data,
-                                Box::new(Array(neighbors)),
-                            ));
-                            commands.entity(chunk_entity).remove::<NeedsMesh>();
-                        }
+        if let Some(neighbors) = chunk_manager.get_neighbors(*chunk) {
+            if let Ok(neighbors) = neighbors.try_into() {
+                if let Some(chunk_entity) = chunk_manager.current_chunks.get_entity(*chunk) {
+                    if let Some(chunk_data) = chunk_manager.get_chunk(chunk_entity) {
+                        chunk_queue
+                            .mesh
+                            .push((**chunk, chunk_data, Box::new(Array(neighbors))));
+                        commands.entity(chunk_entity).remove::<NeedsMesh>();
                     }
                 }
             }

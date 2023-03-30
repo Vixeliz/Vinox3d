@@ -120,24 +120,13 @@ pub fn destroy_chunks(mut commands: Commands, mut query_event: EventReader<Tween
     }
 }
 
-pub fn clear_unloaded_chunks(
-    mut commands: Commands,
-    chunks: Query<(&ChunkPos, Entity)>,
-    player_chunk: Res<PlayerChunk>,
-) {
-    for (chunk, entity) in chunks.iter() {
-        // if !player_chunk.is_in_radius(**chunk, &view_radius) {
-        //     commands.entity(entity).insert(RemoveChunk);
-        // }
-    }
-}
-
 #[allow(clippy::nonminimal_bool)]
 pub fn receive_chunks(
     mut current_chunks: ResMut<CurrentChunks>,
     mut commands: Commands,
     mut event: EventReader<CreateChunkEvent>,
     // player_chunk: Res<PlayerChunk>,
+    has_data: Query<With<NeedsChunkData>>,
     load_point: Query<&LoadPoint, With<ControlledPlayer>>,
     block_table: Res<BlockTable>,
 ) {
@@ -146,31 +135,16 @@ pub fn receive_chunks(
         for evt in event.iter() {
             if load_point.is_in_radius(&evt.pos) {
                 if let Some(chunk_entity) = current_chunks.get_entity(evt.pos) {
-                    let mut chunk = ChunkData::from_raw(evt.raw_chunk.clone());
-                    if !chunk.is_empty(&block_table) {
-                        commands.entity(chunk_entity).insert(ChunkUpdate);
+                    if has_data.get(chunk_entity).is_ok() {
+                        let mut chunk = ChunkData::from_raw(evt.raw_chunk.clone());
+                        if !chunk.is_empty(&block_table) {
+                            commands.entity(chunk_entity).insert(ChunkUpdate);
+                        }
+                        commands.entity(chunk_entity).insert(chunk);
+                        commands.entity(chunk_entity).remove::<NeedsChunkData>();
                     }
-                    commands.entity(chunk_entity).insert(chunk);
-                    commands.entity(chunk_entity).remove::<NeedsChunkData>();
                 }
             }
-            // if player_chunk.is_in_radius(evt.pos, &view_radius)
-            //     && current_chunks.get_entity(ChunkPos(evt.pos)).is_none()
-            // {
-
-            //     let chunk_id = commands
-            //         .spawn(chunk.clone())
-            //         .insert(ChunkPos(pos))
-            //         .insert(ChunkCell::default())
-            //         .id();
-
-            //     current_chunks.insert_entity(ChunkPos(pos), chunk_id);
-
-            //     // Don't mark chunks that won't create any blocks
-            //     if !chunk.is_empty(&block_table) {
-            //         commands.entity(chunk_id).insert(ChunkUpdate);
-            //     }
-            // }
         }
     }
 }
@@ -217,19 +191,13 @@ impl Plugin for ChunkPlugin {
                     .in_set(OnUpdate(GameState::Game)),
             )
             .add_system(
-                clear_unloaded_chunks
-                    .after(receive_chunks)
-                    .run_if(should_update_chunks)
-                    .in_set(OnUpdate(GameState::Game)),
-            )
-            .add_system(
                 update_chunk_lights
-                    .after(clear_unloaded_chunks)
+                    .after(receive_chunks)
                     .in_set(OnUpdate(GameState::Game)),
             )
             .add_system(
                 update_priority_chunk_lights
-                    .after(clear_unloaded_chunks)
+                    .after(receive_chunks)
                     .in_set(OnUpdate(GameState::Game)),
             )
             .add_system(

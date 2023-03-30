@@ -9,6 +9,7 @@ use bevy_egui::{
     *,
 };
 use vinox_common::world::chunks::{
+    ecs::NeedsChunkData,
     positions::{ChunkPos, RelativeVoxelPos},
     storage::name_to_identifier,
 };
@@ -29,6 +30,7 @@ pub fn debug(
     player_direction: Res<PlayerDirection>,
     player_query: Query<&Transform, With<ControlledPlayer>>,
     chunks: Query<&ChunkPos>,
+    chunks_loaded: Query<&ChunkPos, Without<NeedsChunkData>>,
     diagnostics: Res<Diagnostics>,
 ) {
     let fps = diagnostics
@@ -95,6 +97,10 @@ pub fn debug(
 
                                     ui.label("Chunk Entities:");
                                     ui.label(format!("{}", chunks.iter().len()));
+                                    ui.end_row();
+
+                                    ui.label("Loaded Chunk Entities:");
+                                    ui.label(format!("{}", chunks_loaded.iter().len()));
                                     ui.end_row();
                                 });
                             });
