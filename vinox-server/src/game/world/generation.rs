@@ -332,52 +332,52 @@ pub fn generate_chunk(
             }
         }
     }
-    add_surface(
-        &mut raw_chunk,
-        pos,
-        block_table,
-        vec![
-            (BlockData::new("vinox".to_string(), "ignis".to_string()), 3),
-            (BlockData::new("vinox".to_string(), "slate".to_string()), 1),
-            (BlockData::new("vinox".to_string(), "gravel".to_string()), 1),
-        ],
-        &mut rng,
-    );
-    add_ceiling(
-        &mut raw_chunk,
-        pos,
-        block_table,
-        vec![
-            (BlockData::new("vinox".to_string(), "worley".to_string()), 4),
-            (
-                BlockData::new("vinox".to_string(), "granite".to_string()),
-                1,
-            ),
-        ],
-        &mut rng,
-    );
-    add_blobs(
-        &mut raw_chunk,
-        pos,
-        block_table,
-        // This would be a vector of different type of biome blocks
-        vec![
-            (
-                vec![(BlockData::new("vinox".to_string(), "light".to_string()), 1)],
-                1,
-            ),
-            (
-                vec![(BlockData::new("vinox".to_string(), "dirt".to_string()), 1)],
-                1,
-            ),
-        ]
-        .choose_weighted(&mut rng, |item| item.1)
-        .unwrap()
-        .0
-        .clone(),
-        seed,
-        &mut rng,
-    );
+    // add_surface(
+    //     &mut raw_chunk,
+    //     pos,
+    //     block_table,
+    //     vec![
+    //         (BlockData::new("vinox".to_string(), "ignis".to_string()), 3),
+    //         (BlockData::new("vinox".to_string(), "slate".to_string()), 1),
+    //         (BlockData::new("vinox".to_string(), "gravel".to_string()), 1),
+    //     ],
+    //     &mut rng,
+    // );
+    // add_ceiling(
+    //     &mut raw_chunk,
+    //     pos,
+    //     block_table,
+    //     vec![
+    //         (BlockData::new("vinox".to_string(), "worley".to_string()), 4),
+    //         (
+    //             BlockData::new("vinox".to_string(), "granite".to_string()),
+    //             1,
+    //         ),
+    //     ],
+    //     &mut rng,
+    // );
+    // add_blobs(
+    //     &mut raw_chunk,
+    //     pos,
+    //     block_table,
+    //     // This would be a vector of different type of biome blocks
+    //     vec![
+    //         (
+    //             vec![(BlockData::new("vinox".to_string(), "light".to_string()), 1)],
+    //             1,
+    //         ),
+    //         (
+    //             vec![(BlockData::new("vinox".to_string(), "dirt".to_string()), 1)],
+    //             1,
+    //         ),
+    //     ]
+    //     .choose_weighted(&mut rng, |item| item.1)
+    //     .unwrap()
+    //     .0
+    //     .clone(),
+    //     seed,
+    //     &mut rng,
+    // );
     // add_to_be(&mut raw_chunk, pos, block_table, to_be_placed);
     raw_chunk.to_raw()
 }
