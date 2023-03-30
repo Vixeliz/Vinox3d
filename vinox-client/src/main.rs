@@ -11,6 +11,7 @@ use bevy::{
 };
 use bevy_quinnet::client::QuinnetClientPlugin;
 use bevy_tweening::TweeningPlugin;
+use big_space::FloatingOriginPlugin;
 use directories::*;
 use fs_extra::dir::{copy, CopyOptions};
 use leafwing_input_manager::prelude::InputManagerPlugin;
@@ -25,6 +26,7 @@ use std::{
     fs::{create_dir_all, File},
     path::PathBuf,
 };
+use vinox_common::{ecs::bundles::BoilerOrigin, world::chunks::storage::CHUNK_SIZE};
 
 fn main() {
     // Eventually I will implement my own recursive copy and also not delete the assets directory for now though we will completely.
@@ -82,8 +84,15 @@ fn main() {
                         features: WgpuFeatures::POLYGON_MODE_LINE,
                         ..default()
                     },
-                }),
+                })
+                .build()
+                .disable::<TransformPlugin>(),
         )
+        .add_plugin(FloatingOriginPlugin::<i32>::new(10000.0, 1.0))
+        .add_plugin(big_space::debug::FloatingOriginDebugPlugin::<i32>::default())
+        .add_startup_system(|mut c: Commands| {
+            c.spawn(BoilerOrigin::default());
+        })
         .add_plugin(WireframePlugin)
         // .add_plugin(LogDiagnosticsPlugin::default())
         .add_plugin(FrameTimeDiagnosticsPlugin::default())

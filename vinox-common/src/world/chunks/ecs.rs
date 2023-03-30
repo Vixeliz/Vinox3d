@@ -1,9 +1,12 @@
 use std::collections::{HashMap, HashSet};
 
 use bevy::{ecs::system::SystemParam, prelude::*};
+use big_space::GridCell;
 use rustc_hash::FxHashSet;
 
 use crate::storage::blocks::descriptor::BlockDescriptor;
+
+pub type ChunkCell = GridCell<i32>;
 
 use super::{
     light::{VoxelAddedEvent, VoxelRemovedEvent},

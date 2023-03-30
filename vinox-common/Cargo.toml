@@ -22,3 +22,4 @@ rustc-hash = "1.1.0"
 bitvec = {version="1.0.1", features=["alloc","atomic","std","serde"]}
 ndshape.workspace=true
 serde_with = "2.3.1"
+big_space.workspace=true

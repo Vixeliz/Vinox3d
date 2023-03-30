@@ -1,9 +1,11 @@
 use bevy::{math::Vec3A, prelude::*, render::primitives::Aabb};
+use big_space::{FloatingOrigin, FloatingSpatialBundle};
 use serde::{Deserialize, Serialize};
 
 use crate::{
     networking::protocol::Player,
     storage::items::descriptor::{ItemData, ItemDescriptor, MAX_STACK_SIZE},
+    world::chunks::ecs::ChunkCell,
 };
 
 #[derive(Default, Deref, DerefMut, Serialize, Deserialize, Debug, Clone)]
@@ -30,6 +32,24 @@ pub struct Inventory {
     pub current_inv_bar: CurrentInvBar,
     pub current_inv_item: CurrentInvItem,
     pub open: bool,
+}
+
+#[derive(Bundle)]
+pub struct BoilerOrigin {
+    // pub cell: ChunkCell,
+    pub origin: FloatingOrigin,
+    #[bundle]
+    pub spatial: FloatingSpatialBundle<i32>,
+}
+
+impl Default for BoilerOrigin {
+    fn default() -> Self {
+        Self {
+            // cell: ChunkCell::default(),
+            origin: FloatingOrigin,
+            spatial: FloatingSpatialBundle::default(),
+        }
+    }
 }
 
 impl Inventory {

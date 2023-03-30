@@ -4,7 +4,7 @@ use egui_notify::Toasts;
 use std::{collections::BTreeMap, convert::Infallible};
 use vinox_common::{networking::protocol::ClientMessage, physics::simulate::CollidesWithWorld};
 
-use bevy::{pbr::wireframe::WireframeConfig, prelude::*};
+use bevy::{math::Vec3A, pbr::wireframe::WireframeConfig, prelude::*, render::primitives::Aabb};
 use bevy_egui::{
     egui::{Align2, FontId},
     *,
@@ -24,7 +24,7 @@ pub struct Toast(pub Toasts);
 #[allow(clippy::too_many_arguments)]
 pub fn create_ui(
     mut commands: Commands,
-    player_query: Query<Entity, With<ControlledPlayer>>,
+    mut player_query: Query<(Entity, &mut Aabb), With<ControlledPlayer>>,
     collider_query: Query<&CollidesWithWorld>,
     mut client: ResMut<Client>,
     is_open: Res<ConsoleOpen>, // mut username_res: ResMut<UserName>,
@@ -58,6 +58,14 @@ pub fn create_ui(
                 println!("Called foo with no arguments");
                 Ok::<(), Infallible>(())
             });
+        let parser_tp = literal("/tp")
+            .then(integer_i64("x").build_exec(|_ctx: (), bar| Ok::<(), Infallible>(())))
+            .then(integer_i64("y").build_exec(|_ctx: (), bar| Ok::<(), Infallible>(())))
+            .then(integer_i64("z").build_exec(|_ctx: (), bar| Ok::<(), Infallible>(())))
+            .build_exec(|_ctx: ()| {
+                println!("Called foo with no arguments");
+                Ok::<(), Infallible>(())
+            });
         if !options.dark_theme {
             catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
         }
@@ -81,14 +89,19 @@ pub fn create_ui(
                                     && ui.input(|input| input.key_pressed(egui::Key::Enter));
                                 if input_send {
                                     // TODO: Switch this to a better system
-                                    if let Ok((result, _)) = parser.parse((), &current_message) {
-                                        messages.push(("Console".to_string(), result.to_string()));
-                                        wireframe_config.global = !wireframe_config.global;
-                                    } else if let Ok((result, _)) =
-                                        parser_spec.parse((), &current_message)
+                                    if let Ok((player, mut player_transform)) =
+                                        player_query.get_single_mut()
                                     {
-                                        messages.push(("Console".to_string(), result.to_string()));
-                                        if let Ok(player) = player_query.get_single() {
+                                        if let Ok((result, _)) = parser.parse((), &current_message)
+                                        {
+                                            messages
+                                                .push(("Console".to_string(), result.to_string()));
+                                            wireframe_config.global = !wireframe_config.global;
+                                        } else if let Ok((result, _)) =
+                                            parser_spec.parse((), &current_message)
+                                        {
+                                            messages
+                                                .push(("Console".to_string(), result.to_string()));
                                             if collider_query.get(player).is_ok() {
                                                 commands
                                                     .entity(player)
@@ -96,14 +109,42 @@ pub fn create_ui(
                                             } else {
                                                 commands.entity(player).insert(CollidesWithWorld);
                                             }
+                                        } else if let Ok((result, _)) =
+                                            parser_tp.parse((), &current_message)
+                                        {
+                                            let (mut x, mut y, mut z) = (0, 0, 0);
+                                            for (idx, num) in result.split_whitespace().enumerate()
+                                            {
+                                                if let Ok(conv) = num.parse() {
+                                                    match idx {
+                                                        0 => {
+                                                            x = conv;
+                                                        }
+                                                        1 => {
+                                                            y = conv;
+                                                        }
+                                                        2 => {
+                                                            z = conv;
+                                                        }
+                                                        _ => {}
+                                                    }
+                                                }
+                                            }
+                                            let delta = Vec3A::new(x as f32, y as f32, z as f32)
+                                                - player_transform.center;
+                                            player_transform.center += delta;
+                                            messages.push((
+                                                "Console".to_string(),
+                                                format!("{x}, {y}, {z}"),
+                                            ));
+                                        } else {
+                                            client.connection_mut().try_send_message(
+                                                ClientMessage::ChatMessage {
+                                                    message: current_message.to_string(),
+                                                },
+                                            );
+                                            current_message.clear();
                                         }
-                                    } else {
-                                        client.connection_mut().try_send_message(
-                                            ClientMessage::ChatMessage {
-                                                message: current_message.to_string(),
-                                            },
-                                        );
-                                        current_message.clear();
                                     }
                                 }
                             });

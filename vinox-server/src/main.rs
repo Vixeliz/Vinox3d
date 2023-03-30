@@ -3,6 +3,7 @@ use bevy::{
     app::ScheduleRunnerSettings, diagnostic::DiagnosticsPlugin, log::LogPlugin, prelude::*,
 };
 use bevy_quinnet::server::QuinnetServerPlugin;
+use big_space::FloatingOriginPlugin;
 use directories::*;
 use game::{
     networking::components::{ChunkLimit, LocalGame, SaveGame},
@@ -96,9 +97,11 @@ fn main() {
         .insert_resource(NetworkIP(ip))
         .insert_resource(LocalGame(false))
         .insert_resource(SaveGame(false))
+        // .add_plugins(MinimalPlugins.build().disable::<TransformPlugin>())
         .add_plugins(MinimalPlugins)
         .add_plugin(DiagnosticsPlugin)
         .add_plugin(LogPlugin::default())
+        // .add_plugin(FloatingOriginPlugin::default())
         .add_plugin(QuinnetServerPlugin::default())
         .add_plugin(GamePlugin)
         .run();

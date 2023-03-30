@@ -1,3 +1,4 @@
+use big_space::{FloatingOrigin, FloatingOriginSettings, GridCell};
 use leafwing_input_manager::prelude::*;
 use std::f32::consts::{FRAC_PI_2, PI};
 
@@ -21,7 +22,7 @@ use vinox_common::{
     },
     storage::blocks::descriptor::BlockGeometry,
     world::chunks::{
-        ecs::{ChunkManager, CurrentChunks},
+        ecs::{ChunkCell, ChunkManager, CurrentChunks},
         positions::{relative_voxel_to_world, voxel_to_world, world_to_chunk, world_to_voxel},
         positions::{voxel_to_global_voxel, world_to_global_voxel, ChunkPos},
         storage::{
@@ -111,6 +112,7 @@ pub fn spawn_camera(
     mut local: Local<bool>,
     mut windows: Query<&mut Window, With<PrimaryWindow>>,
     options: Res<GameOptions>,
+    boiler_player: Query<Entity, With<FloatingOrigin>>,
 ) {
     if *local {
         return;
@@ -152,11 +154,14 @@ pub fn spawn_camera(
         commands.entity(player_entity).with_children(|c| {
             c.spawn((
                 GlobalTransform::default(),
+                ChunkCell::default(),
                 Transform::from_xyz(0.0, 1.0, 0.0),
             ));
             c.spawn((
                 FPSCamera::default(),
+                ChunkCell::default(),
                 camera,
+                FloatingOrigin,
                 FogSettings {
                     color: Color::rgba(0.1, 0.1, 0.1, 1.0),
                     directional_light_color: Color::WHITE,
@@ -169,6 +174,9 @@ pub fn spawn_camera(
                 },
             ));
         });
+        if let Ok(boiler) = boiler_player.get_single() {
+            commands.entity(boiler).despawn_recursive();
+        }
     }
 }
 
@@ -314,10 +322,7 @@ pub fn interact(
     mut windows: Query<&mut Window, With<PrimaryWindow>>,
     camera_query: Query<&GlobalTransform, With<Camera>>,
     mut client: ResMut<Client>,
-    mut player: Query<
-        (&Transform, &ActionState<GameActions>, &mut Inventory),
-        With<ControlledPlayer>,
-    >,
+    mut player: Query<(&Aabb, &ActionState<GameActions>, &mut Inventory), With<ControlledPlayer>>,
     mut cube_position: Query<
         (&mut Transform, &mut Visibility),
         (With<HighLightCube>, Without<ControlledPlayer>),
@@ -566,12 +571,12 @@ pub fn interact(
                     if mouse_right {
                         inventory.item_decrement("hotbar", *cur_bar, *cur_item);
 
-                        if (point.x <= player_transform.translation.x - 0.5
-                            || point.x >= player_transform.translation.x + 0.5)
-                            || (point.z <= player_transform.translation.z - 0.5
-                                || point.z >= player_transform.translation.z + 0.5)
-                            || (point.y <= player_transform.translation.y - 1.0
-                                || point.y >= player_transform.translation.y + 1.0)
+                        if (point.x <= player_transform.center.x - 0.5
+                            || point.x >= player_transform.center.x + 0.5)
+                            || (point.z <= player_transform.center.z - 0.5
+                                || point.z >= player_transform.center.z + 0.5)
+                            || (point.y <= player_transform.center.y - 1.0
+                                || point.y >= player_transform.center.y + 1.0)
                         {
                             let (chunk_pos, voxel_pos) = world_to_voxel(relative_voxel_to_world(
                                 voxel_pos.as_vec3().as_ivec3() + normal.as_ivec3(),
@@ -644,8 +649,9 @@ pub fn interact(
                                         .exclusive_direction
                                         .unwrap_or(false)
                                     {
+                                        let translation: Vec3 = player_transform.center.into();
                                         if modified_item.direction.is_none() {
-                                            let difference = player_transform.translation - point;
+                                            let difference = translation - point;
                                             if difference.x > difference.z {
                                                 if difference.x < 0.0 {
                                                     modified_item.direction =
@@ -663,7 +669,7 @@ pub fn interact(
                                             }
                                         }
                                         if modified_item.top.is_none() {
-                                            let difference = player_transform.translation - point;
+                                            let difference: Vec3 = translation - point;
                                             if difference.y > 0.0 {
                                                 modified_item.top = Some(true);
                                             } else {
@@ -749,9 +755,16 @@ pub fn interact(
 }
 
 // Update main position based on the AABB
-pub fn update_visual_position(mut player: Query<(&Aabb, &mut Transform), With<ControlledPlayer>>) {
-    if let Ok((aabb, mut transform)) = player.get_single_mut() {
-        transform.translation = Vec3::from(aabb.center - Vec3A::Y * aabb.half_extents)
+pub fn update_visual_position(
+    mut player: Query<(&Aabb, &mut Transform, &mut GridCell<i32>), With<ControlledPlayer>>,
+    floating_settings: Res<FloatingOriginSettings>,
+) {
+    if let Ok((aabb, mut transform, mut grid_cell)) = player.get_single_mut() {
+        (*grid_cell, transform.translation) = floating_settings
+            .imprecise_translation_to_grid::<i32>(Vec3::from(
+                aabb.center - Vec3A::Y * aabb.half_extents,
+            ));
+        // transform.translation = Vec3::from(aabb.center - Vec3A::Y * aabb.half_extents)
     }
 }
 
