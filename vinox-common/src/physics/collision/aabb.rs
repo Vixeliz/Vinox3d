@@ -105,7 +105,7 @@ pub fn get_aabb_world_intersectors(
                                 intersectors.push(voxel_pos);
                                 let yint = block_aabb.max().y <= aabb.min().y;
                                 println!(
-                                    "Intersecting with {:?} which is {:?}, chunk_pos {:?}, chunk_offsets, {:?}, voxel_pos {:?}, block_aabb {:?}, player_aabb {aabb:?}, {} <= {} ? {yint}, diff {}, eval {}",
+                                    "Intersecting with {} which is {}, chunk_pos {}, chunk_offsets, {}, voxel_pos {}, block_aabb {:?}, player_aabb {aabb:?}, {} <= {} ? {yint}, diff {}, eval {}",
                                     block_aabb.center.as_ivec3(),
                                     block_data.name,
                                     check_chunk_pos,
