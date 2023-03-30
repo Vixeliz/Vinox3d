@@ -60,9 +60,9 @@ pub fn destroy_chunks(
         for mut sent_chunks in load_points.iter_mut() {
             sent_chunks.chunks.remove(chunk);
         }
-        commands
-            .entity(current_chunks.remove_entity(*chunk).unwrap())
-            .despawn_recursive();
+        // commands
+        //     .entity(current_chunks.remove_entity(*chunk).unwrap())
+        //     .despawn_recursive();
     }
 }
 

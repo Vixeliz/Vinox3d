@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use bevy::{ecs::system::SystemParam, prelude::*};
 use big_space::GridCell;
+use itertools::Itertools;
 use rustc_hash::FxHashSet;
 
 use crate::storage::blocks::descriptor::BlockDescriptor;
@@ -44,9 +45,6 @@ impl LoadPoint {
                 && chunk_pos.z <= (self.horizontal + self.chunk_pos.z))
     }
 }
-
-#[derive(Component, Default)]
-pub struct RemoveChunk;
 
 #[derive(Resource, Default)]
 pub struct CurrentChunks {
@@ -137,27 +135,22 @@ pub struct SimulationRadius {
     pub vertical: i32,
 }
 
-#[derive(SystemParam)]
-pub struct ChunkManager<'w, 's> {
-    commands: Commands<'w, 's>,
-    pub current_chunks: ResMut<'w, CurrentChunks>,
-    // chunk_queue: ResMut<'w, ChunkQueue>,
-    pub chunk_query: Query<'w, 's, &'static mut ChunkData>,
-    pub block_table: Res<'w, BlockTable>,
-    pub light_rem_event: EventWriter<'w, VoxelRemovedEvent>,
-    pub light_add_event: EventWriter<'w, VoxelAddedEvent>,
-}
-
 #[derive(Component, Clone)]
 pub struct SentChunks {
     pub chunks: FxHashSet<ChunkPos>,
 }
+
+#[derive(Component, Default, Clone, Debug)]
+pub struct NeedsChunkData;
 
 #[derive(Component, Default)]
 pub struct PrepassChunk;
 
 #[derive(Component, Default)]
 pub struct ChunkUpdate;
+
+#[derive(Component, Default)]
+pub struct RemoveChunk; // We don't directly delete entities since client and server need to do different things with them
 
 #[derive(Component, Default)]
 pub struct NeedsMesh;
@@ -167,6 +160,16 @@ pub struct PriorityChunkUpdate;
 
 #[derive(Component, Default)]
 pub struct PriorityMesh;
+
+#[derive(SystemParam)]
+pub struct ChunkManager<'w, 's> {
+    commands: Commands<'w, 's>,
+    pub current_chunks: ResMut<'w, CurrentChunks>,
+    pub chunk_query: Query<'w, 's, &'static mut ChunkData>,
+    pub block_table: Res<'w, BlockTable>,
+    pub light_rem_event: EventWriter<'w, VoxelRemovedEvent>,
+    pub light_add_event: EventWriter<'w, VoxelAddedEvent>,
+}
 
 impl<'w, 's> ChunkManager<'w, 's> {
     pub fn get_chunk(&self, enity: Entity) -> Option<ChunkData> {
@@ -340,12 +343,41 @@ pub fn update_priority_chunk_lights(
     }
 }
 
-pub fn sync_load_points(mut load_points: Query<(&mut LoadPoint, Ref<Transform>)>) {
+pub fn sync_load_points(mut load_points: Query<(&mut LoadPoint, Ref<GlobalTransform>)>) {
     for (mut load_point, transform) in load_points.iter_mut() {
         if transform.is_changed() {
             load_point.chunk_pos =
-                ChunkPos::from_world(VoxelPos::from_world(transform.translation));
+                ChunkPos::from_world(VoxelPos::from_world(transform.translation()));
         }
+    }
+}
+
+pub fn populate_entities(
+    load_points: Query<&LoadPoint>,
+    mut current_chunks: ResMut<CurrentChunks>,
+    mut commands: Commands,
+) {
+    for chunk_pos in
+        current_chunks.load_around(load_points.iter().copied().collect_vec().as_slice())
+    {
+        if current_chunks.get_entity(chunk_pos).is_none() {
+            let chunk_entity = commands
+                .spawn((ChunkCell::default(), chunk_pos, NeedsChunkData))
+                .id();
+            current_chunks.insert_entity(chunk_pos, chunk_entity);
+        }
+    }
+}
+
+pub fn unpopulate_entities(
+    load_points: Query<&LoadPoint>,
+    mut current_chunks: ResMut<CurrentChunks>,
+    mut commands: Commands,
+) {
+    for chunk_entity in
+        current_chunks.unload_outside(load_points.iter().copied().collect_vec().as_slice())
+    {
+        commands.entity(chunk_entity).insert(RemoveChunk);
     }
 }
 
@@ -359,6 +391,16 @@ pub enum CommonSet {
 
 impl Plugin for CommonPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(sync_load_points.in_set(CommonSet::Syncing));
+        app.add_system(sync_load_points.in_set(CommonSet::Syncing))
+            .add_system(
+                populate_entities
+                    .after(sync_load_points)
+                    .in_set(CommonSet::Syncing),
+            )
+            .add_system(
+                unpopulate_entities
+                    .after(populate_entities)
+                    .in_set(CommonSet::Syncing),
+            );
     }
 }

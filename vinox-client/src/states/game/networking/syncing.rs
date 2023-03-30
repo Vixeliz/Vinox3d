@@ -21,7 +21,7 @@ use vinox_common::{
     networking::protocol::{ClientMessage, EntityBuffer, ServerMessage},
     physics::simulate::{CollidesWithWorld, Velocity},
     world::chunks::{
-        ecs::ChunkCell,
+        ecs::{ChunkCell, LoadPoint},
         positions::{ChunkPos, RelativeVoxelPos},
         storage::RawChunk,
     },
@@ -127,6 +127,7 @@ pub fn get_messages(
                             .insert(CollidesWithWorld)
                             .insert(FloatingOrigin)
                             .insert(ChunkCell::default())
+                            .insert(LoadPoint::default())
                             .insert(Velocity(Vec3::ZERO));
                         if let Ok(boiler) = boiler_player.get_single() {
                             cmd2.entity(boiler).despawn_recursive();
