@@ -275,17 +275,14 @@ pub fn client_send_naive_position(
 ) {
     if let Ok(transform) = transform_query.get_single_mut() {
         if let Ok(camera_transform) = camera_query.get_single_mut() {
-            client
-                .connection_mut()
-                .send_message_on(
-                    bevy_quinnet::shared::channel::ChannelId::Unreliable,
-                    ClientMessage::Position {
-                        player_pos: transform.center.into(),
-                        yaw: camera_transform.rotation.to_euler(EulerRot::XYZ).1,
-                        head_pitch: camera_transform.rotation.to_euler(EulerRot::XYZ).0,
-                    },
-                )
-                .unwrap();
+            client.connection_mut().try_send_message_on(
+                bevy_quinnet::shared::channel::ChannelId::Unreliable,
+                ClientMessage::Position {
+                    player_pos: transform.center.into(),
+                    yaw: camera_transform.rotation.to_euler(EulerRot::XYZ).1,
+                    head_pitch: camera_transform.rotation.to_euler(EulerRot::XYZ).0,
+                },
+            );
         }
     }
 }
