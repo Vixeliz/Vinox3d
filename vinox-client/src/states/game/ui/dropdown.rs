@@ -130,8 +130,9 @@ pub fn create_ui(
                                                     }
                                                 }
                                             }
-                                            player_transform.center =
-                                                Vec3A::new(x as f32, y as f32, z as f32);
+                                            let delta = Vec3A::new(x as f32, y as f32, z as f32)
+                                                - player_transform.center;
+                                            player_transform.center += delta;
                                             messages.push((
                                                 "Console".to_string(),
                                                 format!("{x}, {y}, {z}"),

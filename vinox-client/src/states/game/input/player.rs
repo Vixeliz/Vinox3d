@@ -1,3 +1,4 @@
+use big_space::FloatingOrigin;
 use leafwing_input_manager::prelude::*;
 use std::f32::consts::{FRAC_PI_2, PI};
 
@@ -21,7 +22,7 @@ use vinox_common::{
     },
     storage::blocks::descriptor::BlockGeometry,
     world::chunks::{
-        ecs::{ChunkManager, CurrentChunks},
+        ecs::{ChunkCell, ChunkManager, CurrentChunks},
         positions::{relative_voxel_to_world, voxel_to_world, world_to_chunk, world_to_voxel},
         positions::{voxel_to_global_voxel, world_to_global_voxel, ChunkPos},
         storage::{
@@ -111,6 +112,7 @@ pub fn spawn_camera(
     mut local: Local<bool>,
     mut windows: Query<&mut Window, With<PrimaryWindow>>,
     options: Res<GameOptions>,
+    boiler_player: Query<Entity, With<FloatingOrigin>>,
 ) {
     if *local {
         return;
@@ -152,11 +154,14 @@ pub fn spawn_camera(
         commands.entity(player_entity).with_children(|c| {
             c.spawn((
                 GlobalTransform::default(),
+                ChunkCell::default(),
                 Transform::from_xyz(0.0, 1.0, 0.0),
             ));
             c.spawn((
                 FPSCamera::default(),
+                ChunkCell::default(),
                 camera,
+                FloatingOrigin,
                 FogSettings {
                     color: Color::rgba(0.1, 0.1, 0.1, 1.0),
                     directional_light_color: Color::WHITE,
@@ -169,6 +174,9 @@ pub fn spawn_camera(
                 },
             ));
         });
+        if let Ok(boiler) = boiler_player.get_single() {
+            commands.entity(boiler).despawn_recursive();
+        }
     }
 }
 

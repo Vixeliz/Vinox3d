@@ -16,7 +16,7 @@ use bevy_egui::{
     },
     EguiContexts, EguiSettings,
 };
-use vinox_common::networking::protocol::NetworkIP;
+use vinox_common::{ecs::bundles::BoilerOrigin, networking::protocol::NetworkIP};
 
 use crate::states::components::{
     save_game_options, GameActions, GameOptions, GameState, Menu, ProjectPath,

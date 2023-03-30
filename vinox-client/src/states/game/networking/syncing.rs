@@ -13,13 +13,14 @@ use bevy_tweening::{
     lens::{TransformPositionLens, TransformRotationLens},
     *,
 };
+use big_space::FloatingOrigin;
 use leafwing_input_manager::prelude::*;
 use std::{io::Cursor, time::Duration};
 use vinox_common::{
     ecs::bundles::PlayerBundleBuilder,
     networking::protocol::{ClientMessage, EntityBuffer, ServerMessage},
     physics::simulate::{CollidesWithWorld, Velocity},
-    world::chunks::storage::RawChunk,
+    world::chunks::{ecs::ChunkCell, storage::RawChunk},
 };
 use zstd::stream::copy_decode;
 
@@ -70,6 +71,7 @@ pub fn get_messages(
     asset_server: Res<AssetServer>,
     mut messages: ResMut<ChatMessages>,
     mut toast: ResMut<Toast>,
+    boiler_player: Query<Entity, With<FloatingOrigin>>,
 ) {
     if **client_data != 0 {
         while let Some(message) = client
@@ -119,7 +121,12 @@ pub fn get_messages(
                             })
                             .insert(*inventory)
                             .insert(CollidesWithWorld)
+                            // .insert(FloatingOrigin)
+                            .insert(ChunkCell::default())
                             .insert(Velocity(Vec3::ZERO));
+                        // if let Ok(boiler) = boiler_player.get_single() {
+                        //     cmd2.entity(boiler).despawn_recursive();
+                        // }
                     } else {
                         if init {
                             toast

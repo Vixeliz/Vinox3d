@@ -35,3 +35,4 @@ rustc-hash = "1.1.0"
 ndshape.workspace=true
 bevy_mod_mipmap_generator={git="https://github.com/DGriffin91/bevy_mod_mipmap_generator"}
 egui_extras = "0.21.0"
+big_space.workspace=true
