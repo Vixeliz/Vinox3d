@@ -1,4 +1,4 @@
-use big_space::FloatingOrigin;
+use big_space::{FloatingOrigin, FloatingOriginSettings, GridCell};
 use leafwing_input_manager::prelude::*;
 use std::f32::consts::{FRAC_PI_2, PI};
 
@@ -757,9 +757,16 @@ pub fn interact(
 }
 
 // Update main position based on the AABB
-pub fn update_visual_position(mut player: Query<(&Aabb, &mut Transform), With<ControlledPlayer>>) {
-    if let Ok((aabb, mut transform)) = player.get_single_mut() {
-        transform.translation = Vec3::from(aabb.center - Vec3A::Y * aabb.half_extents)
+pub fn update_visual_position(
+    mut player: Query<(&Aabb, &mut Transform, &mut GridCell<i32>), With<ControlledPlayer>>,
+    floating_settings: Res<FloatingOriginSettings>,
+) {
+    if let Ok((aabb, mut transform, mut grid_cell)) = player.get_single_mut() {
+        (*grid_cell, transform.translation) = floating_settings
+            .imprecise_translation_to_grid::<i32>(Vec3::from(
+                aabb.center - Vec3A::Y * aabb.half_extents,
+            ));
+        // transform.translation = Vec3::from(aabb.center - Vec3A::Y * aabb.half_extents)
     }
 }
 

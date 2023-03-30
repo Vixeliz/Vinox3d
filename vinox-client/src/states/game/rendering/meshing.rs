@@ -1034,28 +1034,28 @@ pub fn process_task(
                     (chunk.pos.z * (CHUNK_SIZE) as i32) as f32,
                 );
 
-                let tween = Tween::new(
-                    EaseFunction::QuadraticInOut,
-                    Duration::from_secs(1),
-                    TransformPositionLens {
-                        start: Vec3::new(chunk_pos.x, chunk_pos.y - CHUNK_SIZE as f32, chunk_pos.z),
-                        end: chunk_pos,
-                    },
-                )
-                .with_repeat_count(RepeatCount::Finite(1));
+                // let tween = Tween::new(
+                //     EaseFunction::QuadraticInOut,
+                //     Duration::from_secs(1),
+                //     TransformPositionLens {
+                //         start: Vec3::new(chunk_pos.x, chunk_pos.y - CHUNK_SIZE as f32, chunk_pos.z),
+                //         end: chunk_pos,
+                //     },
+                // )
+                // .with_repeat_count(RepeatCount::Finite(1));
 
-                let chunk_pos = if chunks.get(chunk_entity).is_err()
-                    && chunk
-                        .pos
-                        .as_vec3()
-                        .distance(player_chunk.chunk_pos.as_vec3())
-                        > 4.0
-                {
-                    commands.entity(chunk_entity).insert(Animator::new(tween));
-                    Vec3::new(chunk_pos.x, chunk_pos.y - CHUNK_SIZE as f32, chunk_pos.z)
-                } else {
-                    chunk_pos
-                };
+                // let chunk_pos = if chunks.get(chunk_entity).is_err()
+                //     && chunk
+                //         .pos
+                //         .as_vec3()
+                //         .distance(player_chunk.chunk_pos.as_vec3())
+                //         > 4.0
+                // {
+                //     commands.entity(chunk_entity).insert(Animator::new(tween));
+                //     Vec3::new(chunk_pos.x, chunk_pos.y - CHUNK_SIZE as f32, chunk_pos.z)
+                // } else {
+                //     chunk_pos
+                // };
 
                 let trans_entity = commands
                     .spawn((

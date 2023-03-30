@@ -7,7 +7,7 @@ use crate::states::{
         world::chunks::{ControlledPlayer, CreateChunkEvent, SetBlockEvent},
     },
 };
-use bevy::prelude::*;
+use bevy::{prelude::*, render::primitives::Aabb};
 use bevy_quinnet::client::*;
 use bevy_tweening::{
     lens::{TransformPositionLens, TransformRotationLens},
@@ -263,7 +263,7 @@ pub fn lerp_new_location(
 }
 
 pub fn client_send_naive_position(
-    mut transform_query: Query<&mut Transform, With<ControlledPlayer>>,
+    mut transform_query: Query<&mut Aabb, With<ControlledPlayer>>,
     mut camera_query: Query<&mut Transform, (With<Camera>, Without<ControlledPlayer>)>,
     mut client: ResMut<Client>,
 ) {
@@ -274,7 +274,7 @@ pub fn client_send_naive_position(
                 .send_message_on(
                     bevy_quinnet::shared::channel::ChannelId::Unreliable,
                     ClientMessage::Position {
-                        player_pos: transform.translation,
+                        player_pos: transform.center.into(),
                         yaw: camera_transform.rotation.to_euler(EulerRot::XYZ).1,
                         head_pitch: camera_transform.rotation.to_euler(EulerRot::XYZ).0,
                     },
