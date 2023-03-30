@@ -108,6 +108,7 @@ pub fn get_messages(
                         .insert(SentChunks {
                             chunks: FxHashSet::default(),
                         })
+                        .insert(VoxelPos::default())
                         .insert(LoadPoint::default())
                         .id();
                     lobby.players.insert(id, player_entity);
@@ -185,6 +186,12 @@ pub fn get_messages(
                 _ => {}
             }
         }
+    }
+}
+
+pub fn sync_voxel_pos(mut players: Query<(&mut VoxelPos, &Transform)>) {
+    for (mut voxel_pos, transform) in players.iter_mut() {
+        *voxel_pos = VoxelPos::from_world(transform.translation);
     }
 }
 

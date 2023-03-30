@@ -78,11 +78,11 @@ pub fn unsend_chunks(
 ) {
     for (load_point, mut sent_chunks) in load_points.iter_mut() {
         for chunk in chunks.iter() {
-            // if !load_point.is_in_radius(**chunk, &view_radius) {
-            //     sent_chunks.chunks.remove(chunk);
-            // } else {
-            //     continue;
-            // }
+            if !load_point.is_in_radius(chunk) {
+                sent_chunks.chunks.remove(chunk);
+            } else {
+                continue;
+            }
         }
     }
 }

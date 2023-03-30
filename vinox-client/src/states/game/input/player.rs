@@ -759,14 +759,18 @@ pub fn interact(
 
 // Update main position based on the AABB
 pub fn update_visual_position(
-    mut player: Query<(&Aabb, &mut Transform, &mut GridCell<i32>), With<ControlledPlayer>>,
+    mut player: Query<
+        (&Aabb, &mut Transform, &mut VoxelPos, &mut GridCell<i32>),
+        With<ControlledPlayer>,
+    >,
     floating_settings: Res<FloatingOriginSettings>,
 ) {
-    if let Ok((aabb, mut transform, mut grid_cell)) = player.get_single_mut() {
+    if let Ok((aabb, mut transform, mut voxel_pos, mut grid_cell)) = player.get_single_mut() {
         (*grid_cell, transform.translation) = floating_settings
             .imprecise_translation_to_grid::<i32>(Vec3::from(
                 aabb.center - Vec3A::Y * aabb.half_extents,
             ));
+        *voxel_pos = VoxelPos::from_world(Vec3::from(aabb.center - Vec3A::Y * aabb.half_extents));
         // transform.translation = Vec3::from(aabb.center - Vec3A::Y * aabb.half_extents)
     }
 }

@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use super::{
     components::ServerLobby,
     start::{new_server, setup_loadables},
-    syncing::{connections, get_messages, send_chunks, send_entities},
+    syncing::{connections, get_messages, send_chunks, send_entities, sync_voxel_pos},
 };
 
 pub struct NetworkingPlugin;
@@ -18,6 +18,6 @@ impl Plugin for NetworkingPlugin {
                     .chain()
                     .in_schedule(CoreSchedule::FixedUpdate),
             )
-            .add_systems((get_messages, connections));
+            .add_systems((get_messages, connections, sync_voxel_pos));
     }
 }
