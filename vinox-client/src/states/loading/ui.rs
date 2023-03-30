@@ -160,7 +160,10 @@ pub fn setup_resources(
         name.push(':');
         name.push_str(&item.name);
         if let Some(path) = item.texture.clone() {
-            let texture_handle = asset_server.load(path);
+            let mut suffix = item.name.clone();
+            suffix.push('/');
+            suffix.push_str(&path);
+            let texture_handle = asset_server.load(suffix);
             loading.push(texture_handle.clone_untyped());
             loadable_assets
                 .item_textures

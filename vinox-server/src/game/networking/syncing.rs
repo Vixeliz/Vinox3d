@@ -1,6 +1,6 @@
 use std::io::Cursor;
 
-use rand::seq::SliceRandom;
+use rand::seq::{IteratorRandom, SliceRandom};
 use rustc_data_structures::stable_set::FxHashSet;
 
 use bevy::{app::AppExit, prelude::*};
@@ -9,7 +9,7 @@ use vinox_common::{
     ecs::bundles::{ClientName, Inventory, PlayerBundleBuilder},
     networking::protocol::{ClientMessage, NetworkedEntities, Player, ServerMessage},
     world::chunks::{
-        ecs::{ChunkManager, CurrentChunks, LoadPoint, SentChunks},
+        ecs::{ChunkManager, CurrentChunks, LoadPoint, NeedsChunkData, SentChunks},
         positions::{ChunkPos, RelativeVoxelPos, VoxelPos},
         storage::{BlockTable, ChunkData},
     },
@@ -206,43 +206,46 @@ pub fn send_chunks(
     mut commands: Commands,
     mut server: ResMut<Server>,
     lobby: ResMut<ServerLobby>,
-    mut players: Query<(&Transform, &mut SentChunks), With<Player>>,
+    mut players: Query<(&LoadPoint, &mut SentChunks), With<Player>>,
     mut chunk_manager: ChunkManager,
+    has_data: Query<Without<NeedsChunkData>>,
     chunk_limit: Res<ChunkLimit>,
 ) {
     let mut rng = rand::thread_rng();
     let endpoint = server.endpoint_mut();
     for client_id in endpoint.clients() {
         if let Some(player_entity) = lobby.players.get(&client_id) {
-            if let Ok((player_transform, mut sent_chunks)) = players.get_mut(*player_entity) {
-                let chunk_pos =
-                    ChunkPos::from_world(VoxelPos::from_world(player_transform.translation));
-                let load_point = LoadPoint::default();
-                commands.entity(*player_entity).insert(load_point.clone());
-                // for chunk in chunk_manager
-                //     .get_chunks_around_chunk(ChunkPos(chunk_pos), Some(&sent_chunks))
-                //     .choose_multiple(&mut rng, **chunk_limit)
-                // {
-                //     let raw_chunk = chunk.0.to_raw();
-                //     if let Ok(raw_chunk_bin) = bincode::serialize(&raw_chunk) {
-                //         let mut final_chunk = Cursor::new(raw_chunk_bin);
-                //         let mut output = Cursor::new(Vec::new());
-                //         copy_encode(&mut final_chunk, &mut output, 0).unwrap();
-                //         if server
-                //             .endpoint_mut()
-                //             .send_message(
-                //                 client_id,
-                //                 ServerMessage::LevelData {
-                //                     chunk_data: output.get_ref().clone(),
-                //                     pos: *chunk.1,
-                //                 },
-                //             )
-                //             .is_ok()
-                //         {
-                //             sent_chunks.chunks.insert(chunk.1);
-                //         }
-                //     }
-                // }
+            if let Ok((load_point, mut sent_chunks)) = players.get_mut(*player_entity) {
+                for (chunk_entity, chunk_pos) in chunk_manager
+                    .current_chunks
+                    .get_entities(&[*load_point])
+                    .iter()
+                    .choose_multiple(&mut rng, **chunk_limit)
+                {
+                    if has_data.get(*chunk_entity).is_ok() {
+                        if let Some(chunk) = chunk_manager.get_chunk(*chunk_entity) {
+                            let raw_chunk = chunk.to_raw();
+                            if let Ok(raw_chunk_bin) = bincode::serialize(&raw_chunk) {
+                                let mut final_chunk = Cursor::new(raw_chunk_bin);
+                                let mut output = Cursor::new(Vec::new());
+                                copy_encode(&mut final_chunk, &mut output, 0).unwrap();
+                                if server
+                                    .endpoint_mut()
+                                    .send_message(
+                                        client_id,
+                                        ServerMessage::LevelData {
+                                            chunk_data: output.get_ref().clone(),
+                                            pos: **chunk_pos,
+                                        },
+                                    )
+                                    .is_ok()
+                                {
+                                    sent_chunks.chunks.insert(*chunk_pos);
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }

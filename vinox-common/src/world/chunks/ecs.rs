@@ -89,6 +89,26 @@ impl CurrentChunks {
         }
         to_load.into_iter().collect()
     }
+    pub fn get_entities(&self, pos_list: &[LoadPoint]) -> Vec<(Entity, ChunkPos)> {
+        let mut to_load = HashSet::new();
+        for load_point in pos_list.iter().copied() {
+            for z in -load_point.horizontal..=load_point.horizontal {
+                for y in -load_point.vertical..=load_point.vertical {
+                    for x in -load_point.horizontal..=load_point.horizontal {
+                        let other_pos = ChunkPos::new(
+                            load_point.chunk_pos.x + x,
+                            load_point.chunk_pos.y + y,
+                            load_point.chunk_pos.z + z,
+                        );
+                        if let Some(chunk_entity) = self.get_entity(other_pos) {
+                            to_load.insert((chunk_entity, other_pos));
+                        }
+                    }
+                }
+            }
+        }
+        to_load.into_iter().collect()
+    }
     pub fn unload_outside(&mut self, pos_list: &[LoadPoint]) -> Vec<Entity> {
         let mut to_remove = Vec::new();
         self.chunks.keys().for_each(|other_pos| {

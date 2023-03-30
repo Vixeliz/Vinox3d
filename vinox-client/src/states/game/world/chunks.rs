@@ -6,7 +6,7 @@ use bevy_tweening::*;
 use vinox_common::world::chunks::{
     ecs::{
         update_chunk_lights, update_priority_chunk_lights, ChunkCell, ChunkManager, ChunkUpdate,
-        CurrentChunks, RemoveChunk, SimulationRadius,
+        CurrentChunks, LoadPoint, NeedsChunkData, RemoveChunk, SimulationRadius,
     },
     positions::{ChunkPos, RelativeVoxelPos, VoxelPos},
     storage::{BlockData, BlockTable, ChunkData, RawChunk, HORIZONTAL_DISTANCE, VERTICAL_DISTANCE},
@@ -137,29 +137,41 @@ pub fn receive_chunks(
     mut current_chunks: ResMut<CurrentChunks>,
     mut commands: Commands,
     mut event: EventReader<CreateChunkEvent>,
-    player_chunk: Res<PlayerChunk>,
+    // player_chunk: Res<PlayerChunk>,
+    load_point: Query<&LoadPoint, With<ControlledPlayer>>,
     block_table: Res<BlockTable>,
 ) {
     let task_pool = AsyncComputeTaskPool::get();
-    for evt in event.iter() {
-        // if player_chunk.is_in_radius(evt.pos, &view_radius)
-        //     && current_chunks.get_entity(ChunkPos(evt.pos)).is_none()
-        // {
-        //     let mut chunk = ChunkData::from_raw(evt.raw_chunk.clone());
+    if let Ok(load_point) = load_point.get_single() {
+        for evt in event.iter() {
+            if load_point.is_in_radius(&evt.pos) {
+                if let Some(chunk_entity) = current_chunks.get_entity(evt.pos) {
+                    let mut chunk = ChunkData::from_raw(evt.raw_chunk.clone());
+                    if !chunk.is_empty(&block_table) {
+                        commands.entity(chunk_entity).insert(ChunkUpdate);
+                    }
+                    commands.entity(chunk_entity).insert(chunk);
+                    commands.entity(chunk_entity).remove::<NeedsChunkData>();
+                }
+            }
+            // if player_chunk.is_in_radius(evt.pos, &view_radius)
+            //     && current_chunks.get_entity(ChunkPos(evt.pos)).is_none()
+            // {
 
-        //     let chunk_id = commands
-        //         .spawn(chunk.clone())
-        //         .insert(ChunkPos(pos))
-        //         .insert(ChunkCell::default())
-        //         .id();
+            //     let chunk_id = commands
+            //         .spawn(chunk.clone())
+            //         .insert(ChunkPos(pos))
+            //         .insert(ChunkCell::default())
+            //         .id();
 
-        //     current_chunks.insert_entity(ChunkPos(pos), chunk_id);
+            //     current_chunks.insert_entity(ChunkPos(pos), chunk_id);
 
-        //     // Don't mark chunks that won't create any blocks
-        //     if !chunk.is_empty(&block_table) {
-        //         commands.entity(chunk_id).insert(ChunkUpdate);
-        //     }
-        // }
+            //     // Don't mark chunks that won't create any blocks
+            //     if !chunk.is_empty(&block_table) {
+            //         commands.entity(chunk_id).insert(ChunkUpdate);
+            //     }
+            // }
+        }
     }
 }
 
