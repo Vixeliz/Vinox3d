@@ -1,0 +1,10 @@
+BlockDescriptor(
+    namespace: "vinox",
+    name: "root",
+    textures: Some({
+    Some("front"): Some("root.png"),
+    }),
+    break_tool: "axe", //machette eventually
+    visibility: Some(Opaque), 
+    has_item: Some(true),
+)

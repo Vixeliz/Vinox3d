@@ -1,0 +1,12 @@
+BlockDescriptor(
+    namespace: "vinox",
+    name: "obsidian",
+    textures: Some({
+    Some("front"): Some("obsidian.png"),
+    }),
+    has_item: Some(true),
+    visibility: Some(Opaque),
+    tex_variance: Some(
+        (Some(true), Some(true), Some(true), Some(true), Some(true), Some(true)))
+
+)

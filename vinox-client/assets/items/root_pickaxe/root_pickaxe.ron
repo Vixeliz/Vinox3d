@@ -1,0 +1,8 @@
+ItemDescriptor(
+    namespace: "vinox",
+    name: "root_pickaxe",
+    max_durability: Some(250),
+    max_stack_size: Some(1),
+    tool_type: Some(Pickaxe),
+    texture: Some("root_pickaxe.png")
+)

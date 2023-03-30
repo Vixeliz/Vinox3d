@@ -1,0 +1,8 @@
+RecipeDescriptor(
+    namespace: "vinox",
+    name: "root_pickaxe",
+    required_items: Some({
+        "vinox:stone": 2,
+    }),
+    output_item: ("vinox:root_pickaxe", 1)
+)
