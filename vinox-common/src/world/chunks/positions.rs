@@ -1,9 +1,17 @@
+use std::fmt;
+
 use bevy::prelude::*;
 
 use super::storage::CHUNK_SIZE;
 
-#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash, Deref, DerefMut)]
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash, Deref, DerefMut, Default)]
 pub struct ChunkPos(pub IVec3);
+
+impl fmt::Display for ChunkPos {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 impl ChunkPos {
     pub fn new(x: i32, y: i32, z: i32) -> Self {
@@ -61,8 +69,14 @@ impl ChunkPos {
     }
 }
 
-#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash, Deref, DerefMut)]
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash, Deref, DerefMut, Default)]
 pub struct VoxelPos(pub IVec3);
+
+impl fmt::Display for VoxelPos {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 impl VoxelPos {
     pub fn new(x: i32, y: i32, z: i32) -> Self {
@@ -92,7 +106,7 @@ impl VoxelPos {
     }
 
     pub fn as_vec3(&self) -> Vec3 {
-        self.as_vec3()
+        Vec3::new(self.x as f32, self.y as f32, self.z as f32)
     }
 
     pub fn to_offsets(&self) -> (RelativeVoxelPos, ChunkPos) {
@@ -103,8 +117,14 @@ impl VoxelPos {
     }
 }
 
-#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash, Deref, DerefMut)]
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash, Deref, DerefMut, Default)]
 pub struct RelativeVoxelPos(pub UVec3);
+
+impl fmt::Display for RelativeVoxelPos {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 impl RelativeVoxelPos {
     pub fn new(x: u32, y: u32, z: u32) -> Self {

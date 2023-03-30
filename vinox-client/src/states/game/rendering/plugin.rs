@@ -9,6 +9,13 @@ use super::meshing::{
 
 pub struct RenderingPlugin;
 
+#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
+pub enum RenderSet {
+    StartMeshing,
+    ProcessTask,
+    Sorting,
+}
+
 impl Plugin for RenderingPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(AmbientLight {

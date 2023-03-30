@@ -9,7 +9,7 @@ use bevy_egui::{
     *,
 };
 use vinox_common::world::chunks::{
-    positions::{world_to_offsets, ChunkPos},
+    positions::{ChunkPos, RelativeVoxelPos},
     storage::name_to_identifier,
 };
 
@@ -76,7 +76,7 @@ pub fn debug(
                                     ui.label("Chunk Block:");
                                     ui.label(format!(
                                         "{}",
-                                        world_to_offsets(player_block.pos.as_vec3())
+                                        RelativeVoxelPos::from_voxel(player_block.pos)
                                     ));
                                     ui.end_row();
 

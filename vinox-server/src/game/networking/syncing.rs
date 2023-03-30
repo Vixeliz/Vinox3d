@@ -9,14 +9,14 @@ use vinox_common::{
     ecs::bundles::{ClientName, Inventory, PlayerBundleBuilder},
     networking::protocol::{ClientMessage, NetworkedEntities, Player, ServerMessage},
     world::chunks::{
-        ecs::{ChunkManager, CurrentChunks, SentChunks},
-        positions::{world_to_chunk, ChunkPos},
+        ecs::{ChunkManager, CurrentChunks, LoadPoint, SentChunks},
+        positions::{ChunkPos, VoxelPos},
         storage::{BlockTable, ChunkData},
     },
 };
 use zstd::stream::copy_encode;
 
-use crate::game::world::{chunk::LoadPoint, storage::ChunksToSave};
+use crate::game::world::storage::ChunksToSave;
 
 use super::components::{ChunkLimit, LocalGame, ServerLobby};
 
@@ -105,7 +105,7 @@ pub fn get_messages(
                         .insert(SentChunks {
                             chunks: FxHashSet::default(),
                         })
-                        .insert(LoadPoint(world_to_chunk(transform.translation)))
+                        .insert(LoadPoint::default())
                         .id();
                     lobby.players.insert(id, player_entity);
 
@@ -214,33 +214,34 @@ pub fn send_chunks(
     for client_id in endpoint.clients() {
         if let Some(player_entity) = lobby.players.get(&client_id) {
             if let Ok((player_transform, mut sent_chunks)) = players.get_mut(*player_entity) {
-                let chunk_pos = world_to_chunk(player_transform.translation);
-                let load_point = LoadPoint(chunk_pos);
+                let chunk_pos =
+                    ChunkPos::from_world(VoxelPos::from_world(player_transform.translation));
+                let load_point = LoadPoint::default();
                 commands.entity(*player_entity).insert(load_point.clone());
-                for chunk in chunk_manager
-                    .get_chunks_around_chunk(ChunkPos(chunk_pos), Some(&sent_chunks))
-                    .choose_multiple(&mut rng, **chunk_limit)
-                {
-                    let raw_chunk = chunk.0.to_raw();
-                    if let Ok(raw_chunk_bin) = bincode::serialize(&raw_chunk) {
-                        let mut final_chunk = Cursor::new(raw_chunk_bin);
-                        let mut output = Cursor::new(Vec::new());
-                        copy_encode(&mut final_chunk, &mut output, 0).unwrap();
-                        if server
-                            .endpoint_mut()
-                            .send_message(
-                                client_id,
-                                ServerMessage::LevelData {
-                                    chunk_data: output.get_ref().clone(),
-                                    pos: *chunk.1,
-                                },
-                            )
-                            .is_ok()
-                        {
-                            sent_chunks.chunks.insert(chunk.1);
-                        }
-                    }
-                }
+                // for chunk in chunk_manager
+                //     .get_chunks_around_chunk(ChunkPos(chunk_pos), Some(&sent_chunks))
+                //     .choose_multiple(&mut rng, **chunk_limit)
+                // {
+                //     let raw_chunk = chunk.0.to_raw();
+                //     if let Ok(raw_chunk_bin) = bincode::serialize(&raw_chunk) {
+                //         let mut final_chunk = Cursor::new(raw_chunk_bin);
+                //         let mut output = Cursor::new(Vec::new());
+                //         copy_encode(&mut final_chunk, &mut output, 0).unwrap();
+                //         if server
+                //             .endpoint_mut()
+                //             .send_message(
+                //                 client_id,
+                //                 ServerMessage::LevelData {
+                //                     chunk_data: output.get_ref().clone(),
+                //                     pos: *chunk.1,
+                //                 },
+                //             )
+                //             .is_ok()
+                //         {
+                //             sent_chunks.chunks.insert(chunk.1);
+                //         }
+                //     }
+                // }
             }
         }
     }

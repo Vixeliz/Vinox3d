@@ -19,16 +19,16 @@ use rand::{rngs::StdRng, Rng, SeedableRng};
 use rustc_hash::FxHashMap;
 // use rand::seq::IteratorRandom;
 use serde_big_array::Array;
-use std::{ops::Deref, time::Duration};
+use std::{collections::HashSet, ops::Deref, time::Duration};
 
 use vinox_common::{
     storage::geometry::descriptor::{BlockGeo, GeometryDescriptor},
     world::chunks::{
         ecs::{ChunkManager, CurrentChunks, NeedsMesh, PriorityMesh},
-        positions::{voxel_to_world, world_to_global_voxel, ChunkPos},
+        positions::{ChunkPos, RelativeVoxelPos, VoxelPos},
         storage::{
-            self, trim_geo_identifier, BlockTable, ChunkData, RenderedBlockData, VoxelVisibility,
-            CHUNK_SIZE,
+            self, trim_geo_identifier, BlockTable, ChunkData, RawChunk, RenderedBlockData,
+            VoxelVisibility, CHUNK_SIZE,
         },
     },
 };
@@ -47,6 +47,12 @@ pub struct GeometryTable(pub FxHashMap<String, GeometryDescriptor>);
 pub const EMPTY: VoxelVisibility = VoxelVisibility::Empty;
 pub const OPAQUE: VoxelVisibility = VoxelVisibility::Opaque;
 pub const TRANSPARENT: VoxelVisibility = VoxelVisibility::Transparent;
+
+#[derive(Default, Resource)]
+pub struct ChunkQueue {
+    pub mesh: Vec<(ChunkPos, RawChunk)>,
+    pub remove: HashSet<ChunkPos>,
+}
 
 #[derive(Clone, Debug)]
 pub struct Quad {
@@ -1330,7 +1336,7 @@ fn full_mesh(
             &face.uvs(
                 texture_atlas,
                 matched_index,
-                world_to_global_voxel(Vec3::new(
+                VoxelPos::from_world(Vec3::new(
                     face.voxel()[0] as f32,
                     face.voxel()[1] as f32,
                     face.voxel()[2] as f32,
@@ -1388,7 +1394,7 @@ fn full_mesh(
             &face.uvs(
                 texture_atlas,
                 matched_index,
-                world_to_global_voxel(Vec3::new(
+                VoxelPos::from_world(Vec3::new(
                     face.voxel()[0] as f32,
                     face.voxel()[1] as f32,
                     face.voxel()[2] as f32,
@@ -1566,7 +1572,7 @@ pub fn priority_player(
     chunks: Query<&Handle<Mesh>>,
     mut commands: Commands,
 ) {
-    if let Some(chunk_entity) = current_chunks.get_entity(ChunkPos(player_chunk.chunk_pos)) {
+    if let Some(chunk_entity) = current_chunks.get_entity(player_chunk.chunk_pos) {
         if chunks.get(chunk_entity).is_err() {
             commands.entity(chunk_entity).insert(PriorityMesh);
         }
@@ -1687,7 +1693,7 @@ fn ao_convert(ao: Vec<u32>) -> Vec<[f32; 4]> {
 }
 
 pub struct SortFaces {
-    chunk_pos: IVec3,
+    chunk_pos: ChunkPos,
 }
 
 pub fn sort_faces(
@@ -1700,7 +1706,7 @@ pub fn sort_faces(
 ) {
     for evt in events.iter() {
         if let Ok(camera_transform) = camera_transform.get_single() {
-            if let Some(chunk_entity) = current_chunks.get_entity(ChunkPos(evt.chunk_pos)) {
+            if let Some(chunk_entity) = current_chunks.get_entity(evt.chunk_pos) {
                 if let Ok(children) = chunks.get(chunk_entity) {
                     if let Some(child_entity) = children.get(0) {
                         if let Ok(chunk_mesh_handle) = handles.get(*child_entity) {
@@ -1729,13 +1735,15 @@ pub fn sort_faces(
                                                     + raw_array[vec_ind[4]][2]
                                                     + raw_array[vec_ind[5]][2])
                                                     / 4.0;
-                                                let real_pos = voxel_to_world(
-                                                    UVec3::new(x as u32, y as u32, z as u32),
+                                                let real_pos = VoxelPos::from_offsets(
+                                                    RelativeVoxelPos(UVec3::new(
+                                                        x as u32, y as u32, z as u32,
+                                                    )),
                                                     evt.chunk_pos,
                                                 );
                                                 let dist = camera_transform
                                                     .translation()
-                                                    .distance(real_pos);
+                                                    .distance(real_pos.as_vec3());
                                                 sorted_indices.push((
                                                     [
                                                         vec_ind[0], vec_ind[1], vec_ind[2],
@@ -1781,22 +1789,22 @@ pub fn sort_chunks(
             chunk_pos: player_chunk.chunk_pos,
         });
         sort_face.send(SortFaces {
-            chunk_pos: player_chunk.chunk_pos + IVec3::new(1, 0, 0),
+            chunk_pos: ChunkPos(*player_chunk.chunk_pos + IVec3::new(1, 0, 0)),
         });
         sort_face.send(SortFaces {
-            chunk_pos: player_chunk.chunk_pos + IVec3::new(-1, 0, 0),
+            chunk_pos: ChunkPos(*player_chunk.chunk_pos + IVec3::new(-1, 0, 0)),
         });
         sort_face.send(SortFaces {
-            chunk_pos: player_chunk.chunk_pos + IVec3::new(0, 1, 0),
+            chunk_pos: ChunkPos(*player_chunk.chunk_pos + IVec3::new(0, 1, 0)),
         });
         sort_face.send(SortFaces {
-            chunk_pos: player_chunk.chunk_pos + IVec3::new(0, -1, 0),
+            chunk_pos: ChunkPos(*player_chunk.chunk_pos + IVec3::new(0, -1, 0)),
         });
         sort_face.send(SortFaces {
-            chunk_pos: player_chunk.chunk_pos + IVec3::new(0, 0, 1),
+            chunk_pos: ChunkPos(*player_chunk.chunk_pos + IVec3::new(0, 0, 1)),
         });
         sort_face.send(SortFaces {
-            chunk_pos: player_chunk.chunk_pos + IVec3::new(0, 0, -1),
+            chunk_pos: ChunkPos(*player_chunk.chunk_pos + IVec3::new(0, 0, -1)),
         });
     }
 
