@@ -16,8 +16,15 @@ pub fn load_all_items() -> Vec<ItemDescriptor> {
         {
             if entry.path().extension().unwrap_or_default() == "ron" {
                 if let Ok(ron_string) = fs::read_to_string(entry.path()) {
-                    let ron_result = ron::from_str(ron_string.as_str());
+                    let ron_result = ron::from_str::<ItemDescriptor>(ron_string.as_str());
                     if let Ok(block) = ron_result {
+                        let mut new_block = block.clone();
+                        let block = if let Some(texture_path) = block.texture {
+                            new_block.texture = Some(new_block.name.clone() + "/" + &texture_path);
+                            new_block
+                        } else {
+                            block
+                        };
                         result.push(block);
                     } else {
                         println!("{ron_result:?}");
