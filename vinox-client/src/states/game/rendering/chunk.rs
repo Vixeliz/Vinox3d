@@ -3,7 +3,10 @@ use ndshape::{ConstShape, ConstShape3usize};
 use serde_big_array::Array;
 use vinox_common::{
     storage::geometry::descriptor::BlockGeo,
-    world::chunks::storage::{trim_geo_identifier, BlockTable, ChunkData, RenderedBlockData},
+    world::chunks::{
+        positions::RelativeVoxelPos,
+        storage::{trim_geo_identifier, BlockTable, ChunkData, RenderedBlockData},
+    },
 };
 
 use crate::states::assets::load::LoadableAssets;
@@ -423,8 +426,8 @@ pub fn get_rend(
 ) -> RenderedBlockData {
     let (x, y, z) = (x as u32, y as u32, z as u32);
     // return RenderedBlockData::default();
-    let voxel = chunk.get(x, y, z);
-    let identifier = chunk.get_identifier(x, y, z);
+    let voxel = chunk.get(RelativeVoxelPos::new(x, y, z));
+    let identifier = chunk.get_identifier(RelativeVoxelPos::new(x, y, z));
     let block_data = block_table.get(&identifier).unwrap();
     let geo_data = geo_table.get(
         &block_data

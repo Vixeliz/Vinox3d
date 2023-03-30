@@ -10,7 +10,10 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use vinox_common::{
     storage::blocks::descriptor::BlockDescriptor,
-    world::chunks::storage::{BlockData, BlockTable, ChunkData, RawChunk, CHUNK_SIZE},
+    world::chunks::{
+        positions::RelativeVoxelPos,
+        storage::{BlockData, BlockTable, ChunkData, RawChunk, CHUNK_SIZE},
+    },
 };
 
 #[derive(Resource, Default, Serialize, Deserialize, Deref, DerefMut, Clone)]
@@ -23,7 +26,6 @@ pub const SEA_LEVEL: i32 = 0;
 pub fn add_surface(
     raw_chunk: &mut ChunkData,
     pos: IVec3,
-    block_table: &BlockTable,
     block_types: Vec<(BlockData, i32)>,
     rng: &mut StdRng,
 ) {
@@ -31,27 +33,26 @@ pub fn add_surface(
         for y in 0..=CHUNK_SIZE - 1 {
             for x in 0..=CHUNK_SIZE - 1 {
                 let (x, y, z) = (x as u32, y as u32, z as u32);
+                let relative_pos = RelativeVoxelPos(UVec3::new(x, y, z));
                 if y == CHUNK_SIZE as u32 - 1 {
                     let full_x = x as i32 + ((CHUNK_SIZE as i32) * pos.x);
                     let full_z = z as i32 + ((CHUNK_SIZE as i32) * pos.z);
                     let full_y = y as i32 + ((CHUNK_SIZE as i32) * pos.y) + 1;
-                    if raw_chunk.get_identifier(x, y, z) != "vinox:air" {
+                    if raw_chunk.get_identifier(relative_pos) != "vinox:air" {
                         // We need to add a vec for adding blocks in a new chunk when out of range
                         // raw_chunk.set(x, y, z, grass, block_table);
                     }
-                } else if raw_chunk.get_identifier(x, y + 1, z) == "vinox:air"
-                    && raw_chunk.get_identifier(x, y, z) != "vinox:air"
+                } else if raw_chunk.get_identifier(RelativeVoxelPos::new(x, y + 1, z))
+                    == "vinox:air"
+                    && raw_chunk.get_identifier(relative_pos) != "vinox:air"
                 {
                     raw_chunk.set(
-                        x,
-                        y,
-                        z,
+                        relative_pos,
                         block_types
                             .choose_weighted(rng, |item| item.1)
                             .unwrap()
                             .clone()
                             .0,
-                        block_table,
                     );
                 }
             }
@@ -62,7 +63,6 @@ pub fn add_surface(
 pub fn add_ceiling(
     raw_chunk: &mut ChunkData,
     pos: IVec3,
-    block_table: &BlockTable,
     block_types: Vec<(BlockData, i32)>,
     rng: &mut StdRng,
 ) {
@@ -70,27 +70,26 @@ pub fn add_ceiling(
         for y in 0..=CHUNK_SIZE - 1 {
             for x in 0..=CHUNK_SIZE - 1 {
                 let (x, y, z) = (x as u32, y as u32, z as u32);
+                let relative_pos = RelativeVoxelPos(UVec3::new(x, y, z));
                 if y == 0 {
                     let full_x = x as i32 + ((CHUNK_SIZE as i32) * pos.x);
                     let full_z = z as i32 + ((CHUNK_SIZE as i32) * pos.z);
                     let full_y = y as i32 + ((CHUNK_SIZE as i32) * pos.y) + 1;
-                    if raw_chunk.get_identifier(x, y, z) != "vinox:air" {
+                    if raw_chunk.get_identifier(relative_pos) != "vinox:air" {
                         // We need to add a vec for adding blocks in a new chunk when out of range
                         // raw_chunk.set(x, y, z, grass, block_table);
                     }
-                } else if raw_chunk.get_identifier(x, y - 1, z) == "vinox:air"
-                    && raw_chunk.get_identifier(x, y, z) != "vinox:air"
+                } else if raw_chunk.get_identifier(RelativeVoxelPos::new(x, y - 1, z))
+                    == "vinox:air"
+                    && raw_chunk.get_identifier(relative_pos) != "vinox:air"
                 {
                     raw_chunk.set(
-                        x,
-                        y,
-                        z,
+                        relative_pos,
                         block_types
                             .choose_weighted(rng, |item| item.1)
                             .unwrap()
                             .clone()
                             .0,
-                        block_table,
                     );
                 }
             }
@@ -114,22 +113,20 @@ pub fn add_blobs(
         for y in 0..=CHUNK_SIZE - 1 {
             for x in 0..=CHUNK_SIZE - 1 {
                 let (x, y, z) = (x as u32, y as u32, z as u32);
+                let relative_pos = RelativeVoxelPos(UVec3::new(x, y, z));
                 let full_x = x as i32 + ((CHUNK_SIZE as i32) * pos.x);
                 let full_z = z as i32 + ((CHUNK_SIZE as i32) * pos.z);
                 let full_y = y as i32 + ((CHUNK_SIZE as i32) * pos.y) + 1;
-                if raw_chunk.get(x, y, z).is_opaque(block_table) {
+                if raw_chunk.get(relative_pos).is_opaque(block_table) {
                     let final_noise = blob_noise.get([full_x as f64, full_y as f64, full_z as f64]);
                     if final_noise < -0.15 {
                         raw_chunk.set(
-                            x,
-                            y,
-                            z,
+                            relative_pos,
                             block_types
                                 .choose_weighted(rng, |item| item.1)
                                 .unwrap()
                                 .clone()
                                 .0,
-                            block_table,
                         );
                     }
                 }
@@ -138,44 +135,44 @@ pub fn add_blobs(
     }
 }
 
-pub fn add_to_be(
-    raw_chunk: &mut ChunkData,
-    pos: IVec3,
-    block_table: &BlockTable,
-    to_be_placed: &ToBePlaced,
-) {
-    if let Some(blocks) = to_be_placed.get(&pos) {
-        for block in blocks.iter() {
-            raw_chunk.set(
-                block.0.x,
-                block.0.y,
-                block.0.z,
-                block.1.clone(),
-                block_table,
-            );
-        }
-    }
-}
+// pub fn add_to_be(
+//     raw_chunk: &mut ChunkData,
+//     pos: IVec3,
+//     block_table: &BlockTable,
+//     to_be_placed: &ToBePlaced,
+// ) {
+//     if let Some(blocks) = to_be_placed.get(&pos) {
+//         for block in blocks.iter() {
+//             raw_chunk.set(
+//                 block.0.x,
+//                 block.0.y,
+//                 block.0.z,
+//                 block.1.clone(),
+//                 block_table,
+//             );
+//         }
+//     }
+// }
 
-pub fn add_sea(raw_chunk: &mut ChunkData, pos: IVec3, block_table: &BlockTable) {
-    for z in 0..CHUNK_SIZE {
-        for y in 0..CHUNK_SIZE {
-            for x in 0..CHUNK_SIZE {
-                let full_x = x as i32 + ((CHUNK_SIZE as i32) * pos.x);
-                let full_z = z as i32 + ((CHUNK_SIZE as i32) * pos.z);
-                let full_y = y as i32 + ((CHUNK_SIZE as i32) * pos.y);
-                let (x, y, z) = (x as u32, y as u32, z as u32);
-                if full_y == SEA_LEVEL && raw_chunk.get(x, y, z).is_empty(block_table) {
-                    let water = BlockData::new("vinox".to_string(), "water.divot".to_string());
-                    raw_chunk.set(x, y, z, water, block_table);
-                } else if full_y < SEA_LEVEL && raw_chunk.get(x, y, z).is_empty(block_table) {
-                    let water = BlockData::new("vinox".to_string(), "water".to_string());
-                    raw_chunk.set(x, y, z, water, block_table);
-                }
-            }
-        }
-    }
-}
+// pub fn add_sea(raw_chunk: &mut ChunkData, pos: IVec3, block_table: &BlockTable) {
+//     for z in 0..CHUNK_SIZE {
+//         for y in 0..CHUNK_SIZE {
+//             for x in 0..CHUNK_SIZE {
+//                 let full_x = x as i32 + ((CHUNK_SIZE as i32) * pos.x);
+//                 let full_z = z as i32 + ((CHUNK_SIZE as i32) * pos.z);
+//                 let full_y = y as i32 + ((CHUNK_SIZE as i32) * pos.y);
+//                 let (x, y, z) = (x as u32, y as u32, z as u32);
+//                 if full_y == SEA_LEVEL && raw_chunk.get(x, y, z).is_empty(block_table) {
+//                     let water = BlockData::new("vinox".to_string(), "water.divot".to_string());
+//                     raw_chunk.set(x, y, z, water, block_table);
+//                 } else if full_y < SEA_LEVEL && raw_chunk.get(x, y, z).is_empty(block_table) {
+//                     let water = BlockData::new("vinox".to_string(), "water".to_string());
+//                     raw_chunk.set(x, y, z, water, block_table);
+//                 }
+//             }
+//         }
+//     }
+// }
 
 // TODO: Was going to add trees like this but instead we will do a more flexible structure system with ron
 // pub fn add_trees(
@@ -299,6 +296,7 @@ pub fn generate_chunk(
                 let full_z = z as i32 + ((CHUNK_SIZE as i32) * pos.z);
                 let full_y = y as i32 + ((CHUNK_SIZE as i32) * pos.y);
                 let (x, y, z) = (x as u32, y as u32, z as u32);
+                let relative_pos = RelativeVoxelPos(UVec3::new(x, y, z));
                 let is_cave = ridged_noise
                     .get([full_x as f64, full_y as f64, full_z as f64])
                     .abs()
@@ -314,19 +312,13 @@ pub fn generate_chunk(
                 // world_noise(seed).get([full_x as f64, full_y as f64, full_z as f64]) * 45.152;
                 if !is_cave {
                     raw_chunk.set(
-                        x,
-                        y,
-                        z,
+                        relative_pos,
                         BlockData::new("vinox".to_string(), "stone".to_string()),
-                        block_table,
                     );
                 } else {
                     raw_chunk.set(
-                        x,
-                        y,
-                        z,
+                        relative_pos,
                         BlockData::new("vinox".to_string(), "air".to_string()),
-                        block_table,
                     );
                 }
             }

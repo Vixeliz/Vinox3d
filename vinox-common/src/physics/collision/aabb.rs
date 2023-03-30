@@ -53,8 +53,7 @@ pub fn aabb_intersects_world(
                 .to_offsets();
                 if let Some(chunk_entity) = current_chunks.get_entity(check_chunk_pos) {
                     if let Ok(chunk) = chunks.get(chunk_entity) {
-                        let block_data: BlockData =
-                            chunk.get(check_block_cpos.x, check_block_cpos.y, check_block_cpos.z);
+                        let block_data: BlockData = chunk.get(check_block_cpos);
                         let voxel_pos = VoxelPos::from_offsets(check_block_cpos, check_chunk_pos);
                         if !block_data.is_empty(block_table) {
                             let block_aabb = Aabb {
@@ -93,8 +92,7 @@ pub fn get_aabb_world_intersectors(
                 .to_offsets();
                 if let Some(chunk_entity) = current_chunks.get_entity(check_chunk_pos) {
                     if let Ok(chunk) = chunks.get(chunk_entity) {
-                        let block_data: BlockData =
-                            chunk.get(check_block_cpos.x, check_block_cpos.y, check_block_cpos.z);
+                        let block_data: BlockData = chunk.get(check_block_cpos);
                         let voxel_pos = VoxelPos::from_offsets(check_block_cpos, check_chunk_pos);
                         if !block_data.is_empty(block_table) {
                             let block_aabb = Aabb {
@@ -155,8 +153,7 @@ pub fn aabb_vs_world(
                 .to_offsets();
                 if let Some(chunk_entity) = current_chunks.get_entity(check_chunk_pos) {
                     if let Ok(chunk) = chunks.get(chunk_entity) {
-                        let block_data: BlockData =
-                            chunk.get(check_block_cpos.x, check_block_cpos.y, check_block_cpos.z);
+                        let block_data: BlockData = chunk.get(check_block_cpos);
                         let voxel_pos = VoxelPos::from_offsets(check_block_cpos, check_chunk_pos);
                         if !block_data.is_empty(block_table) {
                             let block_aabb = Aabb {

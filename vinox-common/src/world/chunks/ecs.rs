@@ -172,13 +172,7 @@ impl<'w, 's> ChunkManager<'w, 's> {
         let (local_pos, chunk_pos) = voxel_pos.to_offsets();
         if let Some(chunk_entity) = self.current_chunks.get_entity(chunk_pos) {
             if let Ok(mut chunk) = self.chunk_query.get_mut(chunk_entity) {
-                chunk.set(
-                    local_pos.x,
-                    local_pos.y,
-                    local_pos.z,
-                    block.clone(),
-                    &self.block_table,
-                );
+                chunk.set(local_pos, block.clone());
                 if block == BlockData::default() {
                     self.light_rem_event.send(VoxelRemovedEvent::new(voxel_pos));
                 } else {
@@ -199,7 +193,7 @@ impl<'w, 's> ChunkManager<'w, 's> {
             if let Ok(chunk) = self.chunk_query.get(chunk_entity) {
                 return self
                     .block_table
-                    .get(&chunk.get_identifier(local_pos.x, local_pos.y, local_pos.z))
+                    .get(&chunk.get_identifier(local_pos))
                     .cloned();
             }
         }
@@ -210,7 +204,7 @@ impl<'w, 's> ChunkManager<'w, 's> {
         let (local_pos, chunk_pos) = voxel_pos.to_offsets();
         if let Some(chunk_entity) = self.current_chunks.get_entity(chunk_pos) {
             if let Ok(chunk) = self.chunk_query.get(chunk_entity) {
-                return Some(chunk.get_identifier(local_pos.x, local_pos.y, local_pos.z));
+                return Some(chunk.get_identifier(local_pos));
             }
         }
         None
@@ -220,7 +214,7 @@ impl<'w, 's> ChunkManager<'w, 's> {
         let (local_pos, chunk_pos) = voxel_pos.to_offsets();
         if let Some(chunk_entity) = self.current_chunks.get_entity(chunk_pos) {
             if let Ok(chunk) = self.chunk_query.get(chunk_entity) {
-                return Some(chunk.get(local_pos.x, local_pos.y, local_pos.z));
+                return Some(chunk.get(local_pos));
             }
         }
         None

@@ -7,7 +7,7 @@ use serde_with::{serde_as, Bytes};
 
 use super::{
     ecs::{CurrentChunks, PriorityMesh},
-    positions::{ChunkPos, VoxelPos},
+    positions::{ChunkPos, RelativeVoxelPos, VoxelPos},
     storage::{BlockData, BlockTable, ChunkData},
 };
 
@@ -137,7 +137,7 @@ pub fn propagate_lighting(
         let Some(chunk_entity) = loaded_chunks.get_entity(chunk_pos) else { continue; };
         let Ok((_pos, mut chunk_data)) = chunks.get_mut(chunk_entity) else { continue; };
         let light_val = block_table
-            .get(&chunk_data.get_identifier(local_pos.x, local_pos.y, local_pos.z))
+            .get(&chunk_data.get_identifier(local_pos))
             .unwrap()
             .light
             .unwrap_or_default();
@@ -455,7 +455,9 @@ fn check_neighbor_simple_add(
     new_level: u8,
     block_table: &BlockTable,
 ) {
-    if chunk_data.get(x, y, z).is_true_empty(block_table)
+    if chunk_data
+        .get(RelativeVoxelPos(UVec3::new(x, y, z)))
+        .is_true_empty(block_table)
         && chunk_data.get_torchlight(x, y, z) + 2 < source_level
     {
         chunk_data.set_torchlight(x, y, z, new_level);

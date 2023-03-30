@@ -10,7 +10,7 @@ use vinox_common::{
     networking::protocol::{ClientMessage, NetworkedEntities, Player, ServerMessage},
     world::chunks::{
         ecs::{ChunkManager, CurrentChunks, LoadPoint, SentChunks},
-        positions::{ChunkPos, VoxelPos},
+        positions::{ChunkPos, RelativeVoxelPos, VoxelPos},
         storage::{BlockTable, ChunkData},
     },
 };
@@ -149,11 +149,12 @@ pub fn get_messages(
                     if let Some(chunk_entity) = current_chunks.get_entity(ChunkPos(chunk_pos)) {
                         if let Ok(mut chunk) = chunks.get_mut(chunk_entity) {
                             chunk.set(
-                                voxel_pos[0] as u32,
-                                voxel_pos[1] as u32,
-                                voxel_pos[2] as u32,
+                                RelativeVoxelPos::new(
+                                    voxel_pos[0] as u32,
+                                    voxel_pos[1] as u32,
+                                    voxel_pos[2] as u32,
+                                ),
                                 block_type.clone(),
-                                &block_table,
                             );
                             chunks_to_save.push((ChunkPos(chunk_pos), chunk.to_raw()));
                             endpoint.try_broadcast_message(ServerMessage::SentBlock {
