@@ -97,7 +97,6 @@ impl VoxelPos {
                 (world_chunk.y as f32) + voxel_pos.y as f32,
                 (world_chunk.z as f32) + voxel_pos.z as f32,
             )
-            .floor()
             .as_ivec3(),
         )
     }
