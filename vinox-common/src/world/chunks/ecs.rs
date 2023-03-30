@@ -14,17 +14,19 @@ use super::{
     storage::{BlockData, BlockTable, ChunkData, HORIZONTAL_DISTANCE, VERTICAL_DISTANCE},
 };
 
-#[derive(Component, Clone)]
+#[derive(Component, Clone, Copy)]
 pub struct LoadPoint {
-    pub horizontal: u32,
-    pub vertical: u32,
+    pub horizontal: i32,
+    pub vertical: i32,
+    pub chunk_pos: ChunkPos, // This would most likely be better as a component however I prefer this so its easy to implement function on top of loadpoint
 }
 
 impl Default for LoadPoint {
     fn default() -> Self {
         Self {
-            horizontal: HORIZONTAL_DISTANCE as u32,
-            vertical: VERTICAL_DISTANCE as u32,
+            horizontal: HORIZONTAL_DISTANCE as i32,
+            vertical: VERTICAL_DISTANCE as i32,
+            chunk_pos: ChunkPos::default(),
         }
     }
 }
@@ -32,6 +34,14 @@ impl Default for LoadPoint {
 impl LoadPoint {
     pub fn new(horizontal: u32, vertical: u32) -> Self {
         Self::default()
+    }
+    pub fn is_in_radius(&self, chunk_pos: &ChunkPos) -> bool {
+        ((-self.horizontal + self.chunk_pos.x) <= chunk_pos.x
+            && chunk_pos.x <= (self.horizontal + self.chunk_pos.x))
+            && ((-self.vertical + self.chunk_pos.y) <= chunk_pos.y
+                && chunk_pos.y <= (self.vertical + self.chunk_pos.y))
+            && ((-self.horizontal + self.chunk_pos.z) <= chunk_pos.z
+                && chunk_pos.z <= (self.horizontal + self.chunk_pos.z))
     }
 }
 
@@ -62,6 +72,41 @@ impl CurrentChunks {
             }
         }
         true
+    }
+    pub fn load_around(&self, pos_list: &[LoadPoint]) -> Vec<ChunkPos> {
+        let mut to_load = HashSet::new();
+        for load_point in pos_list.iter().copied() {
+            for z in -load_point.horizontal..=load_point.horizontal {
+                for y in -load_point.vertical..=load_point.vertical {
+                    for x in -load_point.horizontal..=load_point.horizontal {
+                        let other_pos = ChunkPos::new(
+                            load_point.chunk_pos.x + x,
+                            load_point.chunk_pos.y + y,
+                            load_point.chunk_pos.z + z,
+                        );
+                        to_load.insert(other_pos);
+                    }
+                }
+            }
+        }
+        to_load.into_iter().collect()
+    }
+    pub fn unload_outside(&mut self, pos_list: &[LoadPoint]) -> Vec<Entity> {
+        let mut to_remove = Vec::new();
+        self.chunks.keys().for_each(|other_pos| {
+            if pos_list
+                .iter()
+                .all(|load_point| !load_point.is_in_radius(other_pos))
+            {
+                to_remove.push(*other_pos);
+            }
+        });
+        to_remove.into_iter().map(|pos| self.unload(pos)).collect()
+    }
+    fn unload(&mut self, pos: ChunkPos) -> Entity {
+        self.chunks
+            .remove(&pos)
+            .expect("Chunk should exist at ChunkPos for unloading")
     }
     pub fn get_all_neighbors(&self, pos: ChunkPos) -> Vec<Entity> {
         pos.neighbors()
@@ -292,5 +337,28 @@ pub fn update_priority_chunk_lights(
     for entity in chunks.iter_mut() {
         commands.entity(entity).remove::<PriorityChunkUpdate>();
         commands.entity(entity).insert(PriorityMesh);
+    }
+}
+
+pub fn sync_load_points(mut load_points: Query<(&mut LoadPoint, Ref<Transform>)>) {
+    for (mut load_point, transform) in load_points.iter_mut() {
+        if transform.is_changed() {
+            load_point.chunk_pos =
+                ChunkPos::from_world(VoxelPos::from_world(transform.translation));
+        }
+    }
+}
+
+pub struct CommonPlugin;
+
+#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
+pub enum CommonSet {
+    Lighting,
+    Syncing,
+}
+
+impl Plugin for CommonPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_system(sync_load_points.in_set(CommonSet::Syncing));
     }
 }
