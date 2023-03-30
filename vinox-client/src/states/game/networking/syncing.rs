@@ -121,12 +121,12 @@ pub fn get_messages(
                             })
                             .insert(*inventory)
                             .insert(CollidesWithWorld)
-                            // .insert(FloatingOrigin)
+                            .insert(FloatingOrigin)
                             .insert(ChunkCell::default())
                             .insert(Velocity(Vec3::ZERO));
-                        // if let Ok(boiler) = boiler_player.get_single() {
-                        //     cmd2.entity(boiler).despawn_recursive();
-                        // }
+                        if let Ok(boiler) = boiler_player.get_single() {
+                            cmd2.entity(boiler).despawn_recursive();
+                        }
                     } else {
                         if init {
                             toast

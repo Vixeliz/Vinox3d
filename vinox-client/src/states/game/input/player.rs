@@ -154,14 +154,14 @@ pub fn spawn_camera(
         commands.entity(player_entity).with_children(|c| {
             c.spawn((
                 GlobalTransform::default(),
-                ChunkCell::default(),
+                // ChunkCell::default(),
                 Transform::from_xyz(0.0, 1.0, 0.0),
             ));
             c.spawn((
                 FPSCamera::default(),
-                ChunkCell::default(),
+                // ChunkCell::default(),
                 camera,
-                FloatingOrigin,
+                // FloatingOrigin,
                 FogSettings {
                     color: Color::rgba(0.1, 0.1, 0.1, 1.0),
                     directional_light_color: Color::WHITE,
@@ -174,9 +174,9 @@ pub fn spawn_camera(
                 },
             ));
         });
-        if let Ok(boiler) = boiler_player.get_single() {
-            commands.entity(boiler).despawn_recursive();
-        }
+        // if let Ok(boiler) = boiler_player.get_single() {
+        //     commands.entity(boiler).despawn_recursive();
+        // }
     }
 }
 
