@@ -322,10 +322,7 @@ pub fn interact(
     mut windows: Query<&mut Window, With<PrimaryWindow>>,
     camera_query: Query<&GlobalTransform, With<Camera>>,
     mut client: ResMut<Client>,
-    mut player: Query<
-        (&Transform, &ActionState<GameActions>, &mut Inventory),
-        With<ControlledPlayer>,
-    >,
+    mut player: Query<(&Aabb, &ActionState<GameActions>, &mut Inventory), With<ControlledPlayer>>,
     mut cube_position: Query<
         (&mut Transform, &mut Visibility),
         (With<HighLightCube>, Without<ControlledPlayer>),
@@ -574,12 +571,12 @@ pub fn interact(
                     if mouse_right {
                         inventory.item_decrement("hotbar", *cur_bar, *cur_item);
 
-                        if (point.x <= player_transform.translation.x - 0.5
-                            || point.x >= player_transform.translation.x + 0.5)
-                            || (point.z <= player_transform.translation.z - 0.5
-                                || point.z >= player_transform.translation.z + 0.5)
-                            || (point.y <= player_transform.translation.y - 1.0
-                                || point.y >= player_transform.translation.y + 1.0)
+                        if (point.x <= player_transform.center.x - 0.5
+                            || point.x >= player_transform.center.x + 0.5)
+                            || (point.z <= player_transform.center.z - 0.5
+                                || point.z >= player_transform.center.z + 0.5)
+                            || (point.y <= player_transform.center.y - 1.0
+                                || point.y >= player_transform.center.y + 1.0)
                         {
                             let (chunk_pos, voxel_pos) = world_to_voxel(relative_voxel_to_world(
                                 voxel_pos.as_vec3().as_ivec3() + normal.as_ivec3(),
@@ -652,8 +649,9 @@ pub fn interact(
                                         .exclusive_direction
                                         .unwrap_or(false)
                                     {
+                                        let translation: Vec3 = player_transform.center.into();
                                         if modified_item.direction.is_none() {
-                                            let difference = player_transform.translation - point;
+                                            let difference = translation - point;
                                             if difference.x > difference.z {
                                                 if difference.x < 0.0 {
                                                     modified_item.direction =
@@ -671,7 +669,7 @@ pub fn interact(
                                             }
                                         }
                                         if modified_item.top.is_none() {
-                                            let difference = player_transform.translation - point;
+                                            let difference: Vec3 = translation - point;
                                             if difference.y > 0.0 {
                                                 modified_item.top = Some(true);
                                             } else {

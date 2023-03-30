@@ -12,6 +12,7 @@ use bevy::{
     utils::FloatOrd,
 };
 use bevy_tweening::{lens::TransformPositionLens, *};
+use big_space::FloatingOriginSettings;
 use futures_lite::future;
 use itertools::Itertools;
 use rand::{rngs::StdRng, Rng, SeedableRng};
@@ -942,6 +943,7 @@ pub fn process_priority_task(
     mut meshes: ResMut<Assets<Mesh>>,
     chunk_material: Res<ChunkMaterial>,
     current_chunks: Res<CurrentChunks>,
+    floating_settings: Res<FloatingOriginSettings>,
 ) {
     mesh_tasks.for_each_mut(|(entity, mut task)| {
         if let Some(chunk) = future::block_on(future::poll_once(&mut task.0)) {
@@ -953,6 +955,8 @@ pub fn process_priority_task(
                     (chunk.pos.y * (CHUNK_SIZE) as i32) as f32,
                     (chunk.pos.z * (CHUNK_SIZE) as i32) as f32,
                 );
+                let (grid_cell, chunk_pos) =
+                    floating_settings.imprecise_translation_to_grid::<i32>(chunk_pos);
 
                 let trans_entity = commands
                     .spawn((
@@ -980,30 +984,33 @@ pub fn process_priority_task(
                     ))
                     .id();
 
-                commands.entity(chunk_entity).insert((
-                    RenderedChunk {
-                        aabb: Aabb {
-                            center: Vec3A::new(
-                                (CHUNK_SIZE / 2) as f32,
-                                (CHUNK_SIZE / 2) as f32,
-                                (CHUNK_SIZE / 2) as f32,
-                            ),
-                            half_extents: Vec3A::new(
-                                (CHUNK_SIZE / 2) as f32,
-                                (CHUNK_SIZE / 2) as f32,
-                                (CHUNK_SIZE / 2) as f32,
-                            ),
+                commands
+                    .entity(chunk_entity)
+                    .insert((
+                        RenderedChunk {
+                            aabb: Aabb {
+                                center: Vec3A::new(
+                                    (CHUNK_SIZE / 2) as f32,
+                                    (CHUNK_SIZE / 2) as f32,
+                                    (CHUNK_SIZE / 2) as f32,
+                                ),
+                                half_extents: Vec3A::new(
+                                    (CHUNK_SIZE / 2) as f32,
+                                    (CHUNK_SIZE / 2) as f32,
+                                    (CHUNK_SIZE / 2) as f32,
+                                ),
+                            },
+                            mesh: MaterialMeshBundle {
+                                mesh: meshes.add(chunk.chunk_mesh),
+                                material: chunk_material.opaque.clone(),
+                                transform: Transform::from_translation(chunk_pos),
+                                ..Default::default()
+                            },
                         },
-                        mesh: MaterialMeshBundle {
-                            mesh: meshes.add(chunk.chunk_mesh),
-                            material: chunk_material.opaque.clone(),
-                            transform: Transform::from_translation(chunk_pos),
-                            ..Default::default()
-                        },
-                    },
-                    NotShadowCaster,
-                    NotShadowReceiver,
-                ));
+                        NotShadowCaster,
+                        NotShadowReceiver,
+                    ))
+                    .insert(grid_cell);
 
                 commands.entity(chunk_entity).push_children(&[trans_entity]);
                 commands.entity(entity).despawn_recursive();
