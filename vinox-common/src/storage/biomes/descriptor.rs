@@ -21,7 +21,9 @@ pub struct BiomeDescriptor {
     pub heat: f32,
     pub humidity: f32,
     pub surface_block: Option<Vec<(String, u16)>>,
+    pub surface_depth: Option<u8>,
     pub ceil_block: Option<Vec<(String, u16)>>,
+    pub ceil_depth: Option<u8>,
     pub main_block: Vec<(String, u16)>,
     pub feature_rules: Option<Vec<String>>,
 }
