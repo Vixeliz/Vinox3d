@@ -12,7 +12,7 @@ use vinox_common::{
     ecs::bundles::{ClientName, Inventory, PlayerBundleBuilder},
     networking::protocol::{ClientMessage, NetworkedEntities, Player, ServerMessage},
     world::chunks::{
-        ecs::{ChunkManager, CurrentChunks, LoadPoint, NeedsChunkData, SentChunks},
+        ecs::{ChunkManager, CurrentChunks, LoadPoint, NeedsChunkData, PrepassChunk, SentChunks},
         positions::{ChunkPos, RelativeVoxelPos, VoxelPos},
         storage::{BlockTable, ChunkData},
     },
@@ -218,8 +218,11 @@ pub fn send_chunks(
     lobby: ResMut<ServerLobby>,
     mut players: Query<(&LoadPoint, &mut SentChunks), With<Player>>,
     mut chunk_manager: ChunkManager,
-    has_data: Query<Without<NeedsChunkData>>,
-    has_generated: Query<Without<GeneratingChunk>>,
+    is_ready: Query<(
+        Without<NeedsChunkData>,
+        Without<GeneratingChunk>,
+        Without<PrepassChunk>,
+    )>,
     chunk_limit: Res<ChunkLimit>,
 ) {
     let mut rng = rand::thread_rng();
@@ -258,9 +261,7 @@ pub fn send_chunks(
                         .current_chunks
                         .get_entity(ChunkPos::new(x, y, z))
                     {
-                        if has_data.get(chunk_entity).is_ok()
-                            && has_generated.get(chunk_entity).is_ok()
-                        {
+                        if is_ready.get(chunk_entity).is_ok() {
                             if let Some(chunk) = chunk_manager.get_chunk(chunk_entity) {
                                 let raw_chunk = chunk.to_raw();
                                 if let Ok(raw_chunk_bin) = bincode::serialize(&raw_chunk) {

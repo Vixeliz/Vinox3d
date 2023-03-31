@@ -5,8 +5,8 @@ use bevy::{
 use futures_lite::future;
 use vinox_common::world::chunks::{
     ecs::{
-        ChunkManager, CurrentChunks, LoadPoint, NeedsChunkData, RemoveChunk, SentChunks,
-        SimulationRadius,
+        ChunkManager, CurrentChunks, LoadPoint, NeedsChunkData, PrepassChunk, RemoveChunk,
+        SentChunks, SimulationRadius,
     },
     positions::ChunkPos,
     storage::{BlockTable, ChunkData, HORIZONTAL_DISTANCE, VERTICAL_DISTANCE},
@@ -19,18 +19,18 @@ use super::{
     storage::{load_chunk, save_chunks, ChunksToSave, WorldDatabase, WorldInfo},
 };
 
-#[derive(Default, Resource, Debug)]
-pub struct ChunkQueue {
-    pub create: Vec<ChunkPos>,
-    pub remove: Vec<ChunkPos>,
-}
+#[derive(Default, Resource, Debug, Deref, DerefMut)]
+pub struct PrepassEvent(pub ChunkPos);
+
+#[derive(Default, Resource, Debug, Deref, DerefMut)]
+pub struct FullGenEvent(pub ChunkPos);
 
 #[derive(Default, Component, Debug)]
 pub struct GeneratingChunk;
 
 pub fn generate_chunks_world(
     load_points: Query<&LoadPoint>,
-    mut chunk_queue: ResMut<ChunkQueue>,
+    mut chunk_queue: EventWriter<PrepassEvent>,
     mut commands: Commands,
     mut chunk_manager: ChunkManager,
     database: Res<WorldDatabase>,
@@ -52,9 +52,9 @@ pub fn generate_chunks_world(
                     continue;
                 }
             }
-            chunk_queue.create.push(pos);
+            chunk_queue.send(PrepassEvent(pos));
             commands.entity(entity).remove::<NeedsChunkData>();
-            commands.entity(entity).insert(GeneratingChunk);
+            commands.entity(entity).insert(PrepassChunk);
         }
     }
 }
@@ -92,12 +92,60 @@ pub fn process_save(mut chunks_to_save: ResMut<ChunksToSave>, database: Res<Worl
     chunks_to_save.clear();
 }
 
+// #[derive(Component)]
+// pub struct GenTask(Task<(ChunkData, ChunkPos)>);
 #[derive(Component)]
-pub struct GenTask(Task<(ChunkData, ChunkPos)>);
+pub struct GenTask(Task<ChunkPos>);
+
+#[derive(Component)]
+pub struct PreGenTask(Task<(ChunkData, ChunkPos)>);
+
+pub fn process_pre_queue(
+    mut commands: Commands,
+    mut chunk_queue: EventReader<PrepassEvent>,
+    mut full_gen_queue: EventWriter<FullGenEvent>,
+    mut gen_task: Query<(Entity, &mut PreGenTask)>,
+    current_chunks: Res<CurrentChunks>,
+    world_info: Res<WorldInfo>,
+    mut chunks_to_save: ResMut<ChunksToSave>,
+    block_table: Res<BlockTable>,
+    save: Res<SaveGame>,
+) {
+    let cloned_seed = world_info.seed;
+    let task_pool = AsyncComputeTaskPool::get();
+    for event in chunk_queue.iter() {
+        let chunk_pos = event.0.clone();
+        let cloned_table = block_table.clone();
+        let task = task_pool.spawn(async move {
+            (
+                ChunkData::from_raw(generate_chunk(*chunk_pos, cloned_seed, &cloned_table)),
+                chunk_pos,
+            )
+        });
+        commands.spawn(PreGenTask(task));
+    }
+    gen_task.for_each_mut(|(entity, mut task)| {
+        if let Some(chunk) = future::block_on(future::poll_once(&mut task.0)) {
+            let chunk_pos = chunk.1;
+            // if **save {
+            //     chunks_to_save.push((chunk_pos, chunk.0.to_raw()));
+            // }
+            if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos) {
+                full_gen_queue.send(FullGenEvent(chunk_pos));
+                commands
+                    .entity(chunk_entity)
+                    .insert(chunk)
+                    .insert(GeneratingChunk);
+                commands.entity(chunk_entity).remove::<PrepassChunk>();
+            }
+            commands.entity(entity).despawn_recursive();
+        }
+    });
+}
 
 pub fn process_queue(
     mut commands: Commands,
-    mut chunk_queue: ResMut<ChunkQueue>,
+    mut chunk_queue: EventReader<FullGenEvent>,
     mut gen_task: Query<(Entity, &mut GenTask)>,
     current_chunks: Res<CurrentChunks>,
     world_info: Res<WorldInfo>,
@@ -107,24 +155,23 @@ pub fn process_queue(
 ) {
     let cloned_seed = world_info.seed;
     let task_pool = AsyncComputeTaskPool::get();
-    for chunk_pos in chunk_queue.create.drain(..) {
-        let cloned_table = block_table.clone();
-        let task = task_pool.spawn(async move {
-            (
-                ChunkData::from_raw(generate_chunk(*chunk_pos, cloned_seed, &cloned_table)),
-                chunk_pos,
-            )
-        });
-        commands.spawn(GenTask(task));
+    for event in chunk_queue.iter() {
+        let chunk_pos = event.0.clone();
+        if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos) {
+            // commands.entity(chunk_entity).insert(chunk);
+            commands.entity(chunk_entity).remove::<GeneratingChunk>();
+        }
+        // let cloned_table = block_table.clone();
+        // let task = task_pool.spawn(async move { chunk_pos });
+        // commands.spawn(GenTask(task));
     }
     gen_task.for_each_mut(|(entity, mut task)| {
         if let Some(chunk) = future::block_on(future::poll_once(&mut task.0)) {
-            let chunk_pos = chunk.1;
-            if **save {
-                chunks_to_save.push((chunk_pos, chunk.0.to_raw()));
-            }
-            if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos) {
-                commands.entity(chunk_entity).insert(chunk);
+            // if **save {
+            //     chunks_to_save.push((chunk_pos, chunk.0.to_raw()));
+            // }
+            if let Some(chunk_entity) = current_chunks.get_entity(chunk) {
+                // commands.entity(chunk_entity).insert(chunk);
                 commands.entity(chunk_entity).remove::<GeneratingChunk>();
             }
             commands.entity(entity).despawn_recursive();
@@ -145,14 +192,16 @@ impl Plugin for ChunkPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(ChunksToSave::default())
             .insert_resource(CurrentChunks::default())
-            .insert_resource(ChunkQueue::default())
             .insert_resource(SimulationRadius {
                 vertical: 4,
                 horizontal: 4,
             })
             .add_systems((unsend_chunks, generate_chunks_world))
+            .add_system(process_pre_queue.after(unsend_chunks))
             .add_system(process_queue.after(unsend_chunks))
             .add_system(process_save.after(process_queue))
-            .add_system(destroy_chunks.after(process_queue));
+            .add_system(destroy_chunks.after(process_queue))
+            .add_event::<PrepassEvent>()
+            .add_event::<FullGenEvent>();
     }
 }
