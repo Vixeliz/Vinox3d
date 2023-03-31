@@ -51,6 +51,28 @@ pub enum Direction {
     South,
 }
 
+#[derive(EnumString, Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone, Default, Copy)]
+pub enum RelativeVoxelAxis {
+    #[default]
+    Front,
+    Back,
+    Left,
+    Right,
+    Up,
+    Down,
+}
+
+#[derive(EnumString, Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone, Default, Copy)]
+pub enum VoxelAxis {
+    #[default]
+    PosX,
+    NegX,
+    PosZ,
+    NegZ,
+    PosY,
+    NegY,
+}
+
 impl Direction {
     pub fn get_as_string(&self) -> String {
         match self {
