@@ -1,0 +1,8 @@
+RecipeDescriptor(
+    namespace: "vinox",
+    name: "mirg",
+    required_items: Some({
+        "vinox:stone": 4,
+    }),
+    output_item: ("vinox:mirg", 1)
+)

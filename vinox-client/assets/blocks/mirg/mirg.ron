@@ -1,0 +1,13 @@
+BlockDescriptor(
+    namespace: "vinox",
+    name: "mirg",
+    textures: Some({
+    Some("front"): Some("mirg.png"),
+    }),
+    break_tool: "pickaxe",
+    visibility: Some(Opaque), 
+    has_item: Some(true),
+    tex_variance: Some(
+        (Some(true), Some(true), Some(true), Some(true), Some(true), Some(true))
+    )
+)
