@@ -1,8 +1,6 @@
 use serde::{Deserialize, Serialize};
 use strum::EnumString;
 
-use crate::storage::structures::descriptor::StructureBlocks;
-
 pub const MAX_STACK_SIZE: u32 = 1000;
 
 #[derive(EnumString, Default, Deserialize, Serialize, PartialEq, Eq, Debug, Clone)]
@@ -22,7 +20,8 @@ pub struct BiomeDescriptor {
     // pub terrain_carver: TerrainCarver,
     pub heat: f32,
     pub humidity: f32,
-    pub surface_block: Option<String>,
-    pub main_block: String,
-    pub structures: Option<Vec<StructureBlocks>>,
+    pub surface_block: Option<Vec<(String, u16)>>,
+    pub ceil_block: Option<Vec<(String, u16)>>,
+    pub main_block: Vec<(String, u16)>,
+    pub feature_rules: Option<Vec<String>>,
 }
