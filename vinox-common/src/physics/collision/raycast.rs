@@ -18,7 +18,7 @@ pub fn raycast_world(
         intbound(origin.z, direction.z),
     );
 
-    let mut current_block = VoxelPos::from_world(origin).as_vec3();
+    let mut current_block = VoxelPos::from(origin).as_vec3();
     let step = direction.signum();
 
     let tdelta = step / direction;
@@ -40,8 +40,8 @@ pub fn raycast_world(
         if counter > (radius * 4.0) as u32 {
             break;
         }
-        let (voxel_pos, chunk_pos) = VoxelPos::from_world(current_block).to_offsets();
-        if let Some(block) = chunk_manager.get_block(VoxelPos::from_world(current_block)) {
+        let (voxel_pos, chunk_pos) = VoxelPos::from(current_block).to_offsets();
+        if let Some(block) = chunk_manager.get_block(VoxelPos::from(current_block)) {
             if !block.is_empty(&chunk_manager.block_table) {
                 let toi = lastmax * direction.length();
                 return Some((chunk_pos, voxel_pos, face, toi));

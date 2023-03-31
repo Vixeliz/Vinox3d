@@ -68,12 +68,12 @@ pub fn update_player_location(
     mut player_block: ResMut<PlayerBlock>,
 ) {
     if let Ok(player_transform) = player_query.get_single() {
-        let new_chunk = ChunkPos::from_world(VoxelPos::from_world(player_transform.center.into()));
+        let new_chunk = ChunkPos::from(player_transform.center);
         if new_chunk != player_chunk.chunk_pos {
             player_chunk.chunk_pos = new_chunk;
         }
-        if VoxelPos::from_world(player_transform.center.into()) != player_block.pos {
-            player_block.pos = VoxelPos::from_world(player_transform.center.into());
+        if VoxelPos::from(player_transform.center) != player_block.pos {
+            player_block.pos = VoxelPos::from(player_transform.center);
         }
     }
 }

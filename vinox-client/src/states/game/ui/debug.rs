@@ -78,7 +78,7 @@ pub fn debug(
                                     ui.label("Chunk Block:");
                                     ui.label(format!(
                                         "{}",
-                                        RelativeVoxelPos::from_voxel(player_block.pos)
+                                        RelativeVoxelPos::from(player_block.pos)
                                     ));
                                     ui.end_row();
 

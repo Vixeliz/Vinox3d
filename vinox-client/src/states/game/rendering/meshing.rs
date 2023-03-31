@@ -956,13 +956,8 @@ pub fn process_priority_task(
             if let Some(chunk_entity) = current_chunks.get_entity(chunk.pos) {
                 commands.entity(chunk_entity).despawn_descendants();
 
-                let chunk_pos = Vec3::new(
-                    (chunk.pos.x * (CHUNK_SIZE) as i32) as f32,
-                    (chunk.pos.y * (CHUNK_SIZE) as i32) as f32,
-                    (chunk.pos.z * (CHUNK_SIZE) as i32) as f32,
-                );
                 let (grid_cell, chunk_pos) =
-                    floating_settings.imprecise_translation_to_grid::<i32>(chunk_pos);
+                    floating_settings.imprecise_translation_to_grid::<i32>(chunk.pos.into());
 
                 let trans_entity = commands
                     .spawn((
@@ -1336,13 +1331,13 @@ fn full_mesh(
             &face.uvs(
                 texture_atlas,
                 matched_index,
-                VoxelPos::from_world(Vec3::new(
+                VoxelPos::from(Vec3::new(
                     face.voxel()[0] as f32,
                     face.voxel()[1] as f32,
                     face.voxel()[2] as f32,
                 ))
-                .as_vec3()
-                .as_ivec3(),
+                // .as_vec3()
+                .into(),
                 raw_chunk,
             ),
         );
@@ -1394,13 +1389,12 @@ fn full_mesh(
             &face.uvs(
                 texture_atlas,
                 matched_index,
-                VoxelPos::from_world(Vec3::new(
+                VoxelPos::from(Vec3::new(
                     face.voxel()[0] as f32,
                     face.voxel()[1] as f32,
                     face.voxel()[2] as f32,
                 ))
-                .as_vec3()
-                .as_ivec3(),
+                .into(),
                 raw_chunk,
             ),
         );

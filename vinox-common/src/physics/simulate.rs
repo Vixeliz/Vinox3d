@@ -51,9 +51,7 @@ pub fn move_and_collide(
 ) {
     for (entity, mut aabb, mut velocity, mut transform) in moving_entities.iter_mut() {
         if current_chunks
-            .get_entity(ChunkPos::from_world(VoxelPos::from_world(Vec3::from(
-                aabb.center,
-            ))))
+            .get_entity(ChunkPos::from(aabb.center))
             .is_none()
         {
             return;

@@ -47,7 +47,7 @@ pub fn aabb_intersects_world(
     for x in area_to_check.0.x..=area_to_check.1.x {
         for y in area_to_check.0.y..=area_to_check.1.y {
             for z in area_to_check.0.z..=area_to_check.1.z {
-                let (check_block_cpos, check_chunk_pos) = VoxelPos::from_world(
+                let (check_block_cpos, check_chunk_pos) = VoxelPos::from(
                     Vec3::from(aabb.center) + Vec3::new(x as f32, y as f32, z as f32),
                 )
                 .to_offsets();
@@ -86,7 +86,7 @@ pub fn get_aabb_world_intersectors(
     for x in area_to_check.0.x..=area_to_check.1.x {
         for y in area_to_check.0.y..=area_to_check.1.y {
             for z in area_to_check.0.z..=area_to_check.1.z {
-                let (check_block_cpos, check_chunk_pos) = VoxelPos::from_world(
+                let (check_block_cpos, check_chunk_pos) = VoxelPos::from(
                     Vec3::from(aabb.center) + Vec3::new(x as f32, y as f32, z as f32),
                 )
                 .to_offsets();
@@ -147,7 +147,7 @@ pub fn aabb_vs_world(
     for x in area_to_check.0.x..=area_to_check.1.x {
         for y in area_to_check.0.y..=area_to_check.1.y {
             for z in area_to_check.0.z..=area_to_check.1.z {
-                let (check_block_cpos, check_chunk_pos) = VoxelPos::from_world(
+                let (check_block_cpos, check_chunk_pos) = VoxelPos::from(
                     Vec3::from(aabb.center) + Vec3::new(x as f32, y as f32, z as f32),
                 )
                 .to_offsets();

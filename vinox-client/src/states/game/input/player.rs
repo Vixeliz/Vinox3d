@@ -240,7 +240,7 @@ pub fn handle_movement(
             let gravity = 35.0 * Vec3::NEG_Y;
             velocity.0 += gravity * time.delta().as_secs_f32().clamp(0.0, 0.1);
 
-            let chunk_pos = ChunkPos::from_world(VoxelPos::from_world(translation.translation));
+            let chunk_pos = ChunkPos::from(translation.translation);
             if window.cursor.grab_mode == CursorGrabMode::Locked {
                 if current_chunks.get_entity(chunk_pos).is_none() {
                     return;
@@ -770,7 +770,7 @@ pub fn update_visual_position(
             .imprecise_translation_to_grid::<i32>(Vec3::from(
                 aabb.center - Vec3A::Y * aabb.half_extents,
             ));
-        *voxel_pos = VoxelPos::from_world(Vec3::from(aabb.center - Vec3A::Y * aabb.half_extents));
+        *voxel_pos = VoxelPos::from(aabb.center - Vec3A::Y * aabb.half_extents);
         // transform.translation = Vec3::from(aabb.center - Vec3A::Y * aabb.half_extents)
     }
 }

@@ -191,7 +191,7 @@ pub fn get_messages(
 
 pub fn sync_voxel_pos(mut players: Query<(&mut VoxelPos, &Transform)>) {
     for (mut voxel_pos, transform) in players.iter_mut() {
-        *voxel_pos = VoxelPos::from_world(transform.translation);
+        *voxel_pos = VoxelPos::from(transform.translation);
     }
 }
 

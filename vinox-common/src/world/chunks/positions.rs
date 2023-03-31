@@ -1,6 +1,6 @@
 use std::fmt;
 
-use bevy::prelude::*;
+use bevy::{math::Vec3A, prelude::*};
 
 use super::storage::CHUNK_SIZE;
 
@@ -10,6 +10,68 @@ pub struct ChunkPos(pub IVec3);
 impl fmt::Display for ChunkPos {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.0)
+    }
+}
+
+impl From<IVec3> for ChunkPos {
+    fn from(item: IVec3) -> Self {
+        Self(item)
+    }
+}
+
+impl From<Vec3> for ChunkPos {
+    fn from(item: Vec3) -> Self {
+        let pos = item.floor().as_ivec3();
+        Self(IVec3::new(
+            (pos.x as f32 / (CHUNK_SIZE as f32)).floor() as i32,
+            (pos.y as f32 / (CHUNK_SIZE as f32)).floor() as i32,
+            (pos.z as f32 / (CHUNK_SIZE as f32)).floor() as i32,
+        ))
+    }
+}
+
+impl From<Vec3A> for ChunkPos {
+    fn from(item: Vec3A) -> Self {
+        let pos = item.floor().as_ivec3();
+        Self(IVec3::new(
+            (pos.x as f32 / (CHUNK_SIZE as f32)).floor() as i32,
+            (pos.y as f32 / (CHUNK_SIZE as f32)).floor() as i32,
+            (pos.z as f32 / (CHUNK_SIZE as f32)).floor() as i32,
+        ))
+    }
+}
+
+impl From<VoxelPos> for ChunkPos {
+    fn from(item: VoxelPos) -> Self {
+        Self(IVec3::new(
+            (item.x as f32 / (CHUNK_SIZE as f32)).floor() as i32,
+            (item.y as f32 / (CHUNK_SIZE as f32)).floor() as i32,
+            (item.z as f32 / (CHUNK_SIZE as f32)).floor() as i32,
+        ))
+    }
+}
+
+impl From<ChunkPos> for Vec3 {
+    fn from(item: ChunkPos) -> Self {
+        Vec3::new(
+            (item.x * (CHUNK_SIZE) as i32) as f32,
+            (item.y * (CHUNK_SIZE) as i32) as f32,
+            (item.z * (CHUNK_SIZE) as i32) as f32,
+        )
+    }
+}
+impl From<ChunkPos> for Vec3A {
+    fn from(item: ChunkPos) -> Self {
+        Vec3A::new(
+            (item.x * (CHUNK_SIZE) as i32) as f32,
+            (item.y * (CHUNK_SIZE) as i32) as f32,
+            (item.z * (CHUNK_SIZE) as i32) as f32,
+        )
+    }
+}
+impl From<ChunkPos> for IVec3 {
+    fn from(item: ChunkPos) -> Self {
+        *item
     }
 }
 
@@ -59,18 +121,46 @@ impl ChunkPos {
             other.z as f32,
         ))
     }
-
-    pub fn from_world(pos: VoxelPos) -> Self {
-        ChunkPos(IVec3::new(
-            (pos.x as f32 / (CHUNK_SIZE as f32)).floor() as i32,
-            (pos.y as f32 / (CHUNK_SIZE as f32)).floor() as i32,
-            (pos.z as f32 / (CHUNK_SIZE as f32)).floor() as i32,
-        ))
-    }
 }
 
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash, Deref, DerefMut, Default)]
 pub struct VoxelPos(pub IVec3);
+
+impl From<Vec3> for VoxelPos {
+    fn from(item: Vec3) -> Self {
+        Self(item.floor().as_ivec3())
+    }
+}
+
+impl From<Vec3A> for VoxelPos {
+    fn from(item: Vec3A) -> Self {
+        Self(item.floor().as_ivec3())
+    }
+}
+
+impl From<IVec3> for VoxelPos {
+    fn from(item: IVec3) -> Self {
+        Self(item)
+    }
+}
+
+impl From<VoxelPos> for Vec3 {
+    fn from(item: VoxelPos) -> Self {
+        Vec3::new(item.x as f32, item.y as f32, item.z as f32)
+    }
+}
+
+impl From<VoxelPos> for Vec3A {
+    fn from(item: VoxelPos) -> Self {
+        Vec3A::new(item.x as f32, item.y as f32, item.z as f32)
+    }
+}
+
+impl From<VoxelPos> for IVec3 {
+    fn from(item: VoxelPos) -> Self {
+        *item
+    }
+}
 
 impl fmt::Display for VoxelPos {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -100,19 +190,9 @@ impl VoxelPos {
             .as_ivec3(),
         )
     }
-    pub fn from_world(voxel_pos: Vec3) -> Self {
-        VoxelPos(voxel_pos.floor().as_ivec3())
-    }
-
-    pub fn as_vec3(&self) -> Vec3 {
-        Vec3::new(self.x as f32, self.y as f32, self.z as f32)
-    }
 
     pub fn to_offsets(&self) -> (RelativeVoxelPos, ChunkPos) {
-        (
-            RelativeVoxelPos::from_voxel(*self),
-            ChunkPos::from_world(*self),
-        )
+        (RelativeVoxelPos::from(*self), Into::<ChunkPos>::into(*self))
     }
 }
 
@@ -125,6 +205,32 @@ impl fmt::Display for RelativeVoxelPos {
     }
 }
 
+impl From<VoxelPos> for RelativeVoxelPos {
+    fn from(item: VoxelPos) -> Self {
+        Self(UVec3::new(
+            item.x.rem_euclid(CHUNK_SIZE as i32) as u32,
+            item.y.rem_euclid(CHUNK_SIZE as i32) as u32,
+            item.z.rem_euclid(CHUNK_SIZE as i32) as u32,
+        ))
+    }
+}
+
+impl From<Vec3> for RelativeVoxelPos {
+    fn from(item: Vec3) -> Self {
+        From::<VoxelPos>::from(item.into())
+    }
+}
+impl From<Vec3A> for RelativeVoxelPos {
+    fn from(item: Vec3A) -> Self {
+        From::<VoxelPos>::from(item.into())
+    }
+}
+impl From<UVec3> for RelativeVoxelPos {
+    fn from(item: UVec3) -> Self {
+        Self(item)
+    }
+}
+
 impl RelativeVoxelPos {
     pub fn new(x: u32, y: u32, z: u32) -> Self {
         RelativeVoxelPos(UVec3::new(x, y, z))
@@ -134,13 +240,6 @@ impl RelativeVoxelPos {
             other.x as f32,
             other.y as f32,
             other.z as f32,
-        ))
-    }
-    pub fn from_voxel(voxel_pos: VoxelPos) -> Self {
-        RelativeVoxelPos(UVec3::new(
-            voxel_pos.x.rem_euclid(CHUNK_SIZE as i32) as u32,
-            voxel_pos.y.rem_euclid(CHUNK_SIZE as i32) as u32,
-            voxel_pos.z.rem_euclid(CHUNK_SIZE as i32) as u32,
         ))
     }
 }

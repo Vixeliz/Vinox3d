@@ -366,7 +366,7 @@ pub fn update_priority_chunk_lights(
 pub fn sync_load_points(mut load_points: Query<(&mut LoadPoint, &VoxelPos)>) {
     for (mut load_point, transform) in load_points.iter_mut() {
         // if transform.is_changed() {
-        load_point.chunk_pos = ChunkPos::from_world(*transform);
+        load_point.chunk_pos = ChunkPos::from(*transform);
         // }
     }
 }
