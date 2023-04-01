@@ -132,17 +132,11 @@ pub fn test_move_axis(
     current_chunks: &CurrentChunks,
     block_table: &BlockTable,
 ) -> (f32, bool) {
-    let check_min = (Vec3::from(
-        aabb.min()
-            .min(aabb.min() + Vec3A::from(move_vec.clone()))
-            .floor(),
-    ) - Vec3::ONE)
+    let check_min = (Vec3::from(aabb.min().min(aabb.min() + Vec3A::from(*move_vec)).floor())
+        - Vec3::ONE)
         .as_ivec3();
-    let check_max = (Vec3::from(
-        aabb.max()
-            .max(aabb.max() + Vec3A::from(move_vec.clone()))
-            .ceil(),
-    ) + Vec3::ONE)
+    let check_max = (Vec3::from(aabb.max().max(aabb.max() + Vec3A::from(*move_vec)).ceil())
+        + Vec3::ONE)
         .as_ivec3();
     let mut max_move: f32 = move_vec.length();
     let mut found_collision = false;
@@ -159,7 +153,7 @@ pub fn test_move_axis(
                                 center: voxel_pos.as_vec3a() + Vec3A::new(0.5, 0.5, 0.5),
                                 half_extents: Vec3A::new(0.5, 0.5, 0.5),
                             };
-                            let col = get_collision_info(aabb, &block_aabb, &move_vec);
+                            let col = get_collision_info(aabb, &block_aabb, move_vec);
                             if let Some(c) = col {
                                 max_move = f32::min(max_move, c.dist);
                                 found_collision = true;
