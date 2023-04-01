@@ -1,6 +1,7 @@
 pub mod states;
 use bevy::{
     diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
+    log::LogPlugin,
     pbr::wireframe::WireframePlugin,
     prelude::*,
     render::{
@@ -57,56 +58,58 @@ fn main() {
         save_game_options(GameOptions::default(), asset_path.clone());
         GameOptions::default()
     };
-    App::new()
-        .add_plugins(
-            DefaultPlugins
-                .set(AssetPlugin {
-                    asset_folder: asset_path.to_string_lossy().to_string(),
-                    watch_for_changes: false,
-                })
-                .set(ImagePlugin::default_nearest())
-                .set(WindowPlugin {
-                    primary_window: Some(Window {
-                        title: "Vinox".into(),
-                        present_mode: {
-                            if final_options.vsync {
-                                PresentMode::AutoVsync
-                            } else {
-                                PresentMode::AutoNoVsync
-                            }
-                        },
-                        ..default()
-                    }),
-                    ..default()
-                })
-                .set(RenderPlugin {
-                    wgpu_settings: WgpuSettings {
-                        features: WgpuFeatures::POLYGON_MODE_LINE,
-                        ..default()
+    let mut app = App::new();
+    app.add_plugins(
+        DefaultPlugins
+            .set(AssetPlugin {
+                asset_folder: asset_path.to_string_lossy().to_string(),
+                watch_for_changes: false,
+            })
+            .set(ImagePlugin::default_nearest())
+            .set(WindowPlugin {
+                primary_window: Some(Window {
+                    title: "Vinox".into(),
+                    present_mode: {
+                        if final_options.vsync {
+                            PresentMode::AutoVsync
+                        } else {
+                            PresentMode::AutoNoVsync
+                        }
                     },
-                })
-                .build()
-                .disable::<TransformPlugin>(),
-        )
-        .add_plugin(FloatingOriginPlugin::<i32>::new(10000.0, 1.0))
-        .add_plugin(big_space::debug::FloatingOriginDebugPlugin::<i32>::default())
-        .add_startup_system(|mut c: Commands| {
-            c.spawn(BoilerOrigin::default());
-        })
-        .add_plugin(WireframePlugin)
-        // .add_plugin(LogDiagnosticsPlugin::default())
-        .add_plugin(FrameTimeDiagnosticsPlugin::default())
-        .insert_resource(ProjectPath(asset_path))
-        .insert_resource(final_options)
-        .add_plugin(MaterialPlugin::<BasicMaterial>::default())
-        .insert_resource(Msaa::Off)
-        .add_plugin(QuinnetClientPlugin::default())
-        .add_plugin(TweeningPlugin)
-        .add_state::<GameState>()
-        .add_plugin(MenuPlugin)
-        .add_plugin(LoadingPlugin)
-        .add_plugin(GamePlugin)
-        .run();
+                    ..default()
+                }),
+                ..default()
+            })
+            .set(RenderPlugin {
+                wgpu_settings: WgpuSettings {
+                    features: WgpuFeatures::POLYGON_MODE_LINE,
+                    ..default()
+                },
+            })
+            .build()
+            .disable::<TransformPlugin>(),
+        // .disable::<LogPlugin>(),
+    )
+    .add_plugin(FloatingOriginPlugin::<i32>::new(10000.0, 1.0))
+    .add_plugin(big_space::debug::FloatingOriginDebugPlugin::<i32>::default())
+    .add_startup_system(|mut c: Commands| {
+        c.spawn(BoilerOrigin::default());
+    })
+    .add_plugin(WireframePlugin)
+    // .add_plugin(LogDiagnosticsPlugin::default())
+    .add_plugin(FrameTimeDiagnosticsPlugin::default())
+    .insert_resource(ProjectPath(asset_path))
+    .insert_resource(final_options)
+    .add_plugin(MaterialPlugin::<BasicMaterial>::default())
+    .insert_resource(Msaa::Off)
+    .add_plugin(QuinnetClientPlugin::default())
+    .add_plugin(TweeningPlugin)
+    .add_state::<GameState>()
+    .add_plugin(MenuPlugin)
+    .add_plugin(LoadingPlugin)
+    .add_plugin(GamePlugin)
+    .run();
+    // bevy_mod_debugdump::print_main_schedule(&mut app);
 }
 
 fn load_game_options(path: PathBuf) -> Option<GameOptions> {
