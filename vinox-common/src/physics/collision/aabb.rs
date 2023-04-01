@@ -5,6 +5,7 @@ use std::{
 };
 
 use bevy::{math::Vec3A, prelude::*, render::primitives::Aabb, utils::FloatOrd};
+use big_space::GridCell;
 
 use crate::world::chunks::{
     ecs::CurrentChunks,
@@ -123,23 +124,27 @@ pub fn aabb_vs_world(
     None
 }
 
-// Returns the max distance along the velocity the AABB can move in the world
-// This function may be inaccurate if the `velocity` is not along only one axis!
+/// Returns the max distance along the velocity the AABB can move in the world
+/// `aabb` is the moving AABB,
+/// `grid_cell` is the grid_cell of the moving AABB
+/// `move_vec` is the single-axis movement vector that aabb is to be tested along
 pub fn test_move_axis(
     aabb: &Aabb,
+    grid_cell: GridCell<i32>,
     move_vec: &Vec3,
     chunks: &Query<&ChunkData>,
     current_chunks: &CurrentChunks,
     block_table: &BlockTable,
-) -> (f32, bool) {
-    let check_min = (Vec3::from(aabb.min().min(aabb.min() + Vec3A::from(*move_vec)).floor())
-        - Vec3::ONE)
-        .as_ivec3();
-    let check_max = (Vec3::from(aabb.max().max(aabb.max() + Vec3A::from(*move_vec)).ceil())
-        + Vec3::ONE)
-        .as_ivec3();
-    let mut max_move: f32 = move_vec.length();
-    let mut found_collision = false;
+) -> Option<CollisionInfo> {
+    let check_min = VoxelPos::from_chunk_cell(
+        grid_cell,
+        Vec3::from(aabb.min().min(aabb.min() + Vec3A::from(*move_vec)).floor()) - Vec3::ONE,
+    );
+    let check_max = VoxelPos::from_chunk_cell(
+        grid_cell,
+        Vec3::from(aabb.max().max(aabb.max() + Vec3A::from(*move_vec)).ceil()) + Vec3::ONE,
+    );
+    let mut closest_colinfo: Option<CollisionInfo> = None;
     for y in check_min.y..=check_max.y {
         for x in check_min.x..=check_max.x {
             for z in check_min.z..=check_max.z {
@@ -153,10 +158,15 @@ pub fn test_move_axis(
                                 center: voxel_pos.as_vec3a() + Vec3A::new(0.5, 0.5, 0.5),
                                 half_extents: Vec3A::new(0.5, 0.5, 0.5),
                             };
-                            let col = get_collision_info(aabb, &block_aabb, move_vec);
-                            if let Some(c) = col {
-                                max_move = f32::min(max_move, c.dist);
-                                found_collision = true;
+                            let check_colinfo = get_collision_info(aabb, &block_aabb, move_vec);
+                            if let Some(check) = &check_colinfo {
+                                if let Some(closest) = &closest_colinfo {
+                                    if check.dist < closest.dist {
+                                        closest_colinfo = check_colinfo;
+                                    }
+                                } else {
+                                    closest_colinfo = check_colinfo;
+                                }
                             }
                         }
                     }
@@ -164,7 +174,7 @@ pub fn test_move_axis(
             }
         }
     }
-    (max_move, found_collision)
+    closest_colinfo
 }
 
 #[inline]

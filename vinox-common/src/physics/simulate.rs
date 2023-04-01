@@ -4,9 +4,10 @@ use bevy::{
     render::primitives::Aabb,
     time::Time,
 };
+use big_space::GridCell;
 
 use crate::world::chunks::{
-    ecs::{CurrentChunks, NeedsChunkData},
+    ecs::{ChunkCell, CurrentChunks, NeedsChunkData},
     positions::ChunkPos,
     storage::{BlockTable, ChunkData},
 };
@@ -37,7 +38,13 @@ pub fn move_no_collide(
 
 pub fn move_and_collide(
     mut moving_entities: Query<
-        (Entity, &mut Aabb, &mut Velocity, &mut Transform),
+        (
+            Entity,
+            &mut Aabb,
+            &mut Velocity,
+            &mut Transform,
+            &GridCell<i32>,
+        ),
         With<CollidesWithWorld>,
     >,
     time: Res<Time>,
@@ -47,60 +54,83 @@ pub fn move_and_collide(
     block_table: Res<BlockTable>,
     mut collision_event_writer: EventWriter<VoxelCollisionEvent>,
 ) {
-    for (entity, mut aabb, mut velocity, mut transform) in moving_entities.iter_mut() {
-        if let Some(chunk_entity) = current_chunks.get_entity(ChunkPos::from(aabb.center)) {
+    for (entity, mut aabb, mut velocity, mut transform, grid_cell) in moving_entities.iter_mut() {
+        let chunk_pos: ChunkPos = ChunkPos::from_chunk_cell(grid_cell.clone(), aabb.center.into());
+        if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos) {
             if chunks_without_data.get(chunk_entity).is_ok() {
-                return;
+                continue;
             }
-        } else {
-            return;
-        }
-        let movement = velocity.0 * time.delta().as_secs_f32();
-        let (max_move_x, x_collided) = test_move_axis(
-            &aabb,
-            &Vec3 {
-                x: movement.x,
-                y: 0.0,
-                z: 0.0,
-            },
-            &chunks,
-            &current_chunks,
-            &block_table,
-        );
-        aabb.center.x += max_move_x.copysign(movement.x);
-        let (max_move_y, y_collided) = test_move_axis(
-            &aabb,
-            &Vec3 {
-                x: 0.0,
-                y: movement.y,
-                z: 0.0,
-            },
-            &chunks,
-            &current_chunks,
-            &block_table,
-        );
-        aabb.center.y += max_move_y.copysign(movement.y);
-        let (max_move_z, z_collided) = test_move_axis(
-            &aabb,
-            &Vec3 {
-                x: 0.0,
-                y: 0.0,
-                z: movement.z,
-            },
-            &chunks,
-            &current_chunks,
-            &block_table,
-        );
-        aabb.center.z += max_move_z.copysign(movement.z);
-        transform.translation = Vec3::from(aabb.center - Vec3A::Y * aabb.half_extents);
-        if x_collided {
-            velocity.0.x = 0.0
-        }
-        if y_collided {
-            velocity.0.y = 0.0
-        }
-        if z_collided {
-            velocity.0.z = 0.0
+            let movement = velocity.0 * time.delta().as_secs_f32();
+            let x_col = test_move_axis(
+                &aabb,
+                *grid_cell,
+                &Vec3 {
+                    x: movement.x,
+                    y: 0.0,
+                    z: 0.0,
+                },
+                &chunks,
+                &current_chunks,
+                &block_table,
+            );
+            if let Some(c) = x_col {
+                aabb.center.x += c.dist.copysign(movement.x);
+                velocity.0.x = 0.0;
+                collision_event_writer.send(VoxelCollisionEvent {
+                    entity,
+                    voxel_pos: c.collision_aabb.center.floor().as_ivec3(),
+                    normal: c.normal,
+                });
+            } else {
+                aabb.center.x += movement.x;
+            }
+            let y_col = test_move_axis(
+                &aabb,
+                *grid_cell,
+                &Vec3 {
+                    x: 0.0,
+                    y: movement.y,
+                    z: 0.0,
+                },
+                &chunks,
+                &current_chunks,
+                &block_table,
+            );
+            if let Some(c) = y_col {
+                aabb.center.y += c.dist.copysign(movement.y);
+                velocity.0.y = 0.0;
+                collision_event_writer.send(VoxelCollisionEvent {
+                    entity,
+                    voxel_pos: c.collision_aabb.center.floor().as_ivec3(),
+                    normal: c.normal,
+                });
+            } else {
+                aabb.center.y += movement.y;
+            }
+            let z_col = test_move_axis(
+                &aabb,
+                *grid_cell,
+                &Vec3 {
+                    x: 0.0,
+                    y: 0.0,
+                    z: movement.z,
+                },
+                &chunks,
+                &current_chunks,
+                &block_table,
+            );
+            if let Some(c) = z_col {
+                aabb.center.z += c.dist.copysign(movement.z);
+                velocity.0.z = 0.0;
+                collision_event_writer.send(VoxelCollisionEvent {
+                    entity,
+                    voxel_pos: c.collision_aabb.center.floor().as_ivec3(),
+                    normal: c.normal,
+                });
+            } else {
+                aabb.center.z += movement.z;
+            }
+            transform.translation = Vec3::from(aabb.center - Vec3A::Y * aabb.half_extents);
         }
     }
 }
