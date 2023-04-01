@@ -1,6 +1,7 @@
 use std::fmt;
 
 use bevy::{math::Vec3A, prelude::*};
+use big_space::GridCell;
 
 use super::storage::CHUNK_SIZE;
 
@@ -122,7 +123,7 @@ impl ChunkPos {
         ))
     }
 
-    pub fn from_chunk_cell(chunk_cell: IVec3, pos: Vec3) -> ChunkPos {
+    pub fn from_chunk_cell(chunk_cell: GridCell<i32>, pos: Vec3) -> ChunkPos {
         ChunkPos::from(VoxelPos::from_chunk_cell(chunk_cell, pos))
     }
 }
@@ -204,11 +205,11 @@ impl VoxelPos {
         (RelativeVoxelPos::from(*self), Into::<ChunkPos>::into(*self))
     }
 
-    pub fn from_chunk_cell(chunk_cell: IVec3, pos: Vec3) -> VoxelPos {
+    pub fn from_chunk_cell(chunk_cell: GridCell<i32>, pos: Vec3) -> VoxelPos {
         VoxelPos(IVec3::new(
-            (chunk_cell.x * 10000) - 5000 + pos.x.floor() as i32,
-            (chunk_cell.y * 10000) - 5000 + pos.y.floor() as i32,
-            (chunk_cell.z * 10000) - 5000 + pos.z.floor() as i32,
+            (chunk_cell.x * 10000) + pos.x.floor() as i32,
+            (chunk_cell.y * 10000) + pos.y.floor() as i32,
+            (chunk_cell.z * 10000) + pos.z.floor() as i32,
         ))
     }
 }
@@ -265,7 +266,7 @@ impl RelativeVoxelPos {
         ))
     }
 
-    pub fn from_chunk_cell(chunk_cell: IVec3, pos: Vec3) -> RelativeVoxelPos {
+    pub fn from_chunk_cell(chunk_cell: GridCell<i32>, pos: Vec3) -> RelativeVoxelPos {
         RelativeVoxelPos::from(VoxelPos::from_chunk_cell(chunk_cell, pos))
     }
 }
