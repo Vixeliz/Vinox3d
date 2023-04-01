@@ -121,6 +121,10 @@ impl ChunkPos {
             other.z as f32,
         ))
     }
+
+    pub fn from_chunk_cell(chunk_cell: IVec3, pos: Vec3) -> ChunkPos {
+        ChunkPos::from(VoxelPos::from_chunk_cell(chunk_cell, pos))
+    }
 }
 
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash, Deref, DerefMut, Default)]
@@ -199,6 +203,14 @@ impl VoxelPos {
     pub fn to_offsets(&self) -> (RelativeVoxelPos, ChunkPos) {
         (RelativeVoxelPos::from(*self), Into::<ChunkPos>::into(*self))
     }
+
+    pub fn from_chunk_cell(chunk_cell: IVec3, pos: Vec3) -> VoxelPos {
+        VoxelPos(IVec3::new(
+            (chunk_cell.x * 10000) - 5000 + pos.x.floor() as i32,
+            (chunk_cell.y * 10000) - 5000 + pos.y.floor() as i32,
+            (chunk_cell.z * 10000) - 5000 + pos.z.floor() as i32,
+        ))
+    }
 }
 
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash, Deref, DerefMut, Default)]
@@ -251,5 +263,9 @@ impl RelativeVoxelPos {
             other.y as f32,
             other.z as f32,
         ))
+    }
+
+    pub fn from_chunk_cell(chunk_cell: IVec3, pos: Vec3) -> RelativeVoxelPos {
+        RelativeVoxelPos::from(VoxelPos::from_chunk_cell(chunk_cell, pos))
     }
 }
