@@ -22,7 +22,7 @@ use vinox_common::{
     },
     storage::blocks::descriptor::BlockGeometry,
     world::chunks::{
-        ecs::{ChunkCell, ChunkManager, CurrentChunks},
+        ecs::{ChunkManager, CurrentChunks},
         positions::{ChunkPos, RelativeVoxelPos, VoxelPos},
         storage::{
             self, name_to_identifier, trim_geo_identifier, BlockData, ItemTable, CHUNK_SIZE,
@@ -111,7 +111,7 @@ pub fn spawn_camera(
     mut local: Local<bool>,
     mut windows: Query<&mut Window, With<PrimaryWindow>>,
     options: Res<GameOptions>,
-    boiler_player: Query<Entity, With<FloatingOrigin>>,
+    _boiler_player: Query<Entity, With<FloatingOrigin>>,
 ) {
     if *local {
         return;
@@ -141,7 +141,7 @@ pub fn spawn_camera(
             Camera3dBundle {
                 projection: Projection::Perspective(perspective_projection),
                 frustum,
-                transform: Transform::from_translation(Vec3::new(0.0, 1.8, 0.0)),
+                transform: Transform::from_translation(Vec3::new(0.0, 1.65, 0.0)),
                 // camera: Camera {
                 //     hdr: true,
                 //     ..Default::default()
