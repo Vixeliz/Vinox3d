@@ -549,7 +549,7 @@ pub fn interact(
                 &chunk_manager,
             );
             if let Some((chunk_pos, voxel_pos, normal, _)) = hit {
-                let point = VoxelPos::from_offsets(voxel_pos, chunk_pos);
+                let point = VoxelPos::from((voxel_pos, chunk_pos));
                 let global_voxel = point.clone();
                 //     world_to_global_voxel(relative_voxel_to_world(
                 //     voxel_pos.as_vec3().as_ivec3(),
@@ -578,12 +578,12 @@ pub fn interact(
                             || (point.y as f32 <= player_transform.center.y - 1.0
                                 || point.y as f32 >= player_transform.center.y + 1.0)
                         {
-                            let (voxel_pos, chunk_pos) = VoxelPos::from_offsets(
+                            let (voxel_pos, chunk_pos) = VoxelPos::from((
                                 RelativeVoxelPos(
                                     (voxel_pos.as_vec3().as_ivec3() + normal.as_ivec3()).as_uvec3(),
                                 ),
                                 chunk_pos,
-                            )
+                            ))
                             .to_offsets();
                             if let Some(mut modified_item) = place_item.clone() {
                                 modified_item.name = if chunk_manager
@@ -683,7 +683,7 @@ pub fn interact(
                                 }
 
                                 chunk_manager.set_block(
-                                    VoxelPos::from_offsets(voxel_pos, chunk_pos),
+                                    VoxelPos::from((voxel_pos, chunk_pos)),
                                     place_item.unwrap(),
                                 );
                                 client.connection_mut().try_send_message(
@@ -700,14 +700,14 @@ pub fn interact(
                             }
                         }
                     } else if mouse_left {
-                        if let Some(identifier) = chunk_manager
-                            .get_identifier(VoxelPos::from_offsets(voxel_pos, chunk_pos))
+                        if let Some(identifier) =
+                            chunk_manager.get_identifier(VoxelPos::from((voxel_pos, chunk_pos)))
                         {
                             let identifier = trim_geo_identifier(identifier);
                             if let Some(item_def) = item_table.get(&identifier) {
                                 if inventory.add_item(item_def).is_ok() {
                                     chunk_manager.set_block(
-                                        VoxelPos::from_offsets(voxel_pos, chunk_pos),
+                                        VoxelPos::from((voxel_pos, chunk_pos)),
                                         BlockData::new("vinox".to_string(), "air".to_string()),
                                     );
                                     client.connection_mut().try_send_message(
@@ -727,7 +727,7 @@ pub fn interact(
                                 }
                             } else {
                                 chunk_manager.set_block(
-                                    VoxelPos::from_offsets(voxel_pos, chunk_pos),
+                                    VoxelPos::from((voxel_pos, chunk_pos)),
                                     BlockData::new("vinox".to_string(), "air".to_string()),
                                 );
                                 client.connection_mut().try_send_message(

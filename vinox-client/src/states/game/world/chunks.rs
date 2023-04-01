@@ -152,7 +152,7 @@ pub fn receive_chunks(
 pub fn set_block(mut event: EventReader<SetBlockEvent>, mut chunk_manager: ChunkManager) {
     for evt in event.iter() {
         chunk_manager.set_block(
-            VoxelPos::from_offsets(evt.voxel_pos, evt.chunk_pos),
+            VoxelPos::from((evt.voxel_pos, evt.chunk_pos)),
             evt.block_type.clone(),
         );
     }

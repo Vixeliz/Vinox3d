@@ -1725,12 +1725,12 @@ pub fn sort_faces(
                                                     + raw_array[vec_ind[4]][2]
                                                     + raw_array[vec_ind[5]][2])
                                                     / 4.0;
-                                                let real_pos = VoxelPos::from_offsets(
+                                                let real_pos = VoxelPos::from((
                                                     RelativeVoxelPos(UVec3::new(
                                                         x as u32, y as u32, z as u32,
                                                     )),
                                                     evt.chunk_pos,
-                                                );
+                                                ));
                                                 let dist = camera_transform
                                                     .translation()
                                                     .distance(real_pos.as_vec3());

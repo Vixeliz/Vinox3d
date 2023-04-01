@@ -54,7 +54,7 @@ pub fn aabb_intersects_world(
                 if let Some(chunk_entity) = current_chunks.get_entity(check_chunk_pos) {
                     if let Ok(chunk) = chunks.get(chunk_entity) {
                         let block_data: BlockData = chunk.get(check_block_cpos);
-                        let voxel_pos = VoxelPos::from_offsets(check_block_cpos, check_chunk_pos);
+                        let voxel_pos = VoxelPos::from((check_block_cpos, check_chunk_pos));
                         if !block_data.is_empty(block_table) {
                             let block_aabb = Aabb {
                                 center: voxel_pos.as_vec3a() + Vec3A::new(0.5, 0.5, 0.5),
@@ -93,7 +93,7 @@ pub fn get_aabb_world_intersectors(
                 if let Some(chunk_entity) = current_chunks.get_entity(check_chunk_pos) {
                     if let Ok(chunk) = chunks.get(chunk_entity) {
                         let block_data: BlockData = chunk.get(check_block_cpos);
-                        let voxel_pos = VoxelPos::from_offsets(check_block_cpos, check_chunk_pos);
+                        let voxel_pos = VoxelPos::from((check_block_cpos, check_chunk_pos));
                         if !block_data.is_empty(block_table) {
                             let block_aabb = Aabb {
                                 center: voxel_pos.as_vec3a() + Vec3A::new(0.5, 0.5, 0.5),
@@ -147,14 +147,13 @@ pub fn aabb_vs_world(
     for x in area_to_check.0.x..=area_to_check.1.x {
         for y in area_to_check.0.y..=area_to_check.1.y {
             for z in area_to_check.0.z..=area_to_check.1.z {
-                let (check_block_cpos, check_chunk_pos) = VoxelPos::from(
-                    Vec3::from(aabb.center) + Vec3::new(x as f32, y as f32, z as f32),
-                )
-                .to_offsets();
+                let (check_block_cpos, check_chunk_pos) =
+                    VoxelPos::from(aabb.center + Vec3A::new(x as f32, y as f32, z as f32))
+                        .to_offsets();
                 if let Some(chunk_entity) = current_chunks.get_entity(check_chunk_pos) {
                     if let Ok(chunk) = chunks.get(chunk_entity) {
                         let block_data: BlockData = chunk.get(check_block_cpos);
-                        let voxel_pos = VoxelPos::from_offsets(check_block_cpos, check_chunk_pos);
+                        let voxel_pos = VoxelPos::from((check_block_cpos, check_chunk_pos));
                         if !block_data.is_empty(block_table) {
                             let block_aabb = Aabb {
                                 center: voxel_pos.as_vec3a() + Vec3A::new(0.5, 0.5, 0.5),

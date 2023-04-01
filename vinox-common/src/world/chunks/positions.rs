@@ -162,6 +162,23 @@ impl From<VoxelPos> for IVec3 {
     }
 }
 
+impl From<(RelativeVoxelPos, ChunkPos)> for VoxelPos {
+    fn from(item: (RelativeVoxelPos, ChunkPos)) -> Self {
+        let world_chunk = *item.1 * IVec3::splat(CHUNK_SIZE as i32);
+        VoxelPos::from(Vec3::new(
+            (world_chunk.x as f32) + item.0.x as f32,
+            (world_chunk.y as f32) + item.0.y as f32,
+            (world_chunk.z as f32) + item.0.z as f32,
+        ))
+    }
+}
+
+// impl From<VoxelPos> for (RelativeVoxelPos, ChunkPos) {
+//     fn from(item: VoxelPos) -> Self {
+//         (RelativeVoxelPos::from(*item), Into::<ChunkPos>::into(*item))
+//     }
+// }
+
 impl fmt::Display for VoxelPos {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.0)
@@ -179,18 +196,6 @@ impl VoxelPos {
             other.z as f32,
         ))
     }
-    pub fn from_offsets(voxel_pos: RelativeVoxelPos, chunk_pos: ChunkPos) -> Self {
-        let world_chunk = *chunk_pos * IVec3::splat(CHUNK_SIZE as i32);
-        VoxelPos(
-            Vec3::new(
-                (world_chunk.x as f32) + voxel_pos.x as f32,
-                (world_chunk.y as f32) + voxel_pos.y as f32,
-                (world_chunk.z as f32) + voxel_pos.z as f32,
-            )
-            .as_ivec3(),
-        )
-    }
-
     pub fn to_offsets(&self) -> (RelativeVoxelPos, ChunkPos) {
         (RelativeVoxelPos::from(*self), Into::<ChunkPos>::into(*self))
     }
@@ -217,6 +222,11 @@ impl From<VoxelPos> for RelativeVoxelPos {
 
 impl From<Vec3> for RelativeVoxelPos {
     fn from(item: Vec3) -> Self {
+        From::<VoxelPos>::from(item.into())
+    }
+}
+impl From<IVec3> for RelativeVoxelPos {
+    fn from(item: IVec3) -> Self {
         From::<VoxelPos>::from(item.into())
     }
 }
