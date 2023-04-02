@@ -270,7 +270,7 @@ pub fn handle_movement(
                 } else {
                     movement *= 5.0;
                 }
-                if action_state.pressed(GameActions::Jump) && *stationary_frames > 2 {
+                if action_state.pressed(GameActions::Jump) && *stationary_frames > 8 {
                     *stationary_frames = 0;
                     velocity.0.y = 10.0;
                 }
