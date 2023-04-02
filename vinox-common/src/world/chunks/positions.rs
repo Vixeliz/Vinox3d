@@ -205,12 +205,21 @@ impl VoxelPos {
         (RelativeVoxelPos::from(*self), Into::<ChunkPos>::into(*self))
     }
 
-    pub fn from_chunk_cell(chunk_cell: GridCell<i32>, pos: Vec3) -> VoxelPos {
+    pub fn from_chunk_cell(grid_cell: GridCell<i32>, pos: Vec3) -> VoxelPos {
         VoxelPos(IVec3::new(
-            (chunk_cell.x * 10000) + pos.x.floor() as i32,
-            (chunk_cell.y * 10000) + pos.y.floor() as i32,
-            (chunk_cell.z * 10000) + pos.z.floor() as i32,
+            (grid_cell.x * 10000) + pos.x.floor() as i32,
+            (grid_cell.y * 10000) + pos.y.floor() as i32,
+            (grid_cell.z * 10000) + pos.z.floor() as i32,
         ))
+    }
+
+    pub fn relative_to_cell(&self, grid_cell: GridCell<i32>) -> Vec3 {
+        let grid_cell_center: IVec3 = IVec3 {
+            x: grid_cell.x * 10000,
+            y: grid_cell.y * 10000,
+            z: grid_cell.z * 10000,
+        };
+        (self.0 - grid_cell_center).as_vec3()
     }
 }
 
