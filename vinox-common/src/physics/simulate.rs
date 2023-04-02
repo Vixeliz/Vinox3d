@@ -55,7 +55,8 @@ pub fn move_and_collide(
     mut collision_event_writer: EventWriter<VoxelCollisionEvent>,
 ) {
     for (entity, mut aabb, mut velocity, mut transform, grid_cell) in moving_entities.iter_mut() {
-        let chunk_pos: ChunkPos = ChunkPos::from_chunk_cell(grid_cell.clone(), aabb.center.into());
+        let chunk_pos: ChunkPos =
+            ChunkPos::from_chunk_cell(grid_cell.clone(), transform.translation);
         if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos) {
             if chunks_without_data.get(chunk_entity).is_ok() {
                 continue;

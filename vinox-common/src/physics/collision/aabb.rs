@@ -155,7 +155,8 @@ pub fn test_move_axis(
                         let block_data: BlockData = chunk.get(check_block_cpos);
                         if !block_data.is_empty(block_table) {
                             let block_aabb = Aabb {
-                                center: voxel_pos.as_vec3a() + Vec3A::new(0.5, 0.5, 0.5),
+                                center: Vec3A::from(voxel_pos.relative_to_cell(grid_cell))
+                                    + Vec3A::new(0.5, 0.5, 0.5),
                                 half_extents: Vec3A::new(0.5, 0.5, 0.5),
                             };
                             let check_colinfo = get_collision_info(aabb, &block_aabb, move_vec);
