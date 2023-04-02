@@ -4,7 +4,7 @@ use bevy::{
     render::primitives::Aabb,
     time::Time,
 };
-use big_space::GridCell;
+use big_space::{FloatingOriginSettings, GridCell};
 
 use crate::world::chunks::{
     ecs::{ChunkCell, CurrentChunks, NeedsChunkData},
@@ -43,7 +43,7 @@ pub fn move_and_collide(
             &mut Aabb,
             &mut Velocity,
             &mut Transform,
-            &GridCell<i32>,
+            &mut GridCell<i32>,
         ),
         With<CollidesWithWorld>,
     >,
@@ -52,15 +52,25 @@ pub fn move_and_collide(
     chunks: Query<&ChunkData>,
     current_chunks: Res<CurrentChunks>,
     block_table: Res<BlockTable>,
+    floating_settings: Res<FloatingOriginSettings>,
     mut collision_event_writer: EventWriter<VoxelCollisionEvent>,
 ) {
-    for (entity, mut aabb, mut velocity, mut transform, grid_cell) in moving_entities.iter_mut() {
+    for (entity, mut aabb, mut velocity, mut transform, mut grid_cell) in moving_entities.iter_mut()
+    {
+        aabb.center = Vec3A::new(
+            transform.translation.x,
+            transform.translation.y + aabb.half_extents.y,
+            transform.translation.z,
+        );
         let chunk_pos: ChunkPos =
             ChunkPos::from_chunk_cell(grid_cell.clone(), transform.translation);
+        println!("Chunk pos is {chunk_pos}");
         if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos) {
+            println!("Found chunk entity!");
             if chunks_without_data.get(chunk_entity).is_ok() {
                 continue;
             }
+            println!("Calculating movement");
             let movement = velocity.0 * time.delta().as_secs_f32();
             let x_col = test_move_axis(
                 &aabb,
@@ -75,6 +85,7 @@ pub fn move_and_collide(
                 &block_table,
             );
             if let Some(c) = x_col {
+                println!("Found a collision {} away", c.dist);
                 aabb.center.x += c.dist.copysign(movement.x);
                 velocity.0.x = 0.0;
                 collision_event_writer.send(VoxelCollisionEvent {
@@ -85,6 +96,10 @@ pub fn move_and_collide(
             } else {
                 aabb.center.x += movement.x;
             }
+            (*grid_cell, transform.translation) = floating_settings
+                .imprecise_translation_to_grid::<i32>(Vec3::from(
+                    aabb.center - Vec3A::Y * aabb.half_extents,
+                ));
             let y_col = test_move_axis(
                 &aabb,
                 *grid_cell,
@@ -99,6 +114,7 @@ pub fn move_and_collide(
             );
             if let Some(c) = y_col {
                 aabb.center.y += c.dist.copysign(movement.y);
+                println!("Found a collision {} away", c.dist);
                 velocity.0.y = 0.0;
                 collision_event_writer.send(VoxelCollisionEvent {
                     entity,
@@ -108,6 +124,10 @@ pub fn move_and_collide(
             } else {
                 aabb.center.y += movement.y;
             }
+            (*grid_cell, transform.translation) = floating_settings
+                .imprecise_translation_to_grid::<i32>(Vec3::from(
+                    aabb.center - Vec3A::Y * aabb.half_extents,
+                ));
             let z_col = test_move_axis(
                 &aabb,
                 *grid_cell,
@@ -122,6 +142,7 @@ pub fn move_and_collide(
             );
             if let Some(c) = z_col {
                 aabb.center.z += c.dist.copysign(movement.z);
+                println!("Found a collision {} away", c.dist);
                 velocity.0.z = 0.0;
                 collision_event_writer.send(VoxelCollisionEvent {
                     entity,
@@ -131,7 +152,11 @@ pub fn move_and_collide(
             } else {
                 aabb.center.z += movement.z;
             }
-            transform.translation = Vec3::from(aabb.center - Vec3A::Y * aabb.half_extents);
+            println!("Setting translation to aabb center {}", aabb.center);
+            (*grid_cell, transform.translation) = floating_settings
+                .imprecise_translation_to_grid::<i32>(Vec3::from(
+                    aabb.center - Vec3A::Y * aabb.half_extents,
+                ));
         }
     }
 }
