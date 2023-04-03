@@ -1,6 +1,7 @@
 use std::fmt;
 
 use bevy::{math::Vec3A, prelude::*};
+use big_space::GridCell;
 
 use super::storage::CHUNK_SIZE;
 
@@ -121,6 +122,10 @@ impl ChunkPos {
             other.z as f32,
         ))
     }
+
+    pub fn from_chunk_cell(chunk_cell: GridCell<i32>, pos: Vec3) -> ChunkPos {
+        ChunkPos::from(VoxelPos::from_chunk_cell(chunk_cell, pos))
+    }
 }
 
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash, Deref, DerefMut, Default)]
@@ -199,6 +204,23 @@ impl VoxelPos {
     pub fn to_offsets(&self) -> (RelativeVoxelPos, ChunkPos) {
         (RelativeVoxelPos::from(*self), Into::<ChunkPos>::into(*self))
     }
+
+    pub fn from_chunk_cell(grid_cell: GridCell<i32>, pos: Vec3) -> VoxelPos {
+        VoxelPos(IVec3::new(
+            (grid_cell.x * 10000) + pos.x.floor() as i32,
+            (grid_cell.y * 10000) + pos.y.floor() as i32,
+            (grid_cell.z * 10000) + pos.z.floor() as i32,
+        ))
+    }
+
+    pub fn relative_to_cell(&self, grid_cell: GridCell<i32>) -> Vec3 {
+        let grid_cell_center: IVec3 = IVec3 {
+            x: grid_cell.x * 10000,
+            y: grid_cell.y * 10000,
+            z: grid_cell.z * 10000,
+        };
+        (self.0 - grid_cell_center).as_vec3()
+    }
 }
 
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash, Deref, DerefMut, Default)]
@@ -251,5 +273,9 @@ impl RelativeVoxelPos {
             other.y as f32,
             other.z as f32,
         ))
+    }
+
+    pub fn from_chunk_cell(chunk_cell: GridCell<i32>, pos: Vec3) -> RelativeVoxelPos {
+        RelativeVoxelPos::from(VoxelPos::from_chunk_cell(chunk_cell, pos))
     }
 }

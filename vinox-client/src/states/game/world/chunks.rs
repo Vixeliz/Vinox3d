@@ -63,17 +63,17 @@ pub struct UpdateChunkEvent {
 }
 
 pub fn update_player_location(
-    player_query: Query<&Aabb, With<ControlledPlayer>>,
+    player_query: Query<&VoxelPos, With<ControlledPlayer>>,
     mut player_chunk: ResMut<PlayerChunk>,
     mut player_block: ResMut<PlayerBlock>,
 ) {
-    if let Ok(player_transform) = player_query.get_single() {
-        let new_chunk = ChunkPos::from(player_transform.center);
+    if let Ok(voxel_pos) = player_query.get_single() {
+        let new_chunk = ChunkPos::from(*voxel_pos);
         if new_chunk != player_chunk.chunk_pos {
             player_chunk.chunk_pos = new_chunk;
         }
-        if VoxelPos::from(player_transform.center) != player_block.pos {
-            player_block.pos = VoxelPos::from(player_transform.center);
+        if *voxel_pos != player_block.pos {
+            player_block.pos = *voxel_pos;
         }
     }
 }
