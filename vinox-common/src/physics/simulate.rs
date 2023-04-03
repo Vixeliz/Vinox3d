@@ -55,7 +55,6 @@ pub fn move_and_collide(
     mut _collision_event_writer: EventWriter<VoxelCollisionEvent>,
 ) {
     for (entity, aabb, mut velocity, mut transform, grid_cell) in moving_entities.iter_mut() {
-        println!("player is in grid cell {:?}", grid_cell);
         let mut aabb = aabb.clone();
         aabb.center = Vec3A::new(
             transform.translation.x,
@@ -146,8 +145,4 @@ pub fn move_and_collide(
             }
         }
     }
-}
-
-fn get_grid_cell_relative(source_cell: GridCell<i32>, offset: Vec3) -> GridCell<i32> {
-    if offset.x.abs() > 5000 
 }
