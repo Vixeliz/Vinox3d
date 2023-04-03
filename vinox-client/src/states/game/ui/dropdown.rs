@@ -1,4 +1,5 @@
 use bevy_quinnet::client::Client;
+use big_space::GridCell;
 use brigadier_rs::*;
 use egui_notify::Toasts;
 use std::{collections::BTreeMap, convert::Infallible};
@@ -24,7 +25,7 @@ pub struct Toast(pub Toasts);
 #[allow(clippy::too_many_arguments)]
 pub fn create_ui(
     mut commands: Commands,
-    mut player_query: Query<(Entity, &mut Aabb), With<ControlledPlayer>>,
+    mut player_query: Query<(Entity, &mut Transform, &GlobalTransform), With<ControlledPlayer>>,
     collider_query: Query<&CollidesWithWorld>,
     mut client: ResMut<Client>,
     is_open: Res<ConsoleOpen>, // mut username_res: ResMut<UserName>,
@@ -89,7 +90,7 @@ pub fn create_ui(
                                     && ui.input(|input| input.key_pressed(egui::Key::Enter));
                                 if input_send {
                                     // TODO: Switch this to a better system
-                                    if let Ok((player, mut player_transform)) =
+                                    if let Ok((player, mut player_transform, global_transform)) =
                                         player_query.get_single_mut()
                                     {
                                         if let Ok((result, _)) = parser.parse((), &current_message)
@@ -130,9 +131,10 @@ pub fn create_ui(
                                                     }
                                                 }
                                             }
-                                            let delta = Vec3A::new(x as f32, y as f32, z as f32)
-                                                - player_transform.center;
-                                            player_transform.center += delta;
+                                            let delta = Vec3::new(x as f32, y as f32, z as f32)
+                                                - global_transform.translation();
+
+                                            player_transform.translation += delta;
                                             messages.push((
                                                 "Console".to_string(),
                                                 format!("{x}, {y}, {z}"),

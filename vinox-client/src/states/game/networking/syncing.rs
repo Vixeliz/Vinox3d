@@ -269,16 +269,16 @@ pub fn lerp_new_location(
 }
 
 pub fn client_send_naive_position(
-    mut transform_query: Query<&mut Aabb, With<ControlledPlayer>>,
+    mut transform_query: Query<&VoxelPos, With<ControlledPlayer>>,
     mut camera_query: Query<&mut Transform, (With<Camera>, Without<ControlledPlayer>)>,
     mut client: ResMut<Client>,
 ) {
-    if let Ok(transform) = transform_query.get_single_mut() {
+    if let Ok(transform) = transform_query.get_single() {
         if let Ok(camera_transform) = camera_query.get_single_mut() {
             client.connection_mut().try_send_message_on(
                 bevy_quinnet::shared::channel::ChannelId::Unreliable,
                 ClientMessage::Position {
-                    player_pos: transform.center.into(),
+                    player_pos: transform.as_vec3(),
                     yaw: camera_transform.rotation.to_euler(EulerRot::XYZ).1,
                     head_pitch: camera_transform.rotation.to_euler(EulerRot::XYZ).0,
                 },

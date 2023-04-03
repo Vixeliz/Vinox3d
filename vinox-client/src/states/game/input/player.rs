@@ -36,7 +36,7 @@ use crate::states::{
     game::{
         networking::syncing::HighLightCube,
         ui::{dropdown::ConsoleOpen, plugin::InUi},
-        world::chunks::{ControlledPlayer, PlayerTargetedBlock},
+        world::chunks::{ControlledPlayer, PlayerChunk, PlayerTargetedBlock},
     },
     menu::ui::InOptions,
 };
@@ -201,6 +201,7 @@ pub fn handle_movement(
     mut stationary_frames: Local<i32>,
     current_chunks: Res<CurrentChunks>,
     time: Res<Time>,
+    player_chunk: Res<PlayerChunk>,
 ) {
     let Ok(window) = windows.get_single() else {
         return;
@@ -240,9 +241,8 @@ pub fn handle_movement(
             let gravity = 35.0 * Vec3::NEG_Y;
             velocity.0 += gravity * time.delta().as_secs_f32().clamp(0.0, 0.1);
 
-            let chunk_pos = ChunkPos::from(translation.translation);
             if window.cursor.grab_mode == CursorGrabMode::Locked {
-                if current_chunks.get_entity(chunk_pos).is_none() {
+                if current_chunks.get_entity(player_chunk.chunk_pos).is_none() {
                     return;
                 }
 
@@ -321,7 +321,16 @@ pub fn interact(
     mut windows: Query<&mut Window, With<PrimaryWindow>>,
     camera_query: Query<&GlobalTransform, With<Camera>>,
     mut client: ResMut<Client>,
-    mut player: Query<(&Aabb, &ActionState<GameActions>, &mut Inventory), With<ControlledPlayer>>,
+    mut player: Query<
+        (
+            &VoxelPos,
+            &ActionState<GameActions>,
+            &mut Inventory,
+            &Transform,
+            &GridCell<i32>,
+        ),
+        With<ControlledPlayer>,
+    >,
     mut cube_position: Query<
         (&mut Transform, &mut Visibility),
         (With<HighLightCube>, Without<ControlledPlayer>),
@@ -343,7 +352,9 @@ pub fn interact(
     if window.cursor.grab_mode != CursorGrabMode::Locked {
         return;
     }
-    if let Ok((player_transform, action_state, mut inventory)) = player.get_single_mut() {
+    if let Ok((player_transform, action_state, mut inventory, transform, grid_cell)) =
+        player.get_single_mut()
+    {
         for ev in scroll_evr.iter() {
             match ev.unit {
                 MouseScrollUnit::Line => {
@@ -542,15 +553,21 @@ pub fn interact(
         let mouse_right = action_state.just_pressed(GameActions::SecondaryInteract);
         if let Ok(camera_transform) = camera_query.get_single() {
             // Then cast the ray.
+            let final_translation = Vec3::new(
+                (grid_cell.x * 10000) as f32 + camera_transform.translation().x,
+                (grid_cell.y * 10000) as f32 + camera_transform.translation().y,
+                (grid_cell.z * 10000) as f32 + camera_transform.translation().z,
+            );
+            //TODO: Don't use global position
             let hit = raycast_world(
-                camera_transform.translation(),
+                final_translation,
                 camera_transform.forward(),
                 6.0,
                 &chunk_manager,
             );
             if let Some((chunk_pos, voxel_pos, normal, _)) = hit {
-                let point = VoxelPos::from((voxel_pos, chunk_pos));
-                let global_voxel = point.clone();
+                let point = VoxelPos::from((voxel_pos, chunk_pos)).relative_to_cell(*grid_cell);
+                let global_voxel = VoxelPos::from(point.clone());
                 //     world_to_global_voxel(relative_voxel_to_world(
                 //     voxel_pos.as_vec3().as_ivec3(),
                 //     *chunk_pos,
@@ -565,18 +582,18 @@ pub fn interact(
                     if *block_visibility == Visibility::Hidden {
                         *block_visibility = Visibility::Visible;
                     }
-                    block_transform.translation = point.as_vec3() + Vec3::splat(0.5);
+                    block_transform.translation = point + Vec3::splat(0.5);
                 }
                 if mouse_left || (mouse_right && place_item.is_some()) {
                     if mouse_right {
                         inventory.item_decrement("hotbar", *cur_bar, *cur_item);
 
-                        if (point.x as f32 <= player_transform.center.x - 0.5
-                            || point.x as f32 >= player_transform.center.x + 0.5)
-                            || (point.z as f32 <= player_transform.center.z - 0.5
-                                || point.z as f32 >= player_transform.center.z + 0.5)
-                            || (point.y as f32 <= player_transform.center.y - 1.0
-                                || point.y as f32 >= player_transform.center.y + 1.0)
+                        if (point.x as f32 <= player_transform.x as f32 - 0.5
+                            || point.x as f32 >= player_transform.x as f32 + 0.5)
+                            || (point.z as f32 <= player_transform.z as f32 - 0.5
+                                || point.z as f32 >= player_transform.z as f32 + 0.5)
+                            || (point.y as f32 <= player_transform.y as f32 - 1.0
+                                || point.y as f32 >= player_transform.y as f32 + 1.0)
                         {
                             let (voxel_pos, chunk_pos) = VoxelPos::from((
                                 RelativeVoxelPos(
@@ -652,9 +669,9 @@ pub fn interact(
                                         .exclusive_direction
                                         .unwrap_or(false)
                                     {
-                                        let translation: Vec3 = player_transform.center.into();
+                                        let translation: Vec3 = Vec3::from(*player_transform);
                                         if modified_item.direction.is_none() {
-                                            let difference = translation - point.as_vec3();
+                                            let difference = translation - point;
                                             if difference.x > difference.z {
                                                 if difference.x < 0.0 {
                                                     modified_item.direction =
@@ -672,7 +689,7 @@ pub fn interact(
                                             }
                                         }
                                         if modified_item.top.is_none() {
-                                            let difference: Vec3 = translation - point.as_vec3();
+                                            let difference: Vec3 = translation - point;
                                             if difference.y > 0.0 {
                                                 modified_item.top = Some(true);
                                             } else {
@@ -759,18 +776,16 @@ pub fn interact(
 
 // Update main position based on the AABB
 pub fn update_visual_position(
-    mut player: Query<
-        (&Aabb, &mut Transform, &mut VoxelPos, &mut GridCell<i32>),
-        With<ControlledPlayer>,
-    >,
+    mut player: Query<(&mut Transform, &mut VoxelPos, &mut GridCell<i32>), With<ControlledPlayer>>,
     floating_settings: Res<FloatingOriginSettings>,
 ) {
-    if let Ok((aabb, mut transform, mut voxel_pos, mut grid_cell)) = player.get_single_mut() {
-        (*grid_cell, transform.translation) = floating_settings
-            .imprecise_translation_to_grid::<i32>(Vec3::from(
-                aabb.center - Vec3A::Y * aabb.half_extents,
-            ));
-        *voxel_pos = VoxelPos::from(aabb.center - Vec3A::Y * aabb.half_extents);
+    if let Ok((mut transform, mut voxel_pos, mut grid_cell)) = player.get_single_mut() {
+        // (*grid_cell, transform.translation) = floating_settings
+        //     .imprecise_translation_to_grid::<i32>(Vec3::from(
+        //         aabb.center - Vec3A::Y * aabb.half_extents,
+        //     ));
+        *voxel_pos = VoxelPos::from_chunk_cell(*grid_cell, transform.translation);
+        // *voxel_pos = VoxelPos::from(aabb.center - Vec3A::Y * aabb.half_extents);
         // transform.translation = Vec3::from(aabb.center - Vec3A::Y * aabb.half_extents)
     }
 }
