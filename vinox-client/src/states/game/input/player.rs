@@ -553,17 +553,12 @@ pub fn interact(
         let mouse_right = action_state.just_pressed(GameActions::SecondaryInteract);
         if let Ok(camera_transform) = camera_query.get_single() {
             // Then cast the ray.
-            let final_translation = Vec3::new(
-                (grid_cell.x * 10000) as f32 + camera_transform.translation().x,
-                (grid_cell.y * 10000) as f32 + camera_transform.translation().y,
-                (grid_cell.z * 10000) as f32 + camera_transform.translation().z,
-            );
-            //TODO: Don't use global position
             let hit = raycast_world(
-                final_translation,
+                camera_transform.translation(),
                 camera_transform.forward(),
                 6.0,
                 &chunk_manager,
+                grid_cell,
             );
             if let Some((chunk_pos, voxel_pos, normal, _)) = hit {
                 let point = VoxelPos::from((voxel_pos, chunk_pos)).relative_to_cell(*grid_cell);

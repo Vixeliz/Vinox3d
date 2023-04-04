@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use big_space::GridCell;
 
 use crate::world::chunks::{
     ecs::ChunkManager,
@@ -10,6 +11,7 @@ pub fn raycast_world(
     direction: Vec3,
     radius: f32,
     chunk_manager: &ChunkManager,
+    grid_cell: &GridCell<i32>,
 ) -> Option<(ChunkPos, RelativeVoxelPos, Vec3, f32)> {
     // TMax needs the fractional part of origin to work.
     let mut tmax = Vec3::new(
@@ -40,8 +42,13 @@ pub fn raycast_world(
         if counter > (radius * 4.0) as u32 {
             break;
         }
-        let (voxel_pos, chunk_pos) = VoxelPos::from(current_block).to_offsets();
-        if let Some(block) = chunk_manager.get_block(VoxelPos::from(current_block)) {
+        let final_translation = Vec3::new(
+            (grid_cell.x * 10000) as f32 + current_block.x,
+            (grid_cell.y * 10000) as f32 + current_block.y,
+            (grid_cell.z * 10000) as f32 + current_block.z,
+        );
+        let (voxel_pos, chunk_pos) = VoxelPos::from(final_translation).to_offsets();
+        if let Some(block) = chunk_manager.get_block(VoxelPos::from(final_translation)) {
             if !block.is_empty(&chunk_manager.block_table) {
                 let toi = lastmax * direction.length();
                 return Some((chunk_pos, voxel_pos, face, toi));
