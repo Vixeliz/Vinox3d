@@ -36,9 +36,6 @@ pub fn debug(
     let fps = diagnostics
         .get(FrameTimeDiagnosticsPlugin::FPS)
         .and_then(|fps| fps.average());
-    if !options.dark_theme {
-        catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
-    }
     if options.debug {
         if let Ok(player_transform) = player_query.get_single() {
             let style = contexts.ctx_mut().style().clone();
@@ -115,9 +112,6 @@ pub fn targeted_block(
     options: Res<GameOptions>,
     player_looking: Res<PlayerTargetedBlock>,
 ) {
-    if !options.dark_theme {
-        catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
-    }
     if options.looking_at {
         let style = contexts.ctx_mut().style().clone();
         let new_color = style.visuals.window_fill;

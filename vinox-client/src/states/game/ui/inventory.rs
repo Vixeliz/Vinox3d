@@ -24,9 +24,6 @@ pub fn status_bar(
     mut holding: ResMut<Holding>,
     loadable_assets: Res<LoadableAssets>,
 ) {
-    if !options.dark_theme {
-        catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
-    }
     let ctx = contexts.ctx_mut().clone();
     let style = ctx.style().clone();
     egui::TopBottomPanel::bottom("status_bar")
@@ -275,10 +272,6 @@ pub fn inventory(
     options: Res<GameOptions>,
     loadable_assets: Res<LoadableAssets>,
 ) {
-    if !options.dark_theme {
-        catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
-    }
-
     let ctx = contexts.ctx_mut().clone();
     let style = ctx.style().clone();
     if let Ok(mut inventory) = player_query.get_single_mut() {

@@ -88,9 +88,6 @@ pub fn crafting_ui(
     options: Res<GameOptions>,
     mut current_search: Local<String>,
 ) {
-    if !options.dark_theme {
-        catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
-    }
     if let Ok(mut inventory) = player_query.get_single_mut() {
         if inventory.open {
             egui::SidePanel::left("crafting").show(contexts.ctx_mut(), |ui| {

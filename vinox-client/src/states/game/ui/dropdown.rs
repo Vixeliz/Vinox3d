@@ -36,9 +36,6 @@ pub fn create_ui(
     options: Res<GameOptions>,
     mut wireframe_config: ResMut<WireframeConfig>,
 ) {
-    if !options.dark_theme {
-        catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
-    }
     toast.show(contexts.ctx_mut());
     if **is_open {
         let parser = literal("/wireframe")
@@ -67,9 +64,6 @@ pub fn create_ui(
                 println!("Called foo with no arguments");
                 Ok::<(), Infallible>(())
             });
-        if !options.dark_theme {
-            catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
-        }
         egui::Window::new("Console")
             .anchor(Align2::CENTER_TOP, [0.0, 0.0])
             .default_width(1000.0)

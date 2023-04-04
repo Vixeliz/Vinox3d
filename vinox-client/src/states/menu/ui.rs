@@ -59,9 +59,8 @@ pub fn options(
     mut keys: EventReader<KeyboardInput>,
     mut mouse_buttons: EventReader<MouseButtonInput>,
     mut windows: Query<&mut Window>,
-    egui_theme: Res<EguiTheme>,
+    // egui_theme: Res<EguiTheme>,
 ) {
-    contexts.ctx_mut().set_style(egui_theme.clone());
     if **in_options {
         if let Some(current_action) = *current_change {
             if let Some(keyboard_input) = keys.iter().next() {
@@ -80,9 +79,6 @@ pub fn options(
                     *current_change = None;
                 }
             }
-        }
-        if !options.dark_theme {
-            catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
         }
         egui::Window::new("Options")
             .open(&mut in_options)
@@ -175,10 +171,6 @@ pub fn create_ui(
     mut rendered_texture_id: Local<egui::TextureId>,
     mut is_initialized: Local<bool>,
 ) {
-    if !options.dark_theme {
-        catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
-    }
-
     if !*is_initialized {
         *is_initialized = true;
         // *rendered_texture_id = contexts.add_image(asset_server.load("cover.png").clone_weak());
@@ -232,9 +224,6 @@ pub fn create_ui(
             });
         });
 
-    if !options.dark_theme {
-        catppuccin_egui::set_theme(contexts.ctx_mut(), catppuccin_egui::MOCHA);
-    }
     egui::CentralPanel::default().show(contexts.ctx_mut(), |ui| {
         egui::warn_if_debug_build(ui);
         let ratio = 16.0 / 10.0;
@@ -255,7 +244,7 @@ pub struct EguiTheme(pub egui::Style);
 impl Default for EguiTheme {
     fn default() -> Self {
         let dark_widgets = WidgetVisuals {
-            rounding: Rounding::same(2.0),
+            rounding: Rounding::same(0.0),
             bg_fill: Color32::from_rgb(64, 64, 64),
             bg_stroke: Stroke::new(1.0, Color32::from_rgb(90, 90, 90)),
             fg_stroke: Stroke::new(2.0, Color32::from_rgb(200, 200, 200)),
@@ -299,7 +288,7 @@ impl Default for EguiTheme {
                     active: dark_widgets,
                     open: dark_widgets,
                 },
-                window_rounding: Rounding::same(3.0),
+                window_rounding: Rounding::same(0.0),
                 window_shadow: Shadow::small_dark(),
                 popup_shadow: Shadow::small_dark(),
                 resize_corner_size: 12.0,
