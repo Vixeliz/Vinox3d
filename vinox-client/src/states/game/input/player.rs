@@ -581,8 +581,6 @@ pub fn interact(
                 }
                 if mouse_left || (mouse_right && place_item.is_some()) {
                     if mouse_right {
-                        inventory.item_decrement("hotbar", *cur_bar, *cur_item);
-
                         if (point.x as f32 <= player_transform.x as f32 - 0.5
                             || point.x as f32 >= player_transform.x as f32 + 0.5)
                             || (point.z as f32 <= player_transform.z as f32 - 0.5
@@ -694,21 +692,29 @@ pub fn interact(
                                     }
                                 }
 
-                                chunk_manager.set_block(
-                                    VoxelPos::from((voxel_pos, chunk_pos)),
-                                    place_item.unwrap(),
-                                );
-                                client.connection_mut().try_send_message(
-                                    ClientMessage::SentBlock {
-                                        chunk_pos: *chunk_pos,
-                                        voxel_pos: [
-                                            voxel_pos.x as u8,
-                                            voxel_pos.y as u8,
-                                            voxel_pos.z as u8,
-                                        ],
-                                        block_type: modified_item,
-                                    },
-                                );
+                                if let Some(block) =
+                                    chunk_manager.get_block(VoxelPos::from((voxel_pos, chunk_pos)))
+                                {
+                                    if block.is_empty(&chunk_manager.block_table) {
+                                        inventory.item_decrement("hotbar", *cur_bar, *cur_item);
+
+                                        chunk_manager.set_block(
+                                            VoxelPos::from((voxel_pos, chunk_pos)),
+                                            place_item.unwrap(),
+                                        );
+                                        client.connection_mut().try_send_message(
+                                            ClientMessage::SentBlock {
+                                                chunk_pos: *chunk_pos,
+                                                voxel_pos: [
+                                                    voxel_pos.x as u8,
+                                                    voxel_pos.y as u8,
+                                                    voxel_pos.z as u8,
+                                                ],
+                                                block_type: modified_item,
+                                            },
+                                        );
+                                    }
+                                }
                             }
                         }
                     } else if mouse_left {
