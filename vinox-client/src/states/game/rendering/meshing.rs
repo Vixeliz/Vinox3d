@@ -931,11 +931,11 @@ pub struct RenderedChunk {
     pub aabb: Aabb,
 }
 
-#[derive(Default, Resource)]
-pub struct MeshQueue {
-    pub mesh: Vec<(IVec3, ChunkData, Box<Array<ChunkData, 26>>)>,
-    pub priority: Vec<(IVec3, ChunkData, Box<Array<ChunkData, 26>>)>,
-}
+// #[derive(Default, Resource)]
+// pub struct MeshQueue {
+//     pub mesh: Vec<(IVec3, ChunkData, Box<[ChunkData; 26]>)>,
+//     pub priority: Vec<(IVec3, ChunkData, Box<[ChunkData; 26]>)>,
+// }
 
 #[derive(Component)]
 pub struct ComputeMesh(Task<MeshedChunk>);
@@ -1412,61 +1412,47 @@ fn full_mesh(
     }
 }
 
-#[allow(clippy::too_many_arguments)]
-pub fn process_priority_queue(
-    mut chunk_queue: ResMut<MeshQueue>,
-    mut commands: Commands,
-    loadable_assets: ResMut<LoadableAssets>,
-    block_table: Res<BlockTable>,
-    geo_table: Res<GeometryTable>,
-    texture_atlas: Res<Assets<TextureAtlas>>,
-    _current_chunks: ResMut<CurrentChunks>,
-) {
-    let task_pool = ComputeTaskPool::get();
-    let block_atlas: TextureAtlas = texture_atlas
-        .get(&loadable_assets.block_atlas)
-        .unwrap()
-        .clone();
-    for (chunk_pos, center_chunk, neighbors) in chunk_queue.priority.drain(..) {
-        let cloned_table: BlockTable = block_table.clone();
-        let cloned_geo_table: GeometryTable = geo_table.clone();
-        let cloned_assets: LoadableAssets = loadable_assets.clone();
-        let clone_atlas: TextureAtlas = block_atlas.clone();
-
-        let task = task_pool.spawn(async move {
-            let raw_chunk = ChunkBoundary::new(
-                center_chunk,
-                neighbors,
-                &cloned_table,
-                &cloned_geo_table,
-                &cloned_assets,
-                &clone_atlas,
-            );
-            full_mesh(&raw_chunk, &clone_atlas, chunk_pos)
-        });
-        // commands
-        //     .entity(current_chunks.get_entity(ChunkPos(chunk_pos)).unwrap())
-        //     .insert(PriorityComputeMesh(task));
-        commands.spawn(PriorityComputeMesh(task));
-    }
-}
-
 pub fn priority_mesh(
     mut commands: Commands,
     chunks: Query<&ChunkPos, With<PriorityMesh>>,
     chunk_manager: ChunkManager,
-    mut chunk_queue: ResMut<MeshQueue>,
+    loadable_assets: ResMut<LoadableAssets>,
+    block_table: Res<BlockTable>,
+    geo_table: Res<GeometryTable>,
+    texture_atlas: Res<Assets<TextureAtlas>>,
 ) {
     for chunk in chunks.iter() {
         if let Some(neighbors) = chunk_manager.get_neighbors(*chunk) {
             if let Ok(neighbors) = neighbors.try_into() {
                 if let Some(chunk_entity) = chunk_manager.current_chunks.get_entity(*chunk) {
                     if let Some(chunk_data) = chunk_manager.get_chunk(chunk_entity) {
-                        chunk_queue.priority.push((
-                            **chunk,
-                            chunk_data,
-                            Box::new(Array(neighbors)),
-                        ));
+                        let chunk = *chunk;
+                        let task_pool = ComputeTaskPool::get();
+                        let block_atlas: TextureAtlas = texture_atlas
+                            .get(&loadable_assets.block_atlas)
+                            .unwrap()
+                            .clone();
+                        let cloned_table: BlockTable = block_table.clone();
+                        let cloned_geo_table: GeometryTable = geo_table.clone();
+                        let cloned_assets: LoadableAssets = loadable_assets.clone();
+                        let clone_atlas: TextureAtlas = block_atlas.clone();
+
+                        let task = task_pool.spawn(async move {
+                            let raw_chunk = ChunkBoundary::new(
+                                chunk_data,
+                                neighbors,
+                                &cloned_table,
+                                &cloned_geo_table,
+                                &cloned_assets,
+                                &clone_atlas,
+                            );
+                            full_mesh(&raw_chunk, &clone_atlas, *chunk)
+                        });
+                        // commands
+                        //     .entity(current_chunks.get_entity(ChunkPos(chunk_pos)).unwrap())
+                        //     .insert(PriorityComputeMesh(task));
+                        commands.spawn(PriorityComputeMesh(task));
+
                         commands.entity(chunk_entity).remove::<PriorityMesh>();
                         commands.entity(chunk_entity).remove::<NeedsMesh>();
                     }
@@ -1478,11 +1464,14 @@ pub fn priority_mesh(
 
 pub fn build_mesh(
     mut commands: Commands,
-    mut chunk_queue: ResMut<MeshQueue>,
     chunk_manager: ChunkManager,
     chunks: Query<&ChunkPos, (With<NeedsMesh>, Without<NeedsChunkData>)>,
     player_chunk: Res<PlayerChunk>,
     options: Res<GameOptions>,
+    loadable_assets: ResMut<LoadableAssets>,
+    block_table: Res<BlockTable>,
+    geo_table: Res<GeometryTable>,
+    texture_atlas: Res<Assets<TextureAtlas>>,
 ) {
     for (count, chunk) in chunks
         .iter()
@@ -1498,11 +1487,31 @@ pub fn build_mesh(
             if let Ok(neighbors) = neighbors.try_into() {
                 if let Some(chunk_entity) = chunk_manager.current_chunks.get_entity(*chunk) {
                     if let Some(chunk_data) = chunk_manager.get_chunk(chunk_entity) {
-                        chunk_queue
-                            .mesh
-                            .push((**chunk, chunk_data, Box::new(Array(neighbors))));
-                        commands.entity(chunk_entity).remove::<NeedsMesh>();
+                        let chunk = *chunk;
+                        let task_pool = AsyncComputeTaskPool::get();
+                        let block_atlas: TextureAtlas = texture_atlas
+                            .get(&loadable_assets.block_atlas)
+                            .unwrap()
+                            .clone();
+                        let cloned_table: BlockTable = block_table.clone();
+                        let cloned_geo_table: GeometryTable = geo_table.clone();
+                        let cloned_assets: LoadableAssets = loadable_assets.clone();
+                        let clone_atlas: TextureAtlas = block_atlas.clone();
+
+                        let task = task_pool.spawn(async move {
+                            let raw_chunk = ChunkBoundary::new(
+                                chunk_data,
+                                neighbors,
+                                &cloned_table,
+                                &cloned_geo_table,
+                                &cloned_assets,
+                                &clone_atlas,
+                            );
+                            full_mesh(&raw_chunk, &clone_atlas, *chunk)
+                        });
+                        commands.spawn(ComputeMesh(task));
                     }
+                    commands.entity(chunk_entity).remove::<NeedsMesh>();
                 }
             }
         }
@@ -1566,41 +1575,6 @@ pub fn priority_player(
         if chunks.get(chunk_entity).is_err() {
             commands.entity(chunk_entity).insert(PriorityMesh);
         }
-    }
-}
-
-#[allow(clippy::too_many_arguments)]
-pub fn process_queue(
-    mut chunk_queue: ResMut<MeshQueue>,
-    mut commands: Commands,
-    loadable_assets: ResMut<LoadableAssets>,
-    block_table: Res<BlockTable>,
-    geo_table: Res<GeometryTable>,
-    texture_atlas: Res<Assets<TextureAtlas>>,
-) {
-    let task_pool = AsyncComputeTaskPool::get();
-    let block_atlas: TextureAtlas = texture_atlas
-        .get(&loadable_assets.block_atlas)
-        .unwrap()
-        .clone();
-    for (chunk_pos, center_chunk, neighbors) in chunk_queue.mesh.drain(..).rev() {
-        let cloned_table: BlockTable = block_table.clone();
-        let cloned_geo_table: GeometryTable = geo_table.clone();
-        let cloned_assets: LoadableAssets = loadable_assets.clone();
-        let clone_atlas: TextureAtlas = block_atlas.clone();
-
-        let task = task_pool.spawn(async move {
-            let raw_chunk = ChunkBoundary::new(
-                center_chunk,
-                neighbors,
-                &cloned_table,
-                &cloned_geo_table,
-                &cloned_assets,
-                &clone_atlas,
-            );
-            full_mesh(&raw_chunk, &clone_atlas, chunk_pos)
-        });
-        commands.spawn(ComputeMesh(task));
     }
 }
 

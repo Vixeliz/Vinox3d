@@ -12,7 +12,9 @@ pub type ChunkCell = GridCell<i32>;
 use super::{
     light::{VoxelAddedEvent, VoxelRemovedEvent},
     positions::{ChunkPos, VoxelPos},
-    storage::{BlockData, BlockTable, ChunkData, HORIZONTAL_DISTANCE, VERTICAL_DISTANCE},
+    storage::{
+        BlockData, BlockTable, ChunkData, HORIZONTAL_DISTANCE, TOTAL_CHUNK_SIZE, VERTICAL_DISTANCE,
+    },
 };
 
 #[derive(Component, Clone, Copy)]
@@ -72,8 +74,8 @@ impl CurrentChunks {
         true
     }
     pub fn load_around(&self, pos_list: &[LoadPoint]) -> Vec<ChunkPos> {
-        let mut to_load = HashSet::new();
-        for load_point in pos_list.iter().copied() {
+        let mut to_load = Vec::with_capacity(TOTAL_CHUNK_SIZE);
+        for load_point in pos_list.iter() {
             for z in -load_point.horizontal..=load_point.horizontal {
                 for y in -load_point.vertical..=load_point.vertical {
                     for x in -load_point.horizontal..=load_point.horizontal {
@@ -82,7 +84,7 @@ impl CurrentChunks {
                             load_point.chunk_pos.y + y,
                             load_point.chunk_pos.z + z,
                         );
-                        to_load.insert(other_pos);
+                        to_load.push(other_pos);
                     }
                 }
             }
@@ -327,14 +329,18 @@ impl<'w, 's> ChunkManager<'w, 's> {
     // }
 
     pub fn get_neighbors(&self, pos: ChunkPos) -> Option<Vec<ChunkData>> {
-        let mut res = Vec::with_capacity(26);
-        for chunk_entity in self.current_chunks.get_all_neighbors(pos) {
-            if let Ok(chunk) = self.chunk_query.get(chunk_entity) {
-                res.push(chunk.clone())
+        if self.current_chunks.all_neighbors_exist(pos) {
+            let mut res = Vec::with_capacity(26);
+            for chunk_entity in self.current_chunks.get_all_neighbors(pos) {
+                if let Ok(chunk) = self.chunk_query.get(chunk_entity) {
+                    res.push(chunk.clone())
+                }
             }
-        }
-        if res.len() == 26 {
-            Some(res)
+            if res.len() == 26 {
+                Some(res)
+            } else {
+                None
+            }
         } else {
             None
         }

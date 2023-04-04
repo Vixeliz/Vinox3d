@@ -25,7 +25,7 @@ pub struct ChunkBoundary {
 impl ChunkBoundary {
     pub fn new(
         center: ChunkData,
-        neighbors: Box<Array<ChunkData, 26>>,
+        neighbors: Box<[ChunkData; 26]>,
         block_table: &BlockTable,
         geo_table: &GeometryTable,
         loadable_assets: &LoadableAssets,
