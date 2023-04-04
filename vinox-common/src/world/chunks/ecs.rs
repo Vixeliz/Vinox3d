@@ -89,7 +89,7 @@ impl CurrentChunks {
                 }
             }
         }
-        to_load.into_iter().collect()
+        to_load
     }
     pub fn get_entities(&self, pos_list: &[LoadPoint]) -> Vec<(Entity, ChunkPos)> {
         let mut to_load = HashSet::new();
