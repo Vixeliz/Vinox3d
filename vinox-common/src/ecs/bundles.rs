@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 use crate::{
     networking::protocol::Player,
     storage::items::descriptor::{ItemData, ItemDescriptor, MAX_STACK_SIZE},
-    world::chunks::ecs::ChunkCell,
 };
 
 #[derive(Default, Deref, DerefMut, Serialize, Deserialize, Debug, Clone)]
@@ -103,7 +102,7 @@ impl Inventory {
 
     pub fn add_item(&mut self, item_comp: &ItemDescriptor) -> Result<u8, u8> {
         if let Some((section, row, idx, amount)) = self.get_first_item(item_comp) {
-            if amount + 1 <= item_comp.max_stack_size.unwrap_or(MAX_STACK_SIZE) {
+            if amount < item_comp.max_stack_size.unwrap_or(MAX_STACK_SIZE) {
                 match section {
                     "inventory" => {
                         self.slots[row][row] = Some(ItemData {

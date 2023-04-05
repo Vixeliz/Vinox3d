@@ -1,7 +1,6 @@
 use std::io::Cursor;
 
 use rand::{
-    seq::{IteratorRandom, SliceRandom},
     Rng,
 };
 use rustc_data_structures::stable_set::FxHashSet;
@@ -70,7 +69,7 @@ pub fn get_messages(
     mut chunks: Query<&mut ChunkData>,
     current_chunks: Res<CurrentChunks>,
     mut chunks_to_save: ResMut<ChunksToSave>,
-    block_table: Res<BlockTable>,
+    _block_table: Res<BlockTable>,
 ) {
     let endpoint = server.endpoint_mut();
     for client_id in endpoint.clients() {
@@ -213,11 +212,11 @@ pub fn send_entities(mut server: ResMut<Server>, query: Query<(Entity, &Transfor
 }
 
 pub fn send_chunks(
-    mut commands: Commands,
+    _commands: Commands,
     mut server: ResMut<Server>,
     lobby: ResMut<ServerLobby>,
     mut players: Query<(&LoadPoint, &mut SentChunks), With<Player>>,
-    mut chunk_manager: ChunkManager,
+    chunk_manager: ChunkManager,
     is_ready: Query<(
         Without<NeedsChunkData>,
         Without<GeneratingChunk>,

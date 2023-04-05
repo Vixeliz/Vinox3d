@@ -1,9 +1,9 @@
 use egui_extras::{Size, StripBuilder};
-use std::collections::BTreeMap;
+
 
 use bevy::prelude::*;
 use bevy_egui::{
-    egui::{Color32, FontId, Sense},
+    egui::{Color32, Sense},
     *,
 };
 use vinox_common::{
@@ -19,13 +19,13 @@ use crate::states::{
 pub fn status_bar(
     mut player_query: Query<&mut Inventory, With<ControlledPlayer>>,
     mut contexts: EguiContexts,
-    options: Res<GameOptions>,
+    _options: Res<GameOptions>,
     mut held_items: ResMut<CurrentItemsHeld>,
     mut holding: ResMut<Holding>,
     loadable_assets: Res<LoadableAssets>,
 ) {
     let ctx = contexts.ctx_mut().clone();
-    let style = ctx.style().clone();
+    let style = ctx.style();
     egui::TopBottomPanel::bottom("status_bar")
         .default_height(40.0)
         .max_height(75.0)
@@ -52,12 +52,10 @@ pub fn status_bar(
                                             && *inventory.current_bar == hotbar_num
                                         {
                                             Color32::from_white_alpha(128)
+                                        } else if item.is_none() {
+                                            style.visuals.faint_bg_color
                                         } else {
-                                            if item.is_none() {
-                                                style.visuals.faint_bg_color
-                                            } else {
-                                                Color32::WHITE
-                                            }
+                                            Color32::WHITE
                                         };
                                         egui::Frame::none().outer_margin(2.0).fill(color).show(
                                             ui,
@@ -93,7 +91,7 @@ pub fn status_bar(
                                                                 item.stack_size
                                                             ));
                                                         });
-                                                    let mut modified_rect = image.rect.clone();
+                                                    let mut modified_rect = image.rect;
                                                     modified_rect.min.y +=
                                                         modified_rect.size().y / 2.0;
                                                     ui.allocate_ui_at_rect(modified_rect, |ui| {
@@ -269,11 +267,11 @@ pub fn inventory(
     mut held_items: ResMut<CurrentItemsHeld>,
     mut holding: ResMut<Holding>,
     mut contexts: EguiContexts,
-    options: Res<GameOptions>,
+    _options: Res<GameOptions>,
     loadable_assets: Res<LoadableAssets>,
 ) {
     let ctx = contexts.ctx_mut().clone();
-    let style = ctx.style().clone();
+    let style = ctx.style();
     if let Ok(mut inventory) = player_query.get_single_mut() {
         if inventory.open {
             egui::Window::new("inventory")
@@ -314,12 +312,10 @@ pub fn inventory(
                                                         && **holding
                                                     {
                                                         Color32::from_white_alpha(128)
+                                                    } else if item.is_none() {
+                                                        style.visuals.faint_bg_color
                                                     } else {
-                                                        if item.is_none() {
-                                                            style.visuals.faint_bg_color
-                                                        } else {
-                                                            Color32::WHITE
-                                                        }
+                                                        Color32::WHITE
                                                     };
                                                     egui::Frame::none()
                                                         .outer_margin(2.0)
@@ -353,7 +349,7 @@ pub fn inventory(
                                                         ));
                                                     });
                                                             let mut modified_rect =
-                                                                image.rect.clone();
+                                                                image.rect;
                                                             modified_rect.min.y +=
                                                                 modified_rect.size().y / 2.0;
                                                             ui.allocate_ui_at_rect(

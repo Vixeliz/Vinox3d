@@ -3,7 +3,7 @@ use bevy::{
     app::ScheduleRunnerSettings, diagnostic::DiagnosticsPlugin, log::LogPlugin, prelude::*,
 };
 use bevy_quinnet::server::QuinnetServerPlugin;
-use big_space::FloatingOriginPlugin;
+
 use directories::*;
 use game::{
     networking::components::{ChunkLimit, LocalGame, SaveGame},

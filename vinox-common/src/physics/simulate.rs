@@ -32,7 +32,7 @@ pub fn move_no_collide(
     time: Res<Time>,
 ) {
     for (_entity, mut transform, velocity) in moving_entities.iter_mut() {
-        transform.translation += Vec3::from(velocity.0 * time.delta().as_secs_f32());
+        transform.translation += velocity.0 * time.delta().as_secs_f32();
     }
 }
 
@@ -54,15 +54,15 @@ pub fn move_and_collide(
     block_table: Res<BlockTable>,
     mut _collision_event_writer: EventWriter<VoxelCollisionEvent>,
 ) {
-    for (entity, aabb, mut velocity, mut transform, grid_cell) in moving_entities.iter_mut() {
-        let mut aabb = aabb.clone();
+    for (_entity, aabb, mut velocity, mut transform, grid_cell) in moving_entities.iter_mut() {
+        let mut aabb = *aabb;
         aabb.center = Vec3A::new(
             transform.translation.x,
             transform.translation.y + aabb.half_extents.y,
             transform.translation.z,
         );
         let chunk_pos: ChunkPos =
-            ChunkPos::from_chunk_cell(grid_cell.clone(), transform.translation);
+            ChunkPos::from_chunk_cell(*grid_cell, transform.translation);
         if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos) {
             if chunks_without_data.get(chunk_entity).is_ok() {
                 continue;

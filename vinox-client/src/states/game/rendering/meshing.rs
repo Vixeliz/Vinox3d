@@ -11,15 +11,15 @@ use bevy::{
     tasks::{AsyncComputeTaskPool, ComputeTaskPool, Task},
     utils::FloatOrd,
 };
-use bevy_tweening::{lens::TransformPositionLens, *};
+
 use big_space::FloatingOriginSettings;
 use futures_lite::future;
 use itertools::Itertools;
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use rustc_hash::FxHashMap;
 // use rand::seq::IteratorRandom;
-use serde_big_array::Array;
-use std::{collections::HashSet, ops::Deref, time::Duration};
+
+use std::{collections::HashSet, ops::Deref};
 
 use vinox_common::{
     storage::geometry::descriptor::{BlockGeo, GeometryDescriptor},
@@ -27,7 +27,7 @@ use vinox_common::{
         ecs::{ChunkManager, CurrentChunks, NeedsChunkData, NeedsMesh, PriorityMesh},
         positions::{ChunkPos, RelativeVoxelPos, VoxelPos},
         storage::{
-            self, trim_geo_identifier, BlockTable, ChunkData, RawChunk, RenderedBlockData,
+            self, BlockTable, ChunkData, RawChunk, RenderedBlockData,
             VoxelVisibility, CHUNK_SIZE,
         },
     },
@@ -1027,8 +1027,8 @@ pub fn process_task(
     mut mesh_tasks: Query<(Entity, &mut ComputeMesh)>,
     mut meshes: ResMut<Assets<Mesh>>,
     chunk_material: Res<ChunkMaterial>,
-    chunks: Query<&ChunkPos, With<NeedsMesh>>,
-    player_chunk: Res<PlayerChunk>,
+    _chunks: Query<&ChunkPos, With<NeedsMesh>>,
+    _player_chunk: Res<PlayerChunk>,
     current_chunks: Res<CurrentChunks>,
 ) {
     mesh_tasks.for_each_mut(|(entity, mut task)| {

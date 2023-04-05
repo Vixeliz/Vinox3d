@@ -1,7 +1,6 @@
 pub mod states;
 use bevy::{
-    diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
-    log::LogPlugin,
+    diagnostic::{FrameTimeDiagnosticsPlugin},
     pbr::wireframe::WireframePlugin,
     prelude::*,
     render::{
@@ -15,10 +14,10 @@ use bevy_tweening::TweeningPlugin;
 use big_space::FloatingOriginPlugin;
 use directories::*;
 use fs_extra::dir::{copy, CopyOptions};
-use leafwing_input_manager::prelude::InputManagerPlugin;
+
 use ron::de::from_reader;
 use states::{
-    components::{save_game_options, GameActions, GameOptions, GameState, ProjectPath},
+    components::{save_game_options, GameOptions, GameState, ProjectPath},
     game::{plugin::GamePlugin, rendering::meshing::BasicMaterial},
     loading::plugin::LoadingPlugin,
     menu::plugin::MenuPlugin,
@@ -27,7 +26,7 @@ use std::{
     fs::{create_dir_all, File},
     path::PathBuf,
 };
-use vinox_common::{ecs::bundles::BoilerOrigin, world::chunks::storage::CHUNK_SIZE};
+use vinox_common::{ecs::bundles::BoilerOrigin};
 
 fn main() {
     // Eventually I will implement my own recursive copy and also not delete the assets directory for now though we will completely.

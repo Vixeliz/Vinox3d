@@ -1,13 +1,13 @@
 use bevy_quinnet::client::Client;
-use big_space::GridCell;
+
 use brigadier_rs::*;
 use egui_notify::Toasts;
-use std::{collections::BTreeMap, convert::Infallible};
+use std::{convert::Infallible};
 use vinox_common::{networking::protocol::ClientMessage, physics::simulate::CollidesWithWorld};
 
-use bevy::{math::Vec3A, pbr::wireframe::WireframeConfig, prelude::*, render::primitives::Aabb};
+use bevy::{pbr::wireframe::WireframeConfig, prelude::*};
 use bevy_egui::{
-    egui::{Align2, FontId},
+    egui::{Align2},
     *,
 };
 
@@ -33,7 +33,7 @@ pub fn create_ui(
     mut messages: ResMut<ChatMessages>,
     mut contexts: EguiContexts,
     mut toast: ResMut<Toast>,
-    options: Res<GameOptions>,
+    _options: Res<GameOptions>,
     mut wireframe_config: ResMut<WireframeConfig>,
 ) {
     toast.show(contexts.ctx_mut());
@@ -57,9 +57,9 @@ pub fn create_ui(
                 Ok::<(), Infallible>(())
             });
         let parser_tp = literal("/tp")
-            .then(integer_i64("x").build_exec(|_ctx: (), bar| Ok::<(), Infallible>(())))
-            .then(integer_i64("y").build_exec(|_ctx: (), bar| Ok::<(), Infallible>(())))
-            .then(integer_i64("z").build_exec(|_ctx: (), bar| Ok::<(), Infallible>(())))
+            .then(integer_i64("x").build_exec(|_ctx: (), _bar| Ok::<(), Infallible>(())))
+            .then(integer_i64("y").build_exec(|_ctx: (), _bar| Ok::<(), Infallible>(())))
+            .then(integer_i64("z").build_exec(|_ctx: (), _bar| Ok::<(), Infallible>(())))
             .build_exec(|_ctx: ()| {
                 println!("Called foo with no arguments");
                 Ok::<(), Infallible>(())

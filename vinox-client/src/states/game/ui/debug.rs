@@ -1,11 +1,11 @@
-use std::collections::BTreeMap;
+
 
 use bevy::{
     diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin},
     prelude::*,
 };
 use bevy_egui::{
-    egui::{Align2, FontId},
+    egui::{Align2},
     *,
 };
 use vinox_common::world::chunks::{
@@ -38,7 +38,7 @@ pub fn debug(
         .and_then(|fps| fps.average());
     if options.debug {
         if let Ok(player_transform) = player_query.get_single() {
-            let style = contexts.ctx_mut().style().clone();
+            let style = contexts.ctx_mut().style();
             let new_color = style.visuals.window_fill;
             let new_color = new_color.gamma_multiply(0.9);
             egui::Window::new("Debug")
@@ -113,7 +113,7 @@ pub fn targeted_block(
     player_looking: Res<PlayerTargetedBlock>,
 ) {
     if options.looking_at {
-        let style = contexts.ctx_mut().style().clone();
+        let style = contexts.ctx_mut().style();
         let new_color = style.visuals.window_fill;
         let new_color = new_color.gamma_multiply(0.9);
         egui::Window::new("Targeted Block")
@@ -131,9 +131,9 @@ pub fn targeted_block(
             .show(contexts.ctx_mut(), |ui| {
                 ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
                     if let Some(block) = player_looking.block.clone() {
-                        if let Some(pos) = player_looking.pos.clone() {
+                        if let Some(pos) = player_looking.pos {
                             let identifier = name_to_identifier(block.namespace, block.name);
-                            ui.label(format!("{identifier}"));
+                            ui.label(identifier);
                             ui.label(format!("Pos: {}, {}, {}", pos.x, pos.y, pos.z));
                         }
                     } else {

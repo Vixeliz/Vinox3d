@@ -1,6 +1,6 @@
 use bevy::sprite::TextureAtlas;
 use ndshape::{ConstShape, ConstShape3usize};
-use serde_big_array::Array;
+
 use vinox_common::{
     storage::geometry::descriptor::BlockGeo,
     world::chunks::{

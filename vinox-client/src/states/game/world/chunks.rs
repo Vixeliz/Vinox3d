@@ -1,15 +1,15 @@
-use std::collections::HashSet;
-use tokio::sync::mpsc::{Receiver, Sender};
 
-use bevy::{prelude::*, render::primitives::Aabb, tasks::AsyncComputeTaskPool, utils::FloatOrd};
+
+
+use bevy::{prelude::*, tasks::AsyncComputeTaskPool, utils::FloatOrd};
 use bevy_tweening::*;
 use vinox_common::world::chunks::{
     ecs::{
-        update_chunk_lights, update_priority_chunk_lights, ChunkCell, ChunkManager, ChunkUpdate,
+        update_chunk_lights, update_priority_chunk_lights, ChunkManager, ChunkUpdate,
         CurrentChunks, LoadPoint, NeedsChunkData, RemoveChunk, SimulationRadius,
     },
     positions::{ChunkPos, RelativeVoxelPos, VoxelPos},
-    storage::{BlockData, BlockTable, ChunkData, RawChunk, HORIZONTAL_DISTANCE, VERTICAL_DISTANCE},
+    storage::{BlockData, BlockTable, ChunkData, RawChunk},
 };
 
 use crate::states::{
@@ -122,7 +122,7 @@ pub fn destroy_chunks(mut commands: Commands, mut query_event: EventReader<Tween
 
 #[allow(clippy::nonminimal_bool)]
 pub fn receive_chunks(
-    mut current_chunks: ResMut<CurrentChunks>,
+    current_chunks: ResMut<CurrentChunks>,
     mut commands: Commands,
     mut event: EventReader<CreateChunkEvent>,
     // player_chunk: Res<PlayerChunk>,
@@ -130,13 +130,13 @@ pub fn receive_chunks(
     load_point: Query<&LoadPoint, With<ControlledPlayer>>,
     block_table: Res<BlockTable>,
 ) {
-    let task_pool = AsyncComputeTaskPool::get();
+    let _task_pool = AsyncComputeTaskPool::get();
     if let Ok(load_point) = load_point.get_single() {
         for evt in event.iter() {
             if load_point.is_in_radius(&evt.pos) {
                 if let Some(chunk_entity) = current_chunks.get_entity(evt.pos) {
                     if has_data.get(chunk_entity).is_ok() {
-                        let mut chunk = ChunkData::from_raw(evt.raw_chunk.clone());
+                        let chunk = ChunkData::from_raw(evt.raw_chunk.clone());
                         if !chunk.is_empty(&block_table) {
                             commands.entity(chunk_entity).insert(ChunkUpdate);
                         }

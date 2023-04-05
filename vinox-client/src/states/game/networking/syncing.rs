@@ -7,7 +7,7 @@ use crate::states::{
         world::chunks::{ControlledPlayer, CreateChunkEvent, SetBlockEvent},
     },
 };
-use bevy::{prelude::*, render::primitives::Aabb};
+use bevy::{prelude::*};
 use bevy_quinnet::client::*;
 use bevy_tweening::{
     lens::{TransformPositionLens, TransformRotationLens},
@@ -269,7 +269,7 @@ pub fn lerp_new_location(
 }
 
 pub fn client_send_naive_position(
-    mut transform_query: Query<&VoxelPos, With<ControlledPlayer>>,
+    transform_query: Query<&VoxelPos, With<ControlledPlayer>>,
     mut camera_query: Query<&mut Transform, (With<Camera>, Without<ControlledPlayer>)>,
     mut client: ResMut<Client>,
 ) {

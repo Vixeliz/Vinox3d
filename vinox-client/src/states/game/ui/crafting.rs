@@ -1,11 +1,11 @@
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{HashMap};
 
 use bevy::prelude::*;
 use bevy_egui::EguiContexts;
-use bevy_egui::{egui::FontId, *};
-use vinox_common::storage::items::descriptor::ItemData;
+use bevy_egui::{*};
+
 use vinox_common::world::chunks::storage::{identifier_to_name, name_to_identifier, ItemTable};
 use vinox_common::{ecs::bundles::Inventory, world::chunks::storage::RecipeTable};
 
@@ -70,13 +70,10 @@ pub fn craft(
             }
         }
     }
-    if modified_items.is_empty() {
-        if new_inventory
+    if modified_items.is_empty() && new_inventory
             .add_item(item_table.get(&output_item.0).unwrap())
-            .is_ok()
-        {
-            *inventory = new_inventory.clone();
-        }
+            .is_ok() {
+        *inventory = new_inventory.clone();
     }
 }
 
@@ -85,7 +82,7 @@ pub fn crafting_ui(
     item_table: Res<ItemTable>,
     mut player_query: Query<&mut Inventory, With<ControlledPlayer>>,
     mut contexts: EguiContexts,
-    options: Res<GameOptions>,
+    _options: Res<GameOptions>,
     mut current_search: Local<String>,
 ) {
     if let Ok(mut inventory) = player_query.get_single_mut() {

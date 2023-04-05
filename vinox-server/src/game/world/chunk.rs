@@ -9,13 +9,13 @@ use vinox_common::world::chunks::{
         SentChunks, SimulationRadius,
     },
     positions::ChunkPos,
-    storage::{BlockTable, ChunkData, HORIZONTAL_DISTANCE, VERTICAL_DISTANCE},
+    storage::{BlockTable, ChunkData},
 };
 
 use crate::game::networking::components::SaveGame;
 
 use super::{
-    generation::{generate_chunk, ToBePlaced},
+    generation::{generate_chunk},
     storage::{load_chunk, save_chunks, ChunksToSave, WorldDatabase, WorldInfo},
 };
 
@@ -32,7 +32,7 @@ pub fn generate_chunks_world(
     load_points: Query<&LoadPoint>,
     mut chunk_queue: EventWriter<PrepassEvent>,
     mut commands: Commands,
-    mut chunk_manager: ChunkManager,
+    chunk_manager: ChunkManager,
     database: Res<WorldDatabase>,
     save: Res<SaveGame>,
     no_data: Query<With<NeedsChunkData>>,
@@ -107,14 +107,14 @@ pub fn process_pre_queue(
     mut gen_task: Query<(Entity, &mut PreGenTask)>,
     current_chunks: Res<CurrentChunks>,
     world_info: Res<WorldInfo>,
-    mut chunks_to_save: ResMut<ChunksToSave>,
+    _chunks_to_save: ResMut<ChunksToSave>,
     block_table: Res<BlockTable>,
-    save: Res<SaveGame>,
+    _save: Res<SaveGame>,
 ) {
     let cloned_seed = world_info.seed;
     let task_pool = AsyncComputeTaskPool::get();
     for event in chunk_queue.iter() {
-        let chunk_pos = event.0.clone();
+        let chunk_pos = event.0;
         let cloned_table = block_table.clone();
         let task = task_pool.spawn(async move {
             (
@@ -149,14 +149,14 @@ pub fn process_queue(
     mut gen_task: Query<(Entity, &mut GenTask)>,
     current_chunks: Res<CurrentChunks>,
     world_info: Res<WorldInfo>,
-    mut chunks_to_save: ResMut<ChunksToSave>,
-    block_table: Res<BlockTable>,
-    save: Res<SaveGame>,
+    _chunks_to_save: ResMut<ChunksToSave>,
+    _block_table: Res<BlockTable>,
+    _save: Res<SaveGame>,
 ) {
-    let cloned_seed = world_info.seed;
-    let task_pool = AsyncComputeTaskPool::get();
+    let _cloned_seed = world_info.seed;
+    let _task_pool = AsyncComputeTaskPool::get();
     for event in chunk_queue.iter() {
-        let chunk_pos = event.0.clone();
+        let chunk_pos = event.0;
         if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos) {
             // commands.entity(chunk_entity).insert(chunk);
             commands.entity(chunk_entity).remove::<GeneratingChunk>();

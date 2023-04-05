@@ -35,7 +35,7 @@ impl Default for LoadPoint {
 }
 
 impl LoadPoint {
-    pub fn new(horizontal: u32, vertical: u32) -> Self {
+    pub fn new(_horizontal: u32, _vertical: u32) -> Self {
         Self::default()
     }
     pub fn is_in_radius(&self, chunk_pos: &ChunkPos) -> bool {

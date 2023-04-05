@@ -1,15 +1,14 @@
 use bevy::prelude::*;
-use bracket_noise::prelude::*;
+
 use noise::{
-    BasicMulti, Billow, Blend, Cache, Clamp, Curve, Fbm, HybridMulti, Min, MultiFractal, NoiseFn,
-    OpenSimplex, Perlin, RidgedMulti, RotatePoint, ScaleBias, SuperSimplex, Worley,
+    BasicMulti, Blend, Fbm, HybridMulti, MultiFractal, NoiseFn,
+    OpenSimplex, RidgedMulti, RotatePoint,
 };
 use rand::{rngs::StdRng, seq::SliceRandom, SeedableRng};
 use std::collections::HashMap;
 // use rand::{rngs::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 use vinox_common::{
-    storage::blocks::descriptor::BlockDescriptor,
     world::chunks::{
         positions::RelativeVoxelPos,
         storage::{BlockData, BlockTable, ChunkData, RawChunk, CHUNK_SIZE},
@@ -35,9 +34,9 @@ pub fn add_surface(
                 let (x, y, z) = (x as u32, y as u32, z as u32);
                 let relative_pos = RelativeVoxelPos(UVec3::new(x, y, z));
                 if y == CHUNK_SIZE as u32 - 1 {
-                    let full_x = x as i32 + ((CHUNK_SIZE as i32) * pos.x);
-                    let full_z = z as i32 + ((CHUNK_SIZE as i32) * pos.z);
-                    let full_y = y as i32 + ((CHUNK_SIZE as i32) * pos.y) + 1;
+                    let _full_x = x as i32 + ((CHUNK_SIZE as i32) * pos.x);
+                    let _full_z = z as i32 + ((CHUNK_SIZE as i32) * pos.z);
+                    let _full_y = y as i32 + ((CHUNK_SIZE as i32) * pos.y) + 1;
                     if raw_chunk.get_identifier(relative_pos) != "vinox:air" {
                         // We need to add a vec for adding blocks in a new chunk when out of range
                         // raw_chunk.set(x, y, z, grass, block_table);
@@ -72,9 +71,9 @@ pub fn add_ceiling(
                 let (x, y, z) = (x as u32, y as u32, z as u32);
                 let relative_pos = RelativeVoxelPos(UVec3::new(x, y, z));
                 if y == 0 {
-                    let full_x = x as i32 + ((CHUNK_SIZE as i32) * pos.x);
-                    let full_z = z as i32 + ((CHUNK_SIZE as i32) * pos.z);
-                    let full_y = y as i32 + ((CHUNK_SIZE as i32) * pos.y) + 1;
+                    let _full_x = x as i32 + ((CHUNK_SIZE as i32) * pos.x);
+                    let _full_z = z as i32 + ((CHUNK_SIZE as i32) * pos.z);
+                    let _full_y = y as i32 + ((CHUNK_SIZE as i32) * pos.y) + 1;
                     if raw_chunk.get_identifier(relative_pos) != "vinox:air" {
                         // We need to add a vec for adding blocks in a new chunk when out of range
                         // raw_chunk.set(x, y, z, grass, block_table);
@@ -103,7 +102,8 @@ fn world_noise(seed: u32) -> impl NoiseFn<f64, 3> {
     let d_noise: RidgedMulti<OpenSimplex> = RidgedMulti::new(seed.wrapping_add(1))
         .set_octaves(2)
         .set_frequency(0.00781);
-    let final_noise = Blend::new(
+    
+    Blend::new(
         RotatePoint {
             source: ridged_noise,
             x_angle: 0.212,
@@ -121,8 +121,7 @@ fn world_noise(seed: u32) -> impl NoiseFn<f64, 3> {
         BasicMulti::<OpenSimplex>::new(seed)
             .set_octaves(1)
             .set_frequency(0.003415),
-    );
-    final_noise
+    )
 }
 
 // NOTE: A main design goal i have is most things should be completely generatable per chunk without needing other chunks. The only exception
@@ -133,11 +132,11 @@ fn world_noise(seed: u32) -> impl NoiseFn<f64, 3> {
 pub fn generate_chunk(
     pos: IVec3,
     seed: u32,
-    block_table: &BlockTable,
+    _block_table: &BlockTable,
     // to_be_placed: &ToBePlaced,
 ) -> RawChunk {
     //TODO: Switch to using ron files to determine biomes and what blocks they should use. For now hardcoding a simplex noise
-    let mut rng: StdRng = SeedableRng::seed_from_u64(seed as u64);
+    let _rng: StdRng = SeedableRng::seed_from_u64(seed as u64);
     let ridged_noise: HybridMulti<OpenSimplex> =
         HybridMulti::new(seed).set_octaves(4).set_frequency(0.02122);
     let d_noise: RidgedMulti<OpenSimplex> = RidgedMulti::new(seed.wrapping_add(1))

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::world::chunks::storage::{BlockData, RelativeVoxelAxis, VoxelAxis};
+use crate::world::chunks::storage::{BlockData, RelativeVoxelAxis};
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone)]
 pub enum FeatureType {

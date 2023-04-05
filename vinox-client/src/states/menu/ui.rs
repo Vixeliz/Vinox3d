@@ -1,5 +1,5 @@
-use leafwing_input_manager::{prelude::ActionState, InputManagerBundle};
-use std::{collections::BTreeMap, sync::Arc};
+
+use std::{collections::BTreeMap};
 use vinox_server::create_server;
 
 use bevy::{
@@ -16,7 +16,7 @@ use bevy_egui::{
     },
     EguiContexts, EguiSettings,
 };
-use vinox_common::{ecs::bundles::BoilerOrigin, networking::protocol::NetworkIP};
+use vinox_common::{networking::protocol::NetworkIP};
 
 use crate::states::components::{
     save_game_options, GameActions, GameOptions, GameState, Menu, ProjectPath,
@@ -167,8 +167,8 @@ pub fn create_ui(
     mut ip_res: ResMut<NetworkIP>,
     mut in_options: ResMut<InOptions>,
     mut options: ResMut<GameOptions>,
-    asset_server: ResMut<AssetServer>,
-    mut rendered_texture_id: Local<egui::TextureId>,
+    _asset_server: ResMut<AssetServer>,
+    _rendered_texture_id: Local<egui::TextureId>,
     mut is_initialized: Local<bool>,
 ) {
     if !*is_initialized {
@@ -227,7 +227,7 @@ pub fn create_ui(
     egui::CentralPanel::default().show(contexts.ctx_mut(), |ui| {
         egui::warn_if_debug_build(ui);
         let ratio = 16.0 / 10.0;
-        let (width, height) = (ui.available_height() * ratio, ui.available_height());
+        let (_width, _height) = (ui.available_height() * ratio, ui.available_height());
         ui.separator();
         // ui.add(egui::widgets::Image::new(
         //     *rendered_texture_id,
@@ -332,7 +332,7 @@ impl Default for EguiTheme {
 
 pub fn start(
     mut commands: Commands,
-    options: Res<GameOptions>,
+    _options: Res<GameOptions>,
     mut contexts: EguiContexts,
     egui_theme: Res<EguiTheme>,
 ) {

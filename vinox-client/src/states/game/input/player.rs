@@ -4,11 +4,10 @@ use std::f32::consts::{FRAC_PI_2, PI};
 
 use bevy::{
     input::mouse::{MouseMotion, MouseScrollUnit, MouseWheel},
-    math::Vec3A,
     prelude::*,
     render::{
         camera::CameraProjection,
-        primitives::{Aabb, Frustum},
+        primitives::{Frustum},
     },
     window::{CursorGrabMode, PresentMode, PrimaryWindow},
 };
@@ -23,7 +22,7 @@ use vinox_common::{
     storage::blocks::descriptor::BlockGeometry,
     world::chunks::{
         ecs::{ChunkManager, CurrentChunks},
-        positions::{ChunkPos, RelativeVoxelPos, VoxelPos},
+        positions::{RelativeVoxelPos, VoxelPos},
         storage::{
             self, name_to_identifier, trim_geo_identifier, BlockData, ItemTable, CHUNK_SIZE,
             HORIZONTAL_DISTANCE,
@@ -226,7 +225,7 @@ pub fn handle_movement(
         }
     }
     // Update velocity with movement input
-    if let Ok((translation, mut velocity, action_state, world_collide)) =
+    if let Ok((_translation, mut velocity, action_state, world_collide)) =
         player_position.get_single_mut()
     {
         if world_collide.is_some() {
@@ -352,7 +351,7 @@ pub fn interact(
     if window.cursor.grab_mode != CursorGrabMode::Locked {
         return;
     }
-    if let Ok((player_transform, action_state, mut inventory, transform, grid_cell)) =
+    if let Ok((player_transform, action_state, mut inventory, _transform, grid_cell)) =
         player.get_single_mut()
     {
         for ev in scroll_evr.iter() {
@@ -532,7 +531,7 @@ pub fn interact(
         let cur_item = inventory.clone().current_item;
         let cur_bar = inventory.clone().current_bar;
         let item_data = inventory.clone().hotbar[*cur_bar][*cur_item].clone();
-        let place_item = if let Some(item) = item_data.clone() {
+        let place_item = if let Some(item) = item_data {
             if let Some(item_descriptor) = item_table.get(&name_to_identifier(
                 item.namespace.clone(),
                 item.name.clone(),
@@ -562,13 +561,13 @@ pub fn interact(
             );
             if let Some((chunk_pos, voxel_pos, normal, _)) = hit {
                 let point = VoxelPos::from((voxel_pos, chunk_pos)).relative_to_cell(*grid_cell);
-                let global_voxel = VoxelPos::from(point.clone());
+                let global_voxel = VoxelPos::from(point);
                 //     world_to_global_voxel(relative_voxel_to_world(
                 //     voxel_pos.as_vec3().as_ivec3(),
                 //     *chunk_pos,
                 // ));
 
-                player_targeted.block = chunk_manager.get_block(global_voxel).clone();
+                player_targeted.block = chunk_manager.get_block(global_voxel);
                 player_targeted.pos = Some(global_voxel);
 
                 if let Ok((mut block_transform, mut block_visibility)) =
@@ -581,12 +580,12 @@ pub fn interact(
                 }
                 if mouse_left || (mouse_right && place_item.is_some()) {
                     if mouse_right {
-                        if (point.x as f32 <= player_transform.x as f32 - 0.5
-                            || point.x as f32 >= player_transform.x as f32 + 0.5)
-                            || (point.z as f32 <= player_transform.z as f32 - 0.5
-                                || point.z as f32 >= player_transform.z as f32 + 0.5)
-                            || (point.y as f32 <= player_transform.y as f32 - 1.0
-                                || point.y as f32 >= player_transform.y as f32 + 1.0)
+                        if (point.x <= player_transform.x as f32 - 0.5
+                            || point.x >= player_transform.x as f32 + 0.5)
+                            || (point.z <= player_transform.z as f32 - 0.5
+                                || point.z >= player_transform.z as f32 + 0.5)
+                            || (point.y <= player_transform.y as f32 - 1.0
+                                || point.y >= player_transform.y as f32 + 1.0)
                         {
                             let (voxel_pos, chunk_pos) = VoxelPos::from((
                                 RelativeVoxelPos(
@@ -778,9 +777,9 @@ pub fn interact(
 // Update main position based on the AABB
 pub fn update_visual_position(
     mut player: Query<(&mut Transform, &mut VoxelPos, &mut GridCell<i32>), With<ControlledPlayer>>,
-    floating_settings: Res<FloatingOriginSettings>,
+    _floating_settings: Res<FloatingOriginSettings>,
 ) {
-    if let Ok((mut transform, mut voxel_pos, mut grid_cell)) = player.get_single_mut() {
+    if let Ok((transform, mut voxel_pos, grid_cell)) = player.get_single_mut() {
         // (*grid_cell, transform.translation) = floating_settings
         //     .imprecise_translation_to_grid::<i32>(Vec3::from(
         //         aabb.center - Vec3A::Y * aabb.half_extents,
