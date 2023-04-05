@@ -11,3 +11,4 @@ run-remote-release.sh
 *.db-wal
 *.db-shm
 *.ps1
+schedule.svg
