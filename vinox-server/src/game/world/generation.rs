@@ -157,10 +157,10 @@ fn values_to_biome(
 fn biome_noise(x: f64, y: f64, z: f64, seed: u32) -> (i32, i32) {
     let heat_noise = Worley::new(seed)
         .set_return_type(noise::core::worley::ReturnType::Value)
-        .set_frequency(0.01022);
+        .set_frequency(0.005022);
     let moisture_noise = Worley::new(seed.wrapping_add(1))
         .set_return_type(noise::core::worley::ReturnType::Value)
-        .set_frequency(0.01022);
+        .set_frequency(0.005022);
     (
         (heat_noise.get([x, y, z]) * 100.0) as i32,
         (moisture_noise.get([x, y, z]) * 100.0) as i32,

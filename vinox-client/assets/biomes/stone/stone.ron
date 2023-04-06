@@ -2,7 +2,7 @@ BiomeDescriptor(
     namespace: "vinox",
     name: "stone",
     depth_bias: 0,
-    heat: 0,
+    heat: -1,
     humidity: 3,
     main_block: [
         ("vinox:stone", 1),
