@@ -1,6 +1,5 @@
 use egui_extras::{Size, StripBuilder};
 
-
 use bevy::prelude::*;
 use bevy_egui::{
     egui::{Color32, Sense},

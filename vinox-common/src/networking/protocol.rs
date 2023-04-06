@@ -58,6 +58,9 @@ pub enum ClientMessage {
     ChatMessage {
         message: String,
     },
+    Inventory {
+        inventory: Box<Inventory>,
+    },
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

@@ -19,7 +19,7 @@ use zstd::stream::copy_encode;
 
 use crate::game::world::{
     chunk::GeneratingChunk,
-    storage::{load_player, ChunksToSave, PlayersToSave, SavedPlayer, WorldDatabase},
+    storage::{load_player, ChunksToSave, FirstSaves, PlayersToSave, SavedPlayer, WorldDatabase},
 };
 
 use super::components::{ChunkLimit, LocalGame, ServerLobby};
@@ -66,12 +66,13 @@ pub fn get_messages(
     mut server: ResMut<Server>,
     mut commands: Commands,
     mut lobby: ResMut<ServerLobby>,
-    mut players: Query<(Entity, &Player, &Transform, &ClientName, &Inventory)>,
+    mut players: Query<(Entity, &Player, &Transform, &ClientName, &mut Inventory)>,
     player_builder: Res<PlayerBundleBuilder>,
     mut chunks: Query<&mut ChunkData>,
     current_chunks: Res<CurrentChunks>,
     mut chunks_to_save: ResMut<ChunksToSave>,
     mut players_to_save: ResMut<PlayersToSave>,
+    mut first_saves: ResMut<FirstSaves>,
     database: Res<WorldDatabase>,
     _block_table: Res<BlockTable>,
 ) {
@@ -105,15 +106,15 @@ pub fn get_messages(
 
                     let data = database.connection.get().unwrap();
                     let player = if let Some(player) = load_player(user_name.clone(), &data) {
-                        if let Ok(hashed) = PasswordHash::new(player.hashed_password.as_str()) {
+                        if let Ok(hashed) = PasswordHash::new(player.1.as_str()) {
                             if Argon2::default()
                                 .verify_password(password.as_bytes(), &hashed)
                                 .is_ok()
                             {
                                 let transform = Transform::from_xyz(
-                                    player.position[0] as f32,
-                                    player.position[1] as f32,
-                                    player.position[2] as f32,
+                                    player.0.position[0] as f32,
+                                    player.0.position[1] as f32,
+                                    player.0.position[2] as f32,
                                 );
                                 Some((
                                     (
@@ -128,11 +129,11 @@ pub fn get_messages(
                                         },
                                         VoxelPos::default(),
                                         LoadPoint::default(),
-                                        player.inventory.clone(),
+                                        player.0.inventory.clone(),
                                     ),
                                     false,
                                     transform,
-                                    player.inventory,
+                                    player.0.inventory,
                                 ))
                             } else {
                                 println!("Wrong password");
@@ -141,9 +142,9 @@ pub fn get_messages(
                         } else {
                             println!("No password, this account is open to anyone");
                             let transform = Transform::from_xyz(
-                                player.position[0] as f32,
-                                player.position[1] as f32,
-                                player.position[2] as f32,
+                                player.0.position[0] as f32,
+                                player.0.position[1] as f32,
+                                player.0.position[2] as f32,
                             );
                             Some((
                                 (
@@ -158,11 +159,11 @@ pub fn get_messages(
                                     },
                                     VoxelPos::default(),
                                     LoadPoint::default(),
-                                    player.inventory.clone(),
+                                    player.0.inventory.clone(),
                                 ),
                                 false,
                                 transform,
-                                player.inventory,
+                                player.0.inventory,
                             ))
                         }
                     } else {
@@ -173,17 +174,17 @@ pub fn get_messages(
                             .unwrap()
                             .to_string();
                         let transform = Transform::from_xyz(0.0, 75.0, 0.0);
-                        players_to_save.push((
+                        first_saves.push((
                             user_name.clone(),
                             SavedPlayer {
                                 inventory: Inventory::default(),
-                                hashed_password,
                                 position: [
                                     transform.translation.x as i32,
                                     transform.translation.y as i32,
                                     transform.translation.z as i32,
                                 ],
                             },
+                            hashed_password,
                         ));
                         Some((
                             (
@@ -279,6 +280,23 @@ pub fn get_messages(
                                     id: client_id,
                                 },
                             );
+                        }
+                    }
+                }
+                ClientMessage::Inventory { inventory } => {
+                    if let Some(player_entity) = lobby.players.get(&client_id) {
+                        if let Ok((_, _, transform, username, mut cur_inventory)) =
+                            players.get_mut(*player_entity)
+                        {
+                            *cur_inventory = *inventory.clone();
+                            let voxel_pos = *VoxelPos::from(transform.translation);
+                            players_to_save.push((
+                                (*username).clone(),
+                                SavedPlayer {
+                                    position: voxel_pos.into(),
+                                    inventory: *inventory,
+                                },
+                            ))
                         }
                     }
                 }

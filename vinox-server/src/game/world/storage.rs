@@ -15,12 +15,14 @@ use zstd::stream::{copy_decode, copy_encode};
 #[derive(Component, Default, Serialize, Deserialize, Debug, Clone)]
 pub struct SavedPlayer {
     pub inventory: Inventory,
-    pub hashed_password: String,
     pub position: [i32; 3],
 }
 
 #[derive(Resource, Deref, DerefMut, Default)]
 pub struct ChunksToSave(pub Vec<(ChunkPos, RawChunk)>);
+
+#[derive(Resource, Deref, DerefMut, Default)]
+pub struct FirstSaves(pub Vec<(String, SavedPlayer, String)>);
 
 #[derive(Resource, Deref, DerefMut, Default)]
 pub struct PlayersToSave(pub Vec<(String, SavedPlayer)>);
@@ -54,6 +56,7 @@ pub fn create_database(database: &Connection) {
         .execute(
             " create table if not exists players(
             name varchar(255) not null,
+            password varchar(255) not null,
             data blob,
             PRIMARY KEY (name)
         )",
@@ -85,13 +88,28 @@ pub fn save_chunks(chunks: &ChunksToSave, database: &Connection) {
     database.execute("COMMIT;", []).unwrap();
 }
 
+pub fn save_passwords(players_to_save: &FirstSaves, database: &Connection) {
+    database.execute("BEGIN;", []).unwrap();
+    for (user_name, player, password) in players_to_save.iter() {
+        if let Ok(player_bin) = bincode::serialize(player) {
+            database
+                .execute(
+                    "REPLACE INTO players (name, data, password) values (?1, ?2, ?3)",
+                    params![&user_name, &player_bin.clone(), &password],
+                )
+                .unwrap();
+        }
+    }
+    database.execute("COMMIT;", []).unwrap();
+}
+
 pub fn save_players(players_to_save: &PlayersToSave, database: &Connection) {
     database.execute("BEGIN;", []).unwrap();
     for (user_name, player) in players_to_save.iter() {
         if let Ok(player_bin) = bincode::serialize(player) {
             database
                 .execute(
-                    "REPLACE INTO players (name, data) values (?1, ?2)",
+                    "UPDATE players SET data = ?2 WHERE name = ?1",
                     params![&user_name, &player_bin.clone(),],
                 )
                 .unwrap();
@@ -100,14 +118,32 @@ pub fn save_players(players_to_save: &PlayersToSave, database: &Connection) {
     database.execute("COMMIT;", []).unwrap();
 }
 
-pub fn load_player(name: String, database: &Connection) -> Option<SavedPlayer> {
-    let stmt = database.prepare("SELECT name, data FROM players WHERE name=:name;");
+pub fn load_player(name: String, database: &Connection) -> Option<(SavedPlayer, String)> {
+    let stmt = database.prepare("SELECT name, data, password FROM players WHERE name=:name;");
     if let Ok(mut stmt) = stmt {
         let name_result: Result<Vec<u8>, _> =
             stmt.query_row(&[(":name", &name)], |row| Ok(row.get(1).unwrap()));
-        if let Ok(name_row) = name_result {
-            let final_player = bincode::deserialize(&name_row).unwrap();
-            return Some(final_player);
+        let password_result: Result<String, _> =
+            stmt.query_row(&[(":name", &name)], |row| Ok(row.get(2).unwrap()));
+        let final_player = if let Ok(name_row) = name_result {
+            Some(bincode::deserialize(&name_row).unwrap())
+        } else {
+            None
+        };
+        let password = if let Ok(password) = password_result {
+            Some(password)
+        } else {
+            None
+        };
+
+        if let Some(final_player) = final_player {
+            if let Some(password) = password {
+                return Some((final_player, password));
+            } else {
+                return None;
+            }
+        } else {
+            return None;
         }
     }
 

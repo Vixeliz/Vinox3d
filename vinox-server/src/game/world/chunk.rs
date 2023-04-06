@@ -17,8 +17,8 @@ use crate::game::networking::components::SaveGame;
 use super::{
     generation::generate_chunk,
     storage::{
-        load_chunk, save_chunks, save_players, ChunksToSave, PlayersToSave, WorldDatabase,
-        WorldInfo,
+        load_chunk, save_chunks, save_passwords, save_players, ChunksToSave, FirstSaves,
+        PlayersToSave, WorldDatabase, WorldInfo,
     },
 };
 
@@ -93,12 +93,15 @@ pub fn unsend_chunks(
 pub fn process_save(
     mut chunks_to_save: ResMut<ChunksToSave>,
     mut players_to_save: ResMut<PlayersToSave>,
+    mut first_saves: ResMut<FirstSaves>,
     database: Res<WorldDatabase>,
 ) {
     save_chunks(&chunks_to_save, &database.connection.get().unwrap());
+    save_passwords(&first_saves, &database.connection.get().unwrap());
     save_players(&players_to_save, &database.connection.get().unwrap());
     chunks_to_save.clear();
     players_to_save.clear();
+    first_saves.clear();
 }
 
 // #[derive(Component)]
@@ -201,6 +204,7 @@ impl Plugin for ChunkPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(ChunksToSave::default())
             .insert_resource(PlayersToSave::default())
+            .insert_resource(FirstSaves::default())
             .insert_resource(CurrentChunks::default())
             .insert_resource(SimulationRadius {
                 vertical: 4,

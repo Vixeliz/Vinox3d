@@ -19,7 +19,7 @@ use big_space::FloatingOrigin;
 use leafwing_input_manager::prelude::*;
 use std::{io::Cursor, time::Duration};
 use vinox_common::{
-    ecs::bundles::PlayerBundleBuilder,
+    ecs::bundles::{Inventory, PlayerBundleBuilder},
     networking::protocol::{ClientMessage, EntityBuffer, ServerMessage},
     physics::simulate::{CollidesWithWorld, Velocity},
     world::chunks::{
@@ -285,6 +285,29 @@ pub fn client_send_naive_position(
                     player_pos: transform.as_vec3(),
                     yaw: camera_transform.rotation.to_euler(EulerRot::XYZ).1,
                     head_pitch: camera_transform.rotation.to_euler(EulerRot::XYZ).0,
+                },
+            );
+        }
+    }
+}
+
+// TODO: This is genuinely awful lol worse then position way more to do cheating wise plus bandwidth. Change this to be smarter asap
+pub fn client_naive_inventory(
+    player_query: Query<&Inventory, With<ControlledPlayer>>,
+    mut client: ResMut<Client>,
+    mut timer: Local<Timer>,
+    time: Res<Time>,
+) {
+    timer.set_mode(TimerMode::Repeating);
+    timer.set_duration(Duration::from_secs_f32(1.));
+
+    timer.tick(time.delta());
+    if timer.just_finished() {
+        if let Ok(inventory) = player_query.get_single() {
+            client.connection_mut().try_send_message_on(
+                bevy_quinnet::shared::channel::ChannelId::UnorderedReliable,
+                ClientMessage::Inventory {
+                    inventory: Box::new(inventory.clone()),
                 },
             );
         }
