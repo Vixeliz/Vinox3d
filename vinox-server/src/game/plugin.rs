@@ -8,7 +8,13 @@ use vinox_common::{
     },
 };
 
-use super::{networking::plugin::NetworkingPlugin, world::chunk::ChunkPlugin};
+use super::{
+    networking::plugin::NetworkingPlugin,
+    world::{
+        chunk::ChunkPlugin,
+        generation::{BiomeHashmap, BiomeTree},
+    },
+};
 
 pub struct GamePlugin;
 
@@ -18,6 +24,8 @@ impl Plugin for GamePlugin {
             .insert_resource(BlockTable::default())
             .insert_resource(RecipeTable::default())
             .insert_resource(BiomeTable::default())
+            .insert_resource(BiomeHashmap::default())
+            .insert_resource(BiomeTree::default())
             .insert_resource(PlayerBundleBuilder::default())
             .add_plugin(CommonPlugin)
             .add_plugin(ChunkPlugin)

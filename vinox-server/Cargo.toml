@@ -26,3 +26,4 @@ ron.workspace=true
 bracket-noise = "0.8.7"
 big_space.workspace=true
 argon2.workspace=true
+acap.workspace=true

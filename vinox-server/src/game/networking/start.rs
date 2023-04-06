@@ -1,3 +1,4 @@
+use acap::euclid::Euclidean;
 use std::net::{IpAddr, Ipv4Addr};
 
 use bevy::prelude::*;
@@ -12,11 +13,15 @@ use vinox_common::{
     world::chunks::storage::{BiomeTable, BlockTable, ItemTable, RecipeTable},
 };
 
+use crate::game::world::generation::{BiomeHashmap, BiomeTree};
+
 pub fn setup_loadables(
     mut block_table: ResMut<BlockTable>,
     mut item_table: ResMut<ItemTable>,
     mut recipe_table: ResMut<RecipeTable>,
     mut biome_table: ResMut<BiomeTable>,
+    mut biome_tree: ResMut<BiomeTree>,
+    mut biome_hashmap: ResMut<BiomeHashmap>,
 ) {
     for block in load_all_blocks() {
         let mut name = block.clone().namespace;
@@ -45,7 +50,11 @@ pub fn setup_loadables(
         let mut name = biome.clone().namespace;
         name.push(':');
         name.push_str(&biome.name);
-
+        biome_hashmap.insert(
+            IVec2::new(biome.heat.clone(), biome.humidity.clone()),
+            name.clone(),
+        );
+        biome_tree.push(Euclidean([biome.heat.clone(), biome.humidity.clone()]));
         biome_table.insert(name, biome);
     }
 }

@@ -1,3 +1,6 @@
+use acap::euclid::Euclidean;
+use acap::exhaustive::ExhaustiveSearch;
+use acap::NearestNeighbors;
 use bevy::prelude::*;
 
 use noise::{
@@ -5,7 +8,10 @@ use noise::{
     RotatePoint,
 };
 use rand::{rngs::StdRng, seq::SliceRandom, SeedableRng};
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
 // use rand::{rngs::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 use vinox_common::{
@@ -22,7 +28,10 @@ use vinox_common::{
 pub struct ToBePlaced(pub HashMap<IVec3, Vec<(UVec3, BlockData)>>);
 
 #[derive(Resource, Default, Deref, DerefMut, Clone)]
-pub struct Biomes(pub HashMap<IVec3, String>);
+pub struct BiomeHashmap(pub HashMap<IVec2, String>);
+
+#[derive(Resource, Default, Deref, DerefMut, Clone)]
+pub struct BiomeTree(pub ExhaustiveSearch<Euclidean<[i32; 2]>>);
 
 pub const SEA_LEVEL: i32 = 0;
 
@@ -130,31 +139,30 @@ fn world_noise(seed: u32) -> impl NoiseFn<f64, 3> {
     )
 }
 
-fn values_to_biome(y: i32, heat: i32, moisture: i32, biomes: &BiomeTable) -> String {
-    let point = IVec3::new(y, heat, moisture);
-    let mut closest_distance = 1000;
-    let mut closest_biome = "vinox:stone".to_string();
-    for biome in biomes.iter() {
-        let distance = IVec3::new(biome.1.depth_bias, biome.1.heat, biome.1.humidity)
-            .as_vec3()
-            .distance(point.as_vec3());
-        if distance < closest_distance as f32 {
-            closest_distance = distance as i32;
-            closest_biome = biome.0.clone();
-        }
+fn values_to_biome(
+    heat: i32,
+    moisture: i32,
+    biome_hashmap: &BiomeHashmap,
+    biome_tree: &BiomeTree,
+) -> String {
+    if let Some(nearest) = biome_tree.0.nearest(&[heat, moisture]) {
+        return biome_hashmap
+            .get(&(*nearest.item.inner()).into())
+            .unwrap()
+            .clone();
     }
-    closest_biome
+    "vinox:stone".to_string()
 }
 
 fn biome_noise(x: f64, y: f64, z: f64, seed: u32) -> (i32, i32) {
     let ridged_noise: BasicMulti<OpenSimplex> =
-        BasicMulti::new(seed).set_octaves(1).set_frequency(0.00622);
+        BasicMulti::new(seed).set_octaves(1).set_frequency(0.01622);
     let d_noise: BasicMulti<OpenSimplex> = BasicMulti::new(seed.wrapping_add(1))
         .set_octaves(1)
-        .set_frequency(0.00781);
+        .set_frequency(0.01781);
     (
-        (ridged_noise.get([x, y, z]) * 10.0) as i32,
-        (d_noise.get([x, y, z]) * 10.0) as i32,
+        (ridged_noise.get([x, y, z]) * 100.0) as i32,
+        (d_noise.get([x, y, z]) * 100.0) as i32,
     )
 }
 
@@ -167,6 +175,8 @@ pub fn generate_chunk(
     pos: IVec3,
     seed: u32,
     biome_table: &BiomeTable,
+    biome_hashmap: &BiomeHashmap,
+    biome_tree: &BiomeTree,
     // to_be_placed: &ToBePlaced,
 ) -> RawChunk {
     //TODO: Switch to using ron files to determine biomes and what blocks they should use. For now hardcoding a simplex noise
@@ -177,7 +187,7 @@ pub fn generate_chunk(
         seed,
     );
     let main_blocks = biome_table
-        .get(&values_to_biome(pos.y, heat, humidity, &biome_table))
+        .get(&values_to_biome(heat, humidity, biome_hashmap, biome_tree))
         .unwrap()
         .main_block
         .clone();
