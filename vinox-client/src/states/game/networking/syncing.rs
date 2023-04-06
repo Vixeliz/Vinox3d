@@ -1,4 +1,6 @@
-use super::components::{ChatMessages, ClientData, ClientLobby, NetworkMapping, PlayerInfo};
+use super::components::{
+    ChatMessages, ClientData, ClientLobby, NetworkMapping, Password, PlayerInfo,
+};
 use crate::states::{
     components::{GameActions, GameOptions},
     game::{
@@ -7,7 +9,7 @@ use crate::states::{
         world::chunks::{ControlledPlayer, CreateChunkEvent, SetBlockEvent},
     },
 };
-use bevy::{prelude::*};
+use bevy::prelude::*;
 use bevy_quinnet::client::*;
 use bevy_tweening::{
     lens::{TransformPositionLens, TransformRotationLens},
@@ -36,6 +38,7 @@ pub fn get_id(
     mut client_data: ResMut<ClientData>,
     mut has_connected: Local<bool>,
     options: Res<GameOptions>,
+    hashed_password: Res<Password>,
 ) {
     if *has_connected {
     } else {
@@ -50,6 +53,7 @@ pub fn get_id(
                     .try_send_message(ClientMessage::Join {
                         user_name: options.user_name.clone(),
                         id,
+                        password: hashed_password.clone(),
                     });
                 *has_connected = true;
             }

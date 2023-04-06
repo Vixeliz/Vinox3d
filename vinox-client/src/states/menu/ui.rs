@@ -1,5 +1,6 @@
-
-use std::{collections::BTreeMap};
+use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
+use rand::rngs::OsRng;
+use std::collections::BTreeMap;
 use vinox_server::create_server;
 
 use bevy::{
@@ -16,10 +17,11 @@ use bevy_egui::{
     },
     EguiContexts, EguiSettings,
 };
-use vinox_common::{networking::protocol::NetworkIP};
+use vinox_common::networking::protocol::NetworkIP;
 
-use crate::states::components::{
-    save_game_options, GameActions, GameOptions, GameState, Menu, ProjectPath,
+use crate::states::{
+    components::{save_game_options, GameActions, GameOptions, GameState, Menu, ProjectPath},
+    game::networking::components::Password,
 };
 
 #[derive(Resource, Default, Deref, DerefMut)]
@@ -166,6 +168,7 @@ pub fn create_ui(
     mut contexts: EguiContexts,
     mut ip_res: ResMut<NetworkIP>,
     mut in_options: ResMut<InOptions>,
+    mut password: ResMut<Password>,
     mut options: ResMut<GameOptions>,
     _asset_server: ResMut<AssetServer>,
     _rendered_texture_id: Local<egui::TextureId>,
@@ -191,6 +194,12 @@ pub fn create_ui(
                 ui.horizontal(|ui| {
                     ui.label("Username: ");
                     ui.text_edit_singleline(&mut options.user_name);
+                });
+
+                ui.horizontal(|ui| {
+                    ui.label("Password: ");
+                    ui.text_edit_singleline(&mut **password);
+                    // Pressing enter makes we lose focus
                 });
 
                 ui.allocate_space(egui::Vec2::new(1.0, 26.0));

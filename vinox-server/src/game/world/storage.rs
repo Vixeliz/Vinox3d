@@ -12,11 +12,18 @@ use vinox_common::{
 };
 use zstd::stream::{copy_decode, copy_encode};
 
+#[derive(Component, Default, Serialize, Deserialize, Debug, Clone)]
+pub struct SavedPlayer {
+    pub inventory: Inventory,
+    pub hashed_password: String,
+    pub position: [i32; 3],
+}
+
 #[derive(Resource, Deref, DerefMut, Default)]
 pub struct ChunksToSave(pub Vec<(ChunkPos, RawChunk)>);
 
 #[derive(Resource, Deref, DerefMut, Default)]
-pub struct InventoriesToSave(pub Vec<(String, Inventory)>);
+pub struct PlayersToSave(pub Vec<(String, SavedPlayer)>);
 
 #[derive(Resource, Serialize, Deserialize, Clone)]
 pub struct WorldInfo {
@@ -45,7 +52,7 @@ pub fn create_database(database: &Connection) {
         .unwrap();
     database
         .execute(
-            " create table if not exists inventories (
+            " create table if not exists players(
             name varchar(255) not null,
             data blob,
             PRIMARY KEY (name)
@@ -78,34 +85,34 @@ pub fn save_chunks(chunks: &ChunksToSave, database: &Connection) {
     database.execute("COMMIT;", []).unwrap();
 }
 
-// pub fn save_inventories(inventories: &InventoriesToSave, database: &Connection) {
-//     database.execute("BEGIN;", []).unwrap();
-//     for (user_name, inventory) in inventories.iter() {
-//         if let Ok(inventory_bin) = bincode::serialize(inventory) {
-//             database
-//                 .execute(
-//                     "REPLACE INTO inventories (name, data) values (?1, ?2)",
-//                     params![&user_name, &inventory_bin.clone(),],
-//                 )
-//                 .unwrap();
-//         }
-//     }
-//     database.execute("COMMIT;", []).unwrap();
-// }
+pub fn save_players(players_to_save: &PlayersToSave, database: &Connection) {
+    database.execute("BEGIN;", []).unwrap();
+    for (user_name, player) in players_to_save.iter() {
+        if let Ok(player_bin) = bincode::serialize(player) {
+            database
+                .execute(
+                    "REPLACE INTO players (name, data) values (?1, ?2)",
+                    params![&user_name, &player_bin.clone(),],
+                )
+                .unwrap();
+        }
+    }
+    database.execute("COMMIT;", []).unwrap();
+}
 
-// pub fn load_inventory(name: String, database: &Connection) -> Option<Inventory> {
-//     let stmt = database.prepare("SELECT name, data FROM inventories WHERE name=:name;");
-//     if let Ok(mut stmt) = stmt {
-//         let name_result: Result<Vec<u8>, _> =
-//             stmt.query_row(&[(":name", &name)], |row| Ok(row.get(3).unwrap()));
-//         if let Ok(name_row) = name_result {
-//             let final_name = bincode::deserialize(&name_row).unwrap();
-//             return Some(final_name);
-//         }
-//     }
+pub fn load_player(name: String, database: &Connection) -> Option<SavedPlayer> {
+    let stmt = database.prepare("SELECT name, data FROM players WHERE name=:name;");
+    if let Ok(mut stmt) = stmt {
+        let name_result: Result<Vec<u8>, _> =
+            stmt.query_row(&[(":name", &name)], |row| Ok(row.get(1).unwrap()));
+        if let Ok(name_row) = name_result {
+            let final_player = bincode::deserialize(&name_row).unwrap();
+            return Some(final_player);
+        }
+    }
 
-//     None
-// }
+    None
+}
 
 pub fn load_chunk(chunk_pos: ChunkPos, database: &Connection) -> Option<RawChunk> {
     let stmt = database.prepare(

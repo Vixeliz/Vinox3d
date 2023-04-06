@@ -1,8 +1,7 @@
 use std::io::Cursor;
 
-use rand::{
-    Rng,
-};
+use argon2::{password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
+use rand::{rngs::OsRng, Rng};
 use rustc_data_structures::stable_set::FxHashSet;
 
 use bevy::{app::AppExit, prelude::*};
@@ -18,7 +17,10 @@ use vinox_common::{
 };
 use zstd::stream::copy_encode;
 
-use crate::game::world::{chunk::GeneratingChunk, storage::ChunksToSave};
+use crate::game::world::{
+    chunk::GeneratingChunk,
+    storage::{load_player, ChunksToSave, PlayersToSave, SavedPlayer, WorldDatabase},
+};
 
 use super::components::{ChunkLimit, LocalGame, ServerLobby};
 
@@ -64,22 +66,28 @@ pub fn get_messages(
     mut server: ResMut<Server>,
     mut commands: Commands,
     mut lobby: ResMut<ServerLobby>,
-    mut players: Query<(Entity, &Player, &Transform, &ClientName)>,
+    mut players: Query<(Entity, &Player, &Transform, &ClientName, &Inventory)>,
     player_builder: Res<PlayerBundleBuilder>,
     mut chunks: Query<&mut ChunkData>,
     current_chunks: Res<CurrentChunks>,
     mut chunks_to_save: ResMut<ChunksToSave>,
+    mut players_to_save: ResMut<PlayersToSave>,
+    database: Res<WorldDatabase>,
     _block_table: Res<BlockTable>,
 ) {
     let endpoint = server.endpoint_mut();
     for client_id in endpoint.clients() {
         while let Some(message) = endpoint.try_receive_message_from::<ClientMessage>(client_id) {
             match message {
-                ClientMessage::Join { id, user_name } => {
+                ClientMessage::Join {
+                    id,
+                    user_name,
+                    password,
+                } => {
                     println!("Player {user_name} connected.");
 
                     // Initialize other players for this new client
-                    for (entity, player, transform, client_name) in players.iter_mut() {
+                    for (entity, player, transform, client_name, inventory) in players.iter_mut() {
                         endpoint.try_send_message(
                             id,
                             ServerMessage::PlayerCreate {
@@ -90,38 +98,130 @@ pub fn get_messages(
                                 head_pitch: transform.rotation.to_euler(EulerRot::XYZ).0,
                                 user_name: (*client_name).clone(),
                                 init: false,
-                                inventory: Box::<Inventory>::default(), // TODO: Load from database
+                                inventory: Box::new(inventory.clone()),
                             },
                         );
                     }
 
-                    // Spawn new player
-                    let transform = Transform::from_xyz(0.0, 75.0, 0.0);
-                    let player_entity = commands
-                        .spawn(player_builder.build(
-                            transform.translation,
-                            id,
-                            false,
+                    let data = database.connection.get().unwrap();
+                    let player = if let Some(player) = load_player(user_name.clone(), &data) {
+                        if let Ok(hashed) = PasswordHash::new(player.hashed_password.as_str()) {
+                            if Argon2::default()
+                                .verify_password(password.as_bytes(), &hashed)
+                                .is_ok()
+                            {
+                                let transform = Transform::from_xyz(
+                                    player.position[0] as f32,
+                                    player.position[1] as f32,
+                                    player.position[2] as f32,
+                                );
+                                Some((
+                                    (
+                                        player_builder.build(
+                                            transform.translation,
+                                            id,
+                                            false,
+                                            user_name.clone(),
+                                        ),
+                                        SentChunks {
+                                            chunks: FxHashSet::default(),
+                                        },
+                                        VoxelPos::default(),
+                                        LoadPoint::default(),
+                                        player.inventory.clone(),
+                                    ),
+                                    false,
+                                    transform,
+                                    player.inventory,
+                                ))
+                            } else {
+                                println!("Wrong password");
+                                continue;
+                            }
+                        } else {
+                            println!("No password, this account is open to anyone");
+                            let transform = Transform::from_xyz(
+                                player.position[0] as f32,
+                                player.position[1] as f32,
+                                player.position[2] as f32,
+                            );
+                            Some((
+                                (
+                                    player_builder.build(
+                                        transform.translation,
+                                        id,
+                                        false,
+                                        user_name.clone(),
+                                    ),
+                                    SentChunks {
+                                        chunks: FxHashSet::default(),
+                                    },
+                                    VoxelPos::default(),
+                                    LoadPoint::default(),
+                                    player.inventory.clone(),
+                                ),
+                                false,
+                                transform,
+                                player.inventory,
+                            ))
+                        }
+                    } else {
+                        let salt = SaltString::generate(&mut OsRng);
+                        let argon2 = Argon2::default();
+                        let hashed_password = argon2
+                            .hash_password(password.as_bytes(), &salt)
+                            .unwrap()
+                            .to_string();
+                        let transform = Transform::from_xyz(0.0, 75.0, 0.0);
+                        players_to_save.push((
                             user_name.clone(),
+                            SavedPlayer {
+                                inventory: Inventory::default(),
+                                hashed_password,
+                                position: [
+                                    transform.translation.x as i32,
+                                    transform.translation.y as i32,
+                                    transform.translation.z as i32,
+                                ],
+                            },
+                        ));
+                        Some((
+                            (
+                                player_builder.build(
+                                    transform.translation,
+                                    id,
+                                    false,
+                                    user_name.clone(),
+                                ),
+                                SentChunks {
+                                    chunks: FxHashSet::default(),
+                                },
+                                VoxelPos::default(),
+                                LoadPoint::default(),
+                                Inventory::default(),
+                            ),
+                            true, // Whether or not this is a new player
+                            transform,
+                            Inventory::default(),
                         ))
-                        .insert(SentChunks {
-                            chunks: FxHashSet::default(),
-                        })
-                        .insert(VoxelPos::default())
-                        .insert(LoadPoint::default())
-                        .id();
-                    lobby.players.insert(id, player_entity);
+                    };
 
-                    endpoint.try_broadcast_message(&ServerMessage::PlayerCreate {
-                        id,
-                        entity: player_entity,
-                        translation: transform.translation,
-                        yaw: transform.rotation.to_euler(EulerRot::XYZ).1,
-                        head_pitch: transform.rotation.to_euler(EulerRot::XYZ).0,
-                        user_name,
-                        init: true,
-                        inventory: Box::<Inventory>::default(),
-                    });
+                    if let Some(player) = player {
+                        let player_entity = commands.spawn(player.0).id();
+
+                        endpoint.try_broadcast_message(&ServerMessage::PlayerCreate {
+                            id,
+                            entity: player_entity,
+                            translation: player.2.translation,
+                            yaw: player.2.rotation.to_euler(EulerRot::XYZ).1,
+                            head_pitch: player.2.rotation.to_euler(EulerRot::XYZ).0,
+                            user_name,
+                            init: true,
+                            inventory: Box::new(player.3),
+                        });
+
+                        lobby.players.insert(id, player_entity);
+                    }
                 }
                 ClientMessage::Leave { id } => {
                     println!("Player {id} disconnected.");
@@ -170,7 +270,7 @@ pub fn get_messages(
                 }
                 ClientMessage::ChatMessage { message } => {
                     if let Some(player_entity) = lobby.players.get(&client_id) {
-                        if let Ok((_, _, _, username)) = players.get(*player_entity) {
+                        if let Ok((_, _, _, username, _)) = players.get(*player_entity) {
                             endpoint.try_broadcast_message_on(
                                 bevy_quinnet::shared::channel::ChannelId::OrderedReliable(1),
                                 ServerMessage::ChatMessage {

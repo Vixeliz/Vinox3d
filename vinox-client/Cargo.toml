@@ -36,3 +36,4 @@ bevy_mod_mipmap_generator={git="https://github.com/DGriffin91/bevy_mod_mipmap_ge
 egui_extras = "0.21.0"
 big_space.workspace=true
 bevy_mod_debugdump = "0.7.0"
+argon2.workspace=true

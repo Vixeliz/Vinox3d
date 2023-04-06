@@ -3,6 +3,9 @@ use std::collections::HashMap;
 use bevy::prelude::*;
 
 #[derive(Resource, Default, Deref, DerefMut)]
+pub struct Password(pub String);
+
+#[derive(Resource, Default, Deref, DerefMut)]
 pub struct ChatMessages(pub Vec<(String, String)>);
 
 #[derive(Resource, Default, Deref, DerefMut)]

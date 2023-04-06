@@ -95,7 +95,7 @@ pub fn create_server() {
         .insert_resource(NetworkIP(ip))
         .insert_resource(ChunkLimit(64))
         .insert_resource(LocalGame(true))
-        .insert_resource(SaveGame(false))
+        .insert_resource(SaveGame(true))
         .add_plugins(MinimalPlugins)
         .add_plugin(DiagnosticsPlugin)
         .add_plugin(LogPlugin::default())

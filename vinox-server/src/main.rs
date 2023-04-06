@@ -96,7 +96,7 @@ fn main() {
         .insert_resource(ChunkLimit(16))
         .insert_resource(NetworkIP(ip))
         .insert_resource(LocalGame(false))
-        .insert_resource(SaveGame(false))
+        .insert_resource(SaveGame(true))
         // .add_plugins(MinimalPlugins.build().disable::<TransformPlugin>())
         .add_plugins(MinimalPlugins)
         .add_plugin(DiagnosticsPlugin)
