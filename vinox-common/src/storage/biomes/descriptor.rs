@@ -17,9 +17,9 @@ pub enum TerrainCarver {
 pub struct BiomeDescriptor {
     pub namespace: String,
     pub name: String,
-    // pub terrain_carver: TerrainCarver,
-    pub heat: f32,
-    pub humidity: f32,
+    pub depth_bias: i32, // Higher numbers will favor higher depths lower will prefer lower
+    pub heat: i32,
+    pub humidity: i32,
     pub surface_block: Option<Vec<(String, u16)>>,
     pub surface_depth: Option<u8>,
     pub ceil_block: Option<Vec<(String, u16)>>,

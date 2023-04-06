@@ -4,7 +4,7 @@ use vinox_common::{
     world::chunks::{
         ecs::CommonPlugin,
         light::LightPlugin,
-        storage::{BlockTable, ItemTable, RecipeTable},
+        storage::{BiomeTable, BlockTable, ItemTable, RecipeTable},
     },
 };
 
@@ -17,6 +17,7 @@ impl Plugin for GamePlugin {
         app.insert_resource(ItemTable::default())
             .insert_resource(BlockTable::default())
             .insert_resource(RecipeTable::default())
+            .insert_resource(BiomeTable::default())
             .insert_resource(PlayerBundleBuilder::default())
             .add_plugin(CommonPlugin)
             .add_plugin(ChunkPlugin)

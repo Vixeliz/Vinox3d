@@ -1,0 +1,11 @@
+BiomeDescriptor(
+    namespace: "vinox",
+    name: "sand",
+    depth_bias: 0,
+    heat: 3,
+    humidity: -1,
+    main_block: [
+        ("vinox:sand", 1),
+        ("vinox:limestone", 1)
+    ]
+)

@@ -10,12 +10,13 @@ use vinox_common::{
     ecs::bundles::PlayerBundleBuilder,
     networking::protocol::NetworkIP,
     storage::{
+        biomes::load::load_all_biomes,
         blocks::load::load_all_blocks,
         crafting::load::load_all_recipes,
         geometry::load::load_all_geo,
         items::load::{item_from_block, load_all_items},
     },
-    world::chunks::storage::{trim_geo_identifier, BlockTable, ItemTable, RecipeTable},
+    world::chunks::storage::{trim_geo_identifier, BiomeTable, BlockTable, ItemTable, RecipeTable},
 };
 
 use crate::states::{
@@ -108,6 +109,7 @@ pub fn setup_resources(
     mut loading: ResMut<AssetsLoading>,
     mut block_table: ResMut<BlockTable>,
     mut item_table: ResMut<ItemTable>,
+    mut biome_table: ResMut<BiomeTable>,
     mut recipe_table: ResMut<RecipeTable>,
     mut geo_table: ResMut<GeometryTable>,
     mut loadable_assets: ResMut<LoadableAssets>,
@@ -181,6 +183,14 @@ pub fn setup_resources(
         .insert("empty".to_string(), texture_handle);
     for item_texture in loadable_assets.item_textures.values() {
         egui_textures.add_image(item_texture.clone_weak());
+    }
+
+    for biome in load_all_biomes() {
+        let mut name = biome.clone().namespace;
+        name.push(':');
+        name.push_str(&biome.name);
+
+        biome_table.insert(name, biome);
     }
 }
 

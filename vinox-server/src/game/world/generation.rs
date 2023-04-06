@@ -1,22 +1,28 @@
 use bevy::prelude::*;
 
 use noise::{
-    BasicMulti, Blend, Fbm, HybridMulti, MultiFractal, NoiseFn,
-    OpenSimplex, RidgedMulti, RotatePoint,
+    BasicMulti, Blend, Fbm, HybridMulti, MultiFractal, NoiseFn, OpenSimplex, RidgedMulti,
+    RotatePoint,
 };
 use rand::{rngs::StdRng, seq::SliceRandom, SeedableRng};
 use std::collections::HashMap;
 // use rand::{rngs::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 use vinox_common::{
+    storage::biomes::descriptor::BiomeDescriptor,
     world::chunks::{
         positions::RelativeVoxelPos,
-        storage::{BlockData, BlockTable, ChunkData, RawChunk, CHUNK_SIZE},
+        storage::{
+            identifier_to_name, BiomeTable, BlockData, BlockTable, ChunkData, RawChunk, CHUNK_SIZE,
+        },
     },
 };
 
 #[derive(Resource, Default, Serialize, Deserialize, Deref, DerefMut, Clone)]
 pub struct ToBePlaced(pub HashMap<IVec3, Vec<(UVec3, BlockData)>>);
+
+#[derive(Resource, Default, Deref, DerefMut, Clone)]
+pub struct Biomes(pub HashMap<IVec3, String>);
 
 pub const SEA_LEVEL: i32 = 0;
 
@@ -102,7 +108,7 @@ fn world_noise(seed: u32) -> impl NoiseFn<f64, 3> {
     let d_noise: RidgedMulti<OpenSimplex> = RidgedMulti::new(seed.wrapping_add(1))
         .set_octaves(2)
         .set_frequency(0.00781);
-    
+
     Blend::new(
         RotatePoint {
             source: ridged_noise,
@@ -124,6 +130,34 @@ fn world_noise(seed: u32) -> impl NoiseFn<f64, 3> {
     )
 }
 
+fn values_to_biome(y: i32, heat: i32, moisture: i32, biomes: &BiomeTable) -> String {
+    let point = IVec3::new(y, heat, moisture);
+    let mut closest_distance = 1000;
+    let mut closest_biome = "vinox:stone".to_string();
+    for biome in biomes.iter() {
+        let distance = IVec3::new(biome.1.depth_bias, biome.1.heat, biome.1.humidity)
+            .as_vec3()
+            .distance(point.as_vec3());
+        if distance < closest_distance as f32 {
+            closest_distance = distance as i32;
+            closest_biome = biome.0.clone();
+        }
+    }
+    closest_biome
+}
+
+fn biome_noise(x: f64, y: f64, z: f64, seed: u32) -> (i32, i32) {
+    let ridged_noise: BasicMulti<OpenSimplex> =
+        BasicMulti::new(seed).set_octaves(1).set_frequency(0.00622);
+    let d_noise: BasicMulti<OpenSimplex> = BasicMulti::new(seed.wrapping_add(1))
+        .set_octaves(1)
+        .set_frequency(0.00781);
+    (
+        (ridged_noise.get([x, y, z]) * 10.0) as i32,
+        (d_noise.get([x, y, z]) * 10.0) as i32,
+    )
+}
+
 // NOTE: A main design goal i have is most things should be completely generatable per chunk without needing other chunks. The only exception
 // will hopefully be structures. Even then i hope to find a system where some can still be generated determinitely such as pillars.
 // I like this as 1) it makes designing generation much easier and 2) makes it so you can generate any given chunk and hopefully see what itll look like
@@ -132,11 +166,21 @@ fn world_noise(seed: u32) -> impl NoiseFn<f64, 3> {
 pub fn generate_chunk(
     pos: IVec3,
     seed: u32,
-    _block_table: &BlockTable,
+    biome_table: &BiomeTable,
     // to_be_placed: &ToBePlaced,
 ) -> RawChunk {
     //TODO: Switch to using ron files to determine biomes and what blocks they should use. For now hardcoding a simplex noise
-    let _rng: StdRng = SeedableRng::seed_from_u64(seed as u64);
+    let (heat, humidity) = biome_noise(
+        pos.x as f64 * CHUNK_SIZE as f64,
+        pos.y as f64 * CHUNK_SIZE as f64,
+        pos.z as f64 * CHUNK_SIZE as f64,
+        seed,
+    );
+    let main_blocks = biome_table
+        .get(&values_to_biome(pos.y, heat, humidity, &biome_table))
+        .unwrap()
+        .main_block
+        .clone();
     let ridged_noise: HybridMulti<OpenSimplex> =
         HybridMulti::new(seed).set_octaves(4).set_frequency(0.02122);
     let d_noise: RidgedMulti<OpenSimplex> = RidgedMulti::new(seed.wrapping_add(1))
@@ -189,9 +233,18 @@ pub fn generate_chunk(
                 // let noise_val =
                 // world_noise(seed).get([full_x as f64, full_y as f64, full_z as f64]) * 45.152;
                 if !is_cave {
+                    let mut rng: StdRng = SeedableRng::seed_from_u64(
+                        IVec3::new(full_x, full_y, full_z).reflect_hash().unwrap(),
+                    );
+                    let main_block = main_blocks
+                        .choose_weighted(&mut rng, |item| item.1)
+                        .unwrap()
+                        .clone()
+                        .0;
+                    let (namespace, name) = identifier_to_name(main_block).unwrap();
                     raw_chunk.set(
                         relative_pos,
-                        BlockData::new("vinox".to_string(), "stone".to_string()),
+                        BlockData::new(namespace.clone(), name.clone()),
                     );
                 } else {
                     raw_chunk.set(

@@ -1,0 +1,12 @@
+BiomeDescriptor(
+    namespace: "vinox",
+    name: "crystal",
+    depth_bias: -32,
+    heat: -1,
+    humidity: 0,
+    main_block: [
+        ("vinox:marble", 10),
+        ("vinox:diorite", 4),
+        ("vinox:light", 2),
+    ]
+)

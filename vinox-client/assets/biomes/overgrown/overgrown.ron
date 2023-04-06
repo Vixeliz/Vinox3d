@@ -1,0 +1,11 @@
+BiomeDescriptor(
+    namespace: "vinox",
+    name: "overgrown",
+    depth_bias: 64,
+    heat: 1,
+    humidity: 10,
+    main_block: [
+        ("vinox:root", 1),
+        ("vinox:mirg", 3)
+    ]
+)

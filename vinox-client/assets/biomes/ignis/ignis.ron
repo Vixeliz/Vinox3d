@@ -1,0 +1,11 @@
+BiomeDescriptor(
+    namespace: "vinox",
+    name: "ignis",
+    depth_bias: 0,
+    heat: 4,
+    humidity: 0,
+    main_block: [
+        ("vinox:ignis", 1),
+    ]
+)
+

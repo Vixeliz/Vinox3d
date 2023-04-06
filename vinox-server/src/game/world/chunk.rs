@@ -9,7 +9,7 @@ use vinox_common::world::chunks::{
         SentChunks, SimulationRadius,
     },
     positions::ChunkPos,
-    storage::{BlockTable, ChunkData},
+    storage::{BiomeTable, BlockTable, ChunkData},
 };
 
 use crate::game::networking::components::SaveGame;
@@ -122,13 +122,14 @@ pub fn process_pre_queue(
     world_info: Res<WorldInfo>,
     _chunks_to_save: ResMut<ChunksToSave>,
     block_table: Res<BlockTable>,
+    biome_table: Res<BiomeTable>,
     _save: Res<SaveGame>,
 ) {
     let cloned_seed = world_info.seed;
     let task_pool = AsyncComputeTaskPool::get();
     for event in chunk_queue.iter() {
         let chunk_pos = event.0;
-        let cloned_table = block_table.clone();
+        let cloned_table = biome_table.clone();
         let task = task_pool.spawn(async move {
             (
                 ChunkData::from_raw(generate_chunk(*chunk_pos, cloned_seed, &cloned_table)),
