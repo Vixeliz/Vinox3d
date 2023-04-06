@@ -52,6 +52,7 @@ pub fn generate_chunks_world(
                         .entity(entity)
                         .insert(ChunkData::from_raw(chunk))
                         .insert(pos);
+                    commands.entity(entity).remove::<NeedsChunkData>();
                     continue;
                 }
             }
