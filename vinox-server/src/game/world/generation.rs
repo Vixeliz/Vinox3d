@@ -5,7 +5,7 @@ use bevy::prelude::*;
 
 use noise::{
     BasicMulti, Blend, Fbm, HybridMulti, MultiFractal, NoiseFn, OpenSimplex, RidgedMulti,
-    RotatePoint,
+    RotatePoint, Worley,
 };
 use rand::{rngs::StdRng, seq::SliceRandom, SeedableRng};
 use std::{
@@ -155,14 +155,15 @@ fn values_to_biome(
 }
 
 fn biome_noise(x: f64, y: f64, z: f64, seed: u32) -> (i32, i32) {
-    let ridged_noise: BasicMulti<OpenSimplex> =
-        BasicMulti::new(seed).set_octaves(1).set_frequency(0.01622);
-    let d_noise: BasicMulti<OpenSimplex> = BasicMulti::new(seed.wrapping_add(1))
-        .set_octaves(1)
-        .set_frequency(0.01781);
+    let heat_noise = Worley::new(seed)
+        .set_return_type(noise::core::worley::ReturnType::Value)
+        .set_frequency(0.01022);
+    let moisture_noise = Worley::new(seed.wrapping_add(1))
+        .set_return_type(noise::core::worley::ReturnType::Value)
+        .set_frequency(0.01022);
     (
-        (ridged_noise.get([x, y, z]) * 100.0) as i32,
-        (d_noise.get([x, y, z]) * 100.0) as i32,
+        (heat_noise.get([x, y, z]) * 100.0) as i32,
+        (moisture_noise.get([x, y, z]) * 100.0) as i32,
     )
 }
 
