@@ -4,8 +4,8 @@ use acap::NearestNeighbors;
 use bevy::prelude::*;
 
 use noise::{
-    BasicMulti, Blend, Fbm, HybridMulti, MultiFractal, NoiseFn, OpenSimplex, RidgedMulti,
-    RotatePoint, Worley,
+    core::worley::distance_functions, BasicMulti, Blend, Clamp, Fbm, HybridMulti, MultiFractal,
+    NoiseFn, OpenSimplex, RidgedMulti, RotatePoint, Worley,
 };
 use rand::{rngs::StdRng, seq::SliceRandom, SeedableRng};
 use std::{
@@ -167,6 +167,15 @@ fn biome_noise(x: f64, y: f64, z: f64, seed: u32) -> (i32, i32) {
     )
 }
 
+fn distance_function(x: &[f64], y: &[f64]) -> f64 {
+    for x in x {
+        for y in y {
+            return x.max(*y);
+        }
+    }
+    0.0
+}
+
 // NOTE: A main design goal i have is most things should be completely generatable per chunk without needing other chunks. The only exception
 // will hopefully be structures. Even then i hope to find a system where some can still be generated determinitely such as pillars.
 // I like this as 1) it makes designing generation much easier and 2) makes it so you can generate any given chunk and hopefully see what itll look like
@@ -201,6 +210,16 @@ pub fn generate_chunk(
         .set_octaves(3)
         .set_persistence(0.5)
         .set_frequency(0.02);
+    let noise = Clamp::new(
+        Worley::new(seed)
+            .set_frequency(0.01251051)
+            .set_distance_function(distance_functions::euclidean_squared)
+            .set_return_type(noise::core::worley::ReturnType::Distance),
+    )
+    .set_bounds(0.0, 1.5);
+    // .set_bounds(0.5, 1.0);
+
+    // .set_range_function()
 
     // let final_noise = Blend::new(
     //     RotatePoint {
@@ -230,15 +249,16 @@ pub fn generate_chunk(
                 let full_y = y as i32 + ((CHUNK_SIZE as i32) * pos.y);
                 let (x, y, z) = (x as u32, y as u32, z as u32);
                 let relative_pos = RelativeVoxelPos(UVec3::new(x, y, z));
-                let is_cave = ridged_noise
-                    .get([full_x as f64, full_y as f64, full_z as f64])
-                    .abs()
-                    < 0.1
-                    && d_noise
-                        .get([full_x as f64, full_y as f64, full_z as f64])
-                        .abs()
-                        < 0.1
-                    && (a_noise.get([full_x as f64, full_y as f64, full_z as f64]) < 0.45);
+                // let is_cave = ridged_noise
+                //     .get([full_x as f64, full_y as f64, full_z as f64])
+                //     .abs()
+                //     < 0.1
+                //     && d_noise
+                //         .get([full_x as f64, full_y as f64, full_z as f64])
+                //         .abs()
+                //         < 0.1
+                //     && (a_noise.get([full_x as f64, full_y as f64, full_z as f64]) < 0.45);
+                let is_cave = noise.get([full_x as f64, full_y as f64, full_z as f64]) < 0.1;
                 // let noise_val =
                 //     final_noise.get([full_x as f64, full_y as f64, full_z as f64]) * 45.152;
                 // let noise_val =

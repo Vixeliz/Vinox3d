@@ -61,8 +61,7 @@ pub fn move_and_collide(
             transform.translation.y + aabb.half_extents.y,
             transform.translation.z,
         );
-        let chunk_pos: ChunkPos =
-            ChunkPos::from_chunk_cell(*grid_cell, transform.translation);
+        let chunk_pos: ChunkPos = ChunkPos::from_chunk_cell(*grid_cell, transform.translation);
         if let Some(chunk_entity) = current_chunks.get_entity(chunk_pos) {
             if chunks_without_data.get(chunk_entity).is_ok() {
                 continue;

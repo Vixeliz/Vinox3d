@@ -5,10 +5,7 @@ use std::f32::consts::{FRAC_PI_2, PI};
 use bevy::{
     input::mouse::{MouseMotion, MouseScrollUnit, MouseWheel},
     prelude::*,
-    render::{
-        camera::CameraProjection,
-        primitives::{Frustum},
-    },
+    render::{camera::CameraProjection, primitives::Frustum},
     window::{CursorGrabMode, PresentMode, PrimaryWindow},
 };
 use bevy_quinnet::client::Client;
