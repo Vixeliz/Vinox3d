@@ -210,13 +210,13 @@ pub fn generate_chunk(
         .set_octaves(3)
         .set_persistence(0.5)
         .set_frequency(0.02);
-    let noise = Clamp::new(
-        Worley::new(seed)
-            .set_frequency(0.01251051)
-            .set_distance_function(distance_functions::euclidean_squared)
-            .set_return_type(noise::core::worley::ReturnType::Distance),
-    )
-    .set_bounds(0.0, 1.5);
+    // let noise = Clamp::new(
+    //     Worley::new(seed)
+    //         .set_frequency(0.01251051)
+    //         .set_distance_function(distance_functions::euclidean_squared)
+    //         .set_return_type(noise::core::worley::ReturnType::Distance),
+    // )
+    // .set_bounds(0.0, 1.5);
     // .set_bounds(0.5, 1.0);
 
     // .set_range_function()
@@ -258,7 +258,8 @@ pub fn generate_chunk(
                 //         .abs()
                 //         < 0.1
                 //     && (a_noise.get([full_x as f64, full_y as f64, full_z as f64]) < 0.45);
-                let is_cave = noise.get([full_x as f64, full_y as f64, full_z as f64]) < 0.1;
+                let is_cave =
+                    ridged_noise.get([full_x as f64, full_y as f64 * 2.0, full_z as f64]) > 0.25;
                 // let noise_val =
                 //     final_noise.get([full_x as f64, full_y as f64, full_z as f64]) * 45.152;
                 // let noise_val =
