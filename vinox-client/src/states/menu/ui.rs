@@ -1,6 +1,6 @@
-use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
-use rand::rngs::OsRng;
-use std::collections::BTreeMap;
+use directories::ProjectDirs;
+use load_file::load_bytes;
+use std::{collections::BTreeMap, path::PathBuf};
 use vinox_server::create_server;
 
 use bevy::{
@@ -13,7 +13,7 @@ use bevy_egui::{
         self,
         epaint::Shadow,
         style::{Selection, Spacing, WidgetVisuals, Widgets},
-        Color32, FontId, Margin, Rounding, Stroke, Visuals,
+        Color32, FontData, FontDefinitions, FontFamily, FontId, Margin, Rounding, Stroke, Visuals,
     },
     EguiContexts, EguiSettings,
 };
@@ -247,104 +247,130 @@ pub fn create_ui(
 
 pub fn ui_events() {}
 
-#[derive(Resource, Deref, DerefMut)]
-pub struct EguiTheme(pub egui::Style);
-
-impl Default for EguiTheme {
-    fn default() -> Self {
-        let dark_widgets = WidgetVisuals {
-            rounding: Rounding::same(0.0),
-            bg_fill: Color32::from_rgb(64, 64, 64),
-            bg_stroke: Stroke::new(1.0, Color32::from_rgb(90, 90, 90)),
-            fg_stroke: Stroke::new(2.0, Color32::from_rgb(200, 200, 200)),
-            expansion: 1.0,
-            weak_bg_fill: Color32::from_rgb(64, 64, 64),
-        };
-        let style = egui::Style {
-            spacing: Spacing {
-                button_padding: egui::Vec2::new(10.0, 10.0),
-                item_spacing: egui::Vec2::new(10.0, 10.0),
-                window_margin: Margin::same(10.0),
-                interact_size: egui::Vec2::new(40.0, 18.0),
-                combo_height: 200.0,
-                indent: 28.0,
-                slider_width: 150.0,
-                text_edit_width: 280.0,
-                scroll_bar_width: 8.0,
-                tooltip_width: 500.0,
-                ..Default::default()
-            },
-            wrap: Some(false),
-            visuals: Visuals {
-                dark_mode: true,
-                faint_bg_color: Color32::from_rgb(64, 64, 64),
-                extreme_bg_color: Color32::from_rgb(48, 48, 48),
-                code_bg_color: Color32::from_rgb(72, 72, 72),
-                selection: Selection {
-                    bg_fill: Color32::from_rgb(115, 115, 115),
-                    stroke: Default::default(),
-                },
-                widgets: Widgets {
-                    noninteractive: WidgetVisuals {
-                        bg_fill: Color32::from_rgb(90, 90, 90),
-                        ..dark_widgets
-                    },
-                    inactive: WidgetVisuals {
-                        bg_fill: Color32::from_rgb(100, 100, 100),
-                        ..dark_widgets
-                    },
-                    hovered: dark_widgets,
-                    active: dark_widgets,
-                    open: dark_widgets,
-                },
-                window_rounding: Rounding::same(0.0),
-                window_shadow: Shadow::small_dark(),
-                popup_shadow: Shadow::small_dark(),
-                resize_corner_size: 12.0,
-                clip_rect_margin: 3.0,
-                button_frame: true,
-                collapsing_header_frame: false,
-                hyperlink_color: Color32::from_rgb(110, 100, 110),
-
-                override_text_color: None,
-                text_cursor_width: 0.0,
-                text_cursor_preview: false,
-                ..Default::default()
-            },
-            // interaction: Interaction {
-            //     resize_grab_radius_corner: 10.0,
-            //     resize_grab_radius_side: 8.0,
-            //     show_tooltips_only_when_still: false,
-            // },
-            animation_time: 150.0,
-
-            text_styles: {
-                let mut texts = BTreeMap::new();
-                texts.insert(egui::TextStyle::Small, FontId::monospace(14.0));
-                texts.insert(egui::TextStyle::Body, FontId::monospace(14.0));
-                texts.insert(egui::TextStyle::Heading, FontId::monospace(16.0));
-                texts.insert(egui::TextStyle::Monospace, FontId::monospace(14.0));
-                texts.insert(egui::TextStyle::Button, FontId::monospace(14.0));
-                texts
-            },
-
-            override_text_style: None,
-            override_font_id: None,
-
-            debug: Default::default(),
-            explanation_tooltips: false,
+pub fn start(mut commands: Commands, _options: Res<GameOptions>, mut contexts: EguiContexts) {
+    let dark_widgets = WidgetVisuals {
+        rounding: Rounding::same(0.0),
+        bg_fill: Color32::from_rgb(64, 64, 64),
+        bg_stroke: Stroke::new(1.0, Color32::from_rgb(90, 90, 90)),
+        fg_stroke: Stroke::new(2.0, Color32::from_rgb(200, 200, 200)),
+        expansion: 1.0,
+        weak_bg_fill: Color32::from_rgb(64, 64, 64),
+    };
+    let style = egui::Style {
+        spacing: Spacing {
+            button_padding: egui::Vec2::new(10.0, 10.0),
+            item_spacing: egui::Vec2::new(10.0, 10.0),
+            window_margin: Margin::same(10.0),
+            interact_size: egui::Vec2::new(40.0, 18.0),
+            combo_height: 200.0,
+            indent: 28.0,
+            slider_width: 150.0,
+            text_edit_width: 280.0,
+            scroll_bar_width: 8.0,
+            tooltip_width: 500.0,
             ..Default::default()
-        };
-        Self(style)
-    }
-}
+        },
+        wrap: Some(false),
+        visuals: Visuals {
+            dark_mode: true,
+            faint_bg_color: Color32::from_rgb(64, 64, 64),
+            extreme_bg_color: Color32::from_rgb(48, 48, 48),
+            code_bg_color: Color32::from_rgb(72, 72, 72),
+            selection: Selection {
+                bg_fill: Color32::from_rgb(115, 115, 115),
+                stroke: Default::default(),
+            },
+            widgets: Widgets {
+                noninteractive: WidgetVisuals {
+                    bg_fill: Color32::from_rgb(90, 90, 90),
+                    ..dark_widgets
+                },
+                inactive: WidgetVisuals {
+                    bg_fill: Color32::from_rgb(100, 100, 100),
+                    ..dark_widgets
+                },
+                hovered: dark_widgets,
+                active: dark_widgets,
+                open: dark_widgets,
+            },
+            window_rounding: Rounding::same(0.0),
+            window_shadow: Shadow::small_dark(),
+            popup_shadow: Shadow::small_dark(),
+            resize_corner_size: 12.0,
+            clip_rect_margin: 3.0,
+            button_frame: true,
+            collapsing_header_frame: false,
+            hyperlink_color: Color32::from_rgb(110, 100, 110),
 
-pub fn start(
-    mut commands: Commands,
-    _options: Res<GameOptions>,
-    mut contexts: EguiContexts,
-    egui_theme: Res<EguiTheme>,
-) {
-    contexts.ctx_mut().set_style(egui_theme.clone());
+            override_text_color: None,
+            text_cursor_width: 0.0,
+            text_cursor_preview: false,
+            ..Default::default()
+        },
+        // interaction: Interaction {
+        //     resize_grab_radius_corner: 10.0,
+        //     resize_grab_radius_side: 8.0,
+        //     show_tooltips_only_when_still: false,
+        // },
+        animation_time: 150.0,
+
+        text_styles: {
+            let mut texts = BTreeMap::new();
+            texts.insert(egui::TextStyle::Small, FontId::monospace(14.0));
+            texts.insert(egui::TextStyle::Body, FontId::monospace(14.0));
+            texts.insert(egui::TextStyle::Heading, FontId::monospace(16.0));
+            texts.insert(egui::TextStyle::Monospace, FontId::monospace(14.0));
+            texts.insert(egui::TextStyle::Button, FontId::monospace(14.0));
+            texts
+        },
+
+        override_text_style: None,
+        // override_font_id: Some(FontId {
+        //     size: 12.0,
+        //     family: FontFamily::Name("Monocraft".into()),
+        // }),
+        override_font_id: None,
+
+        debug: Default::default(),
+        explanation_tooltips: false,
+        ..Default::default()
+    };
+
+    let asset_path = if let Some(proj_dirs) = ProjectDirs::from("com", "vinox", "vinox") {
+        let full_path = proj_dirs
+            .data_dir()
+            .join("assets")
+            .join("CozetteVector.ttf");
+        full_path
+    } else {
+        let mut path = PathBuf::new();
+        path.push("assets");
+        path
+    };
+
+    let asset_string = asset_path.as_os_str().to_str().unwrap();
+    let font_bytes = load_bytes!(asset_string);
+    const TITLE_FONT_NAME: &str = "cozettevector";
+    let mut fonts = FontDefinitions::default();
+    fonts
+        .font_data
+        .insert(TITLE_FONT_NAME.into(), FontData::from_static(font_bytes));
+    fonts
+        .families
+        .entry(FontFamily::Name(TITLE_FONT_NAME.into()))
+        .or_default()
+        .push(TITLE_FONT_NAME.into());
+    fonts
+        .families
+        .entry(FontFamily::Monospace)
+        .or_default()
+        .push(TITLE_FONT_NAME.into());
+    fonts
+        .families
+        .entry(FontFamily::Proportional)
+        .or_default()
+        .insert(0, TITLE_FONT_NAME.into());
+    contexts.ctx_mut().set_style(style);
+    contexts.ctx_mut().set_fonts(fonts);
     commands.spawn((Camera2dBundle::default(), Menu));
 }

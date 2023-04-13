@@ -1,6 +1,6 @@
 pub mod states;
 use bevy::{
-    diagnostic::{FrameTimeDiagnosticsPlugin},
+    diagnostic::FrameTimeDiagnosticsPlugin,
     pbr::wireframe::WireframePlugin,
     prelude::*,
     render::{
@@ -26,7 +26,7 @@ use std::{
     fs::{create_dir_all, File},
     path::PathBuf,
 };
-use vinox_common::{ecs::bundles::BoilerOrigin};
+use vinox_common::ecs::bundles::BoilerOrigin;
 
 fn main() {
     // Eventually I will implement my own recursive copy and also not delete the assets directory for now though we will completely.

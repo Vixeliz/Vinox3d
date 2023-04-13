@@ -10,8 +10,7 @@ use crate::states::{
 };
 
 use super::ui::{
-    create_ui, options, save_options, start, ui_events, update_ui_scale_factor, EguiTheme,
-    InOptions,
+    create_ui, options, save_options, start, ui_events, update_ui_scale_factor, InOptions,
 };
 
 pub struct MenuPlugin;
@@ -33,14 +32,13 @@ impl Plugin for MenuPlugin {
             .insert_resource(Password::default())
             .insert_resource(InOptions(false))
             .insert_resource(NetworkIP(ip))
-            .insert_resource(EguiTheme::default())
             .add_systems(
                 (create_ui, ui_events, update_ui_scale_factor)
                     .chain()
                     .in_set(OnUpdate(GameState::Menu)),
             )
             .add_systems((save_options, options))
-            .add_system(start.in_schedule(OnEnter(GameState::Menu)))
+            .add_startup_system(start)
             .add_system(despawn_with::<Menu>.in_schedule(OnExit(GameState::Menu)));
     }
 }

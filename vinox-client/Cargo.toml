@@ -37,3 +37,4 @@ egui_extras = "0.21.0"
 big_space.workspace=true
 bevy_mod_debugdump = "0.7.0"
 argon2.workspace=true
+load_file = "1.0.1"
