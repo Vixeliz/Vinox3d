@@ -248,6 +248,42 @@ pub fn create_ui(
 pub fn ui_events() {}
 
 pub fn start(mut commands: Commands, _options: Res<GameOptions>, mut contexts: EguiContexts) {
+    let asset_path = if let Some(proj_dirs) = ProjectDirs::from("com", "vinox", "vinox") {
+        let full_path = proj_dirs
+            .data_dir()
+            .join("assets")
+            .join("CozetteVector.ttf");
+        full_path
+    } else {
+        let mut path = PathBuf::new();
+        path.push("assets");
+        path
+    };
+
+    let asset_string = asset_path.as_os_str().to_str().unwrap();
+    let font_bytes = load_bytes!(asset_string);
+    const TITLE_FONT_NAME: &str = "Monocraft";
+    // const TITLE_FONT_NAME: &str = "cozettevector";
+    let mut fonts = FontDefinitions::default();
+    fonts
+        .font_data
+        .insert(TITLE_FONT_NAME.into(), FontData::from_static(font_bytes));
+    fonts
+        .families
+        .entry(FontFamily::Name(TITLE_FONT_NAME.into()))
+        .or_default()
+        .push(TITLE_FONT_NAME.into());
+    fonts
+        .families
+        .entry(FontFamily::Monospace)
+        .or_default()
+        .push(TITLE_FONT_NAME.into());
+    fonts
+        .families
+        .entry(FontFamily::Proportional)
+        .or_default()
+        .insert(0, TITLE_FONT_NAME.into());
+
     let dark_widgets = WidgetVisuals {
         rounding: Rounding::same(0.0),
         bg_fill: Color32::from_rgb(64, 64, 64),
@@ -316,11 +352,41 @@ pub fn start(mut commands: Commands, _options: Res<GameOptions>, mut contexts: E
 
         text_styles: {
             let mut texts = BTreeMap::new();
-            texts.insert(egui::TextStyle::Small, FontId::monospace(14.0));
-            texts.insert(egui::TextStyle::Body, FontId::monospace(14.0));
-            texts.insert(egui::TextStyle::Heading, FontId::monospace(16.0));
-            texts.insert(egui::TextStyle::Monospace, FontId::monospace(14.0));
-            texts.insert(egui::TextStyle::Button, FontId::monospace(14.0));
+            texts.insert(
+                egui::TextStyle::Small,
+                FontId {
+                    size: 20.0,
+                    family: FontFamily::Name(TITLE_FONT_NAME.into()),
+                },
+            );
+            texts.insert(
+                egui::TextStyle::Body,
+                FontId {
+                    size: 20.0,
+                    family: FontFamily::Name(TITLE_FONT_NAME.into()),
+                },
+            );
+            texts.insert(
+                egui::TextStyle::Heading,
+                FontId {
+                    size: 22.0,
+                    family: FontFamily::Name(TITLE_FONT_NAME.into()),
+                },
+            );
+            texts.insert(
+                egui::TextStyle::Monospace,
+                FontId {
+                    size: 20.0,
+                    family: FontFamily::Name(TITLE_FONT_NAME.into()),
+                },
+            );
+            texts.insert(
+                egui::TextStyle::Button,
+                FontId {
+                    size: 20.0,
+                    family: FontFamily::Name(TITLE_FONT_NAME.into()),
+                },
+            );
             texts
         },
 
@@ -336,40 +402,6 @@ pub fn start(mut commands: Commands, _options: Res<GameOptions>, mut contexts: E
         ..Default::default()
     };
 
-    let asset_path = if let Some(proj_dirs) = ProjectDirs::from("com", "vinox", "vinox") {
-        let full_path = proj_dirs
-            .data_dir()
-            .join("assets")
-            .join("CozetteVector.ttf");
-        full_path
-    } else {
-        let mut path = PathBuf::new();
-        path.push("assets");
-        path
-    };
-
-    let asset_string = asset_path.as_os_str().to_str().unwrap();
-    let font_bytes = load_bytes!(asset_string);
-    const TITLE_FONT_NAME: &str = "cozettevector";
-    let mut fonts = FontDefinitions::default();
-    fonts
-        .font_data
-        .insert(TITLE_FONT_NAME.into(), FontData::from_static(font_bytes));
-    fonts
-        .families
-        .entry(FontFamily::Name(TITLE_FONT_NAME.into()))
-        .or_default()
-        .push(TITLE_FONT_NAME.into());
-    fonts
-        .families
-        .entry(FontFamily::Monospace)
-        .or_default()
-        .push(TITLE_FONT_NAME.into());
-    fonts
-        .families
-        .entry(FontFamily::Proportional)
-        .or_default()
-        .insert(0, TITLE_FONT_NAME.into());
     contexts.ctx_mut().set_style(style);
     contexts.ctx_mut().set_fonts(fonts);
     commands.spawn((Camera2dBundle::default(), Menu));
