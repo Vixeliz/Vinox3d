@@ -27,8 +27,7 @@ use vinox_common::{
         ecs::{ChunkManager, CurrentChunks, NeedsChunkData, NeedsMesh, PriorityMesh},
         positions::{ChunkPos, RelativeVoxelPos, VoxelPos},
         storage::{
-            self, BlockTable, ChunkData, RawChunk, RenderedBlockData,
-            VoxelVisibility, CHUNK_SIZE,
+            self, BlockTable, ChunkData, RawChunk, RenderedBlockData, VoxelVisibility, CHUNK_SIZE,
         },
     },
 };

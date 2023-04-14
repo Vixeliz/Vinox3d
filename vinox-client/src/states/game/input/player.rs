@@ -145,7 +145,7 @@ pub fn spawn_camera(
                 ..default()
             }
         };
-        commands.insert_resource(ClearColor(Color::rgba(0.1, 0.1, 0.1, 1.0)));
+        commands.insert_resource(ClearColor(Color::rgb_u8(0, 181, 226)));
         commands.entity(player_entity).with_children(|c| {
             c.spawn((
                 GlobalTransform::default(),

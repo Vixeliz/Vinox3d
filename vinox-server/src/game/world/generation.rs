@@ -154,16 +154,16 @@ fn values_to_biome(
     "vinox:stone".to_string()
 }
 
-fn biome_noise(x: f64, y: f64, z: f64, seed: u32) -> (i32, i32) {
+fn biome_noise(x: f64, z: f64, seed: u32) -> (i32, i32) {
     let heat_noise = Worley::new(seed)
         .set_return_type(noise::core::worley::ReturnType::Value)
-        .set_frequency(0.005022);
+        .set_frequency(0.0002022);
     let moisture_noise = Worley::new(seed.wrapping_add(1))
         .set_return_type(noise::core::worley::ReturnType::Value)
-        .set_frequency(0.005022);
+        .set_frequency(0.0002022);
     (
-        (heat_noise.get([x, y, z]) * 100.0) as i32,
-        (moisture_noise.get([x, y, z]) * 100.0) as i32,
+        (heat_noise.get([x, z]) * 100.0) as i32,
+        (moisture_noise.get([x, z]) * 100.0) as i32,
     )
 }
 
@@ -174,6 +174,23 @@ fn distance_function(x: &[f64], y: &[f64]) -> f64 {
         }
     }
     0.0
+}
+
+pub fn add_sea(raw_chunk: &mut ChunkData, chunk_height: i32) {
+    for x in 0..=CHUNK_SIZE - 1 {
+        for z in 0..=CHUNK_SIZE - 1 {
+            for y in 0..=CHUNK_SIZE - 1 {
+                let relative_pos = RelativeVoxelPos(UVec3::new(x as u32, y as u32, z as u32));
+                let full_y = y as i32 + ((CHUNK_SIZE as i32) * chunk_height);
+                if raw_chunk.get_identifier(relative_pos) == "vinox:air" && full_y <= SEA_LEVEL {
+                    raw_chunk.set(
+                        relative_pos,
+                        BlockData::new("vinox".to_string(), "water".to_string()),
+                    );
+                }
+            }
+        }
+    }
 }
 
 // NOTE: A main design goal i have is most things should be completely generatable per chunk without needing other chunks. The only exception
@@ -190,19 +207,9 @@ pub fn generate_chunk(
     // to_be_placed: &ToBePlaced,
 ) -> RawChunk {
     //TODO: Switch to using ron files to determine biomes and what blocks they should use. For now hardcoding a simplex noise
-    let (heat, humidity) = biome_noise(
-        pos.x as f64 * CHUNK_SIZE as f64,
-        pos.y as f64 * CHUNK_SIZE as f64,
-        pos.z as f64 * CHUNK_SIZE as f64,
-        seed,
-    );
-    let main_blocks = biome_table
-        .get(&values_to_biome(heat, humidity, biome_hashmap, biome_tree))
-        .unwrap()
-        .main_block
-        .clone();
-    let ridged_noise: HybridMulti<OpenSimplex> =
-        HybridMulti::new(seed).set_octaves(4).set_frequency(0.02122);
+    let ridged_noise: RidgedMulti<OpenSimplex> = RidgedMulti::new(seed)
+        .set_octaves(8)
+        .set_frequency(0.0025122);
     let d_noise: RidgedMulti<OpenSimplex> = RidgedMulti::new(seed.wrapping_add(1))
         .set_octaves(4)
         .set_frequency(0.01881);
@@ -242,10 +249,20 @@ pub fn generate_chunk(
     // );
     let mut raw_chunk = ChunkData::default();
     for x in 0..=CHUNK_SIZE - 1 {
+        let full_x = x as i32 + ((CHUNK_SIZE as i32) * pos.x);
         for z in 0..=CHUNK_SIZE - 1 {
+            let full_z = z as i32 + ((CHUNK_SIZE as i32) * pos.z);
+            let (heat, humidity) = biome_noise(
+                full_x as f64 * CHUNK_SIZE as f64,
+                full_z as f64 * CHUNK_SIZE as f64,
+                seed,
+            );
+            let main_blocks = biome_table
+                .get(&values_to_biome(heat, humidity, biome_hashmap, biome_tree))
+                .unwrap()
+                .main_block
+                .clone();
             for y in 0..=CHUNK_SIZE - 1 {
-                let full_x = x as i32 + ((CHUNK_SIZE as i32) * pos.x);
-                let full_z = z as i32 + ((CHUNK_SIZE as i32) * pos.z);
                 let full_y = y as i32 + ((CHUNK_SIZE as i32) * pos.y);
                 let (x, y, z) = (x as u32, y as u32, z as u32);
                 let relative_pos = RelativeVoxelPos(UVec3::new(x, y, z));
@@ -258,13 +275,14 @@ pub fn generate_chunk(
                 //         .abs()
                 //         < 0.1
                 //     && (a_noise.get([full_x as f64, full_y as f64, full_z as f64]) < 0.45);
-                let is_cave =
-                    ridged_noise.get([full_x as f64, full_y as f64 * 2.0, full_z as f64]) > 0.25;
+                let noise_val =
+                    ridged_noise.get([full_x as f64, full_y as f64, full_z as f64]) * 120.151;
+                let is_solid = full_y as f64 <= noise_val;
                 // let noise_val =
                 //     final_noise.get([full_x as f64, full_y as f64, full_z as f64]) * 45.152;
                 // let noise_val =
                 // world_noise(seed).get([full_x as f64, full_y as f64, full_z as f64]) * 45.152;
-                if !is_cave {
+                if is_solid {
                     let mut rng: StdRng = SeedableRng::seed_from_u64(
                         IVec3::new(full_x, full_y, full_z).reflect_hash().unwrap(),
                     );
@@ -334,5 +352,6 @@ pub fn generate_chunk(
     //     &mut rng,
     // );
     // add_to_be(&mut raw_chunk, pos, block_table, to_be_placed);
+    // add_sea(&mut raw_chunk, pos.y);
     raw_chunk.to_raw()
 }

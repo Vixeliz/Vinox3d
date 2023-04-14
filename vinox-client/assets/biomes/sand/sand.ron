@@ -5,7 +5,9 @@ BiomeDescriptor(
     heat: 3,
     humidity: -1,
     main_block: [
-        ("vinox:sand", 1),
         ("vinox:limestone", 1)
-    ]
+    ],
+    surface_block: Some([
+        ("vinox:sand", 1),
+    ])
 )

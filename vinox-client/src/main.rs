@@ -90,7 +90,7 @@ fn main() {
         // .disable::<LogPlugin>(),
     )
     .add_plugin(FloatingOriginPlugin::<i32>::new(10000.0, 1.0))
-    .add_plugin(big_space::debug::FloatingOriginDebugPlugin::<i32>::default())
+    // .add_plugin(big_space::debug::FloatingOriginDebugPlugin::<i32>::default())
     .add_startup_system(|mut c: Commands| {
         c.spawn(BoilerOrigin::default());
     })

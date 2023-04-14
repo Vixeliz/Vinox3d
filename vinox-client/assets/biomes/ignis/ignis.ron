@@ -6,6 +6,10 @@ BiomeDescriptor(
     humidity: 0,
     main_block: [
         ("vinox:ignis", 1),
-    ]
+    ],
+    surface_block: Some([
+        ("vinox:gravis", 1),
+        ("vinox:andesite", 1),
+    ])
 )
 
