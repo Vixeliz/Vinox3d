@@ -34,7 +34,7 @@ impl Plugin for RenderingPlugin {
             brightness: 1.0,
             color: Color::WHITE,
         })
-        .add_plugin(EdgeDetectionPlugin)
+        // .add_plugin(EdgeDetectionPlugin)
         .add_plugin(AtmospherePlugin)
         .insert_resource(AtmosphereModel::default()) // Default Atmosphere material, we can edit it to simulate another planet
         .insert_resource(CycleTimer(Timer::new(

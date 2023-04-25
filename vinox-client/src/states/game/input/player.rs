@@ -5,6 +5,7 @@ use std::f32::consts::{FRAC_PI_2, PI};
 
 use bevy::{
     core_pipeline::{
+        bloom::BloomSettings,
         fxaa::{Fxaa, Sensitivity},
         prepass::{DepthPrepass, NormalPrepass},
     },
@@ -139,10 +140,10 @@ pub fn spawn_camera(
                 projection: Projection::Perspective(perspective_projection),
                 frustum,
                 transform: Transform::from_translation(Vec3::new(0.0, 1.65, 0.0)),
-                // camera: Camera {
-                //     hdr: true,
-                //     ..Default::default()
-                // },
+                camera: Camera {
+                    hdr: true,
+                    ..Default::default()
+                },
                 ..default()
             }
         };
@@ -175,6 +176,10 @@ pub fn spawn_camera(
                     enabled: true,
                     edge_threshold: Sensitivity::Extreme,
                     edge_threshold_min: Sensitivity::Extreme,
+                },
+                BloomSettings {
+                    intensity: 0.2,
+                    ..default()
                 },
             ));
         });
