@@ -53,6 +53,7 @@ pub struct GameOptions {
     pub vsync: bool,
     pub looking_at: bool,
     pub debug: bool,
+    pub outline: bool,
 }
 
 impl Default for GameOptions {
@@ -82,6 +83,7 @@ impl Default for GameOptions {
             vsync: true,
             looking_at: true,
             debug: false,
+            outline: false,
         }
     }
 }

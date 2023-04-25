@@ -1,11 +1,13 @@
 use bevy::prelude::*;
 
-use crate::states::components::GameState;
+use crate::states::components::{GameOptions, GameState};
 
 use super::meshing::{
     create_chunk_material, process_priority_task, process_task, sort_chunks, sort_faces,
     ChunkMaterial, SortFaces,
 };
+
+use bevy_mod_edge_detection::{EdgeDetectionConfig, EdgeDetectionPlugin};
 
 pub struct RenderingPlugin;
 
@@ -22,6 +24,16 @@ impl Plugin for RenderingPlugin {
             brightness: 1.0,
             color: Color::WHITE,
         })
+        .add_plugin(EdgeDetectionPlugin)
+        // .init_resource::<EdgeDetectionConfig>()
+        .insert_resource(EdgeDetectionConfig {
+            depth_threshold: 0.2,
+            normal_threshold: 0.05,
+            color_threshold: 10000.0,
+            edge_color: Color::BLACK,
+            debug: 0,
+            enabled: 1,
+        })
         // .insert_resource(MeshQueue::default())
         .insert_resource(ChunkMaterial::default())
         .add_system(create_chunk_material.in_schedule(OnEnter(GameState::Game)))
@@ -29,6 +41,7 @@ impl Plugin for RenderingPlugin {
             (
                 // process_queue,
                 // process_priority_queue,
+                update_outline,
                 process_task,
                 process_priority_task,
                 // priority_player,
@@ -59,5 +72,11 @@ impl Plugin for RenderingPlugin {
             // commands.insert_resource(MeshChannel::default());
         })
         .add_event::<SortFaces>();
+    }
+}
+
+pub fn update_outline(options: Res<GameOptions>, mut edge_config: ResMut<EdgeDetectionConfig>) {
+    if options.is_changed() {
+        edge_config.enabled = options.outline as u32;
     }
 }

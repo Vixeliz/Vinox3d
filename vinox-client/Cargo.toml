@@ -38,3 +38,4 @@ big_space.workspace=true
 bevy_mod_debugdump = "0.7.0"
 argon2.workspace=true
 load_file = "1.0.1"
+bevy_mod_edge_detection = {path="../bevy_mod_edge_detection"}

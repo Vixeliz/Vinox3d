@@ -3,6 +3,10 @@ use leafwing_input_manager::prelude::*;
 use std::f32::consts::{FRAC_PI_2, PI};
 
 use bevy::{
+    core_pipeline::{
+        fxaa::{Fxaa, Sensitivity},
+        prepass::{DepthPrepass, NormalPrepass},
+    },
     input::mouse::{MouseMotion, MouseScrollUnit, MouseWheel},
     prelude::*,
     render::{camera::CameraProjection, primitives::Frustum},
@@ -85,9 +89,7 @@ pub fn update_fov(mut camera: Query<(&mut Projection, &mut Frustum)>, options: R
         if options.is_changed() {
             let perspective_projection = PerspectiveProjection {
                 fov: options.fov.to_radians(),
-                near: 0.001,
-                far: 1000.0,
-                aspect_ratio: 1.0,
+                ..Default::default()
             };
             let view_projection = perspective_projection.get_projection_matrix();
             *frustum = Frustum::from_view_projection(
@@ -123,9 +125,7 @@ pub fn spawn_camera(
         let camera = {
             let perspective_projection = PerspectiveProjection {
                 fov: options.fov.to_radians(),
-                near: 0.001,
-                far: 1000.0,
-                aspect_ratio: 1.0,
+                ..Default::default()
             };
             let view_projection = perspective_projection.get_projection_matrix();
             let frustum = Frustum::from_view_projection(
@@ -157,15 +157,22 @@ pub fn spawn_camera(
                 // ChunkCell::default(),
                 camera,
                 // FloatingOrigin,
-                FogSettings {
-                    color: Color::rgba(0.1, 0.1, 0.1, 1.0),
-                    directional_light_color: Color::WHITE,
-                    directional_light_exponent: 10.0,
-                    falloff: FogFalloff::Linear {
-                        start: (HORIZONTAL_DISTANCE * CHUNK_SIZE) as f32
-                            - (CHUNK_SIZE * (HORIZONTAL_DISTANCE / 3)) as f32,
-                        end: (HORIZONTAL_DISTANCE * CHUNK_SIZE) as f32 + (CHUNK_SIZE) as f32,
-                    },
+                // FogSettings {
+                //     color: Color::rgba(0.1, 0.1, 0.1, 1.0),
+                //     directional_light_color: Color::WHITE,
+                //     directional_light_exponent: 10.0,
+                //     falloff: FogFalloff::Linear {
+                //         start: (HORIZONTAL_DISTANCE * CHUNK_SIZE) as f32
+                //             - (CHUNK_SIZE * (HORIZONTAL_DISTANCE / 3)) as f32,
+                //         end: (HORIZONTAL_DISTANCE * CHUNK_SIZE) as f32 + (CHUNK_SIZE) as f32,
+                //     },
+                // },
+                DepthPrepass,
+                NormalPrepass,
+                Fxaa {
+                    enabled: true,
+                    edge_threshold: Sensitivity::Extreme,
+                    edge_threshold_min: Sensitivity::Extreme,
                 },
             ));
         });
