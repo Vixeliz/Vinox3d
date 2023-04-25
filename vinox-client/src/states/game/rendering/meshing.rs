@@ -1120,8 +1120,8 @@ pub fn process_priority_task(
                                 ..Default::default()
                             },
                         },
-                        NotShadowCaster,
-                        NotShadowReceiver,
+                        // NotShadowCaster,
+                        // NotShadowReceiver,
                     ))
                     .insert(grid_cell);
 
@@ -1224,8 +1224,8 @@ pub fn process_task(
                             ..Default::default()
                         },
                     },
-                    NotShadowCaster,
-                    NotShadowReceiver,
+                    // NotShadowCaster,
+                    // NotShadowReceiver,
                 ));
 
                 commands.entity(chunk_entity).push_children(&[trans_entity]);
@@ -1714,9 +1714,9 @@ pub fn priority_player(
 // }
 fn light_to_intern(color: u8) -> f32 {
     match color {
-        0 => 1.0,
+        0 => 0.75,
         // 0 => 0.0,
-        1 => 1.25,
+        1 => 1.0,
         2 => 1.5,
         3 => 1.75,
         4 => 2.0,

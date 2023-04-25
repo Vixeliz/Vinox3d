@@ -1,3 +1,4 @@
+use bevy_atmosphere::prelude::AtmosphereCamera;
 use big_space::{FloatingOrigin, FloatingOriginSettings, GridCell};
 use leafwing_input_manager::prelude::*;
 use std::f32::consts::{FRAC_PI_2, PI};
@@ -154,19 +155,20 @@ pub fn spawn_camera(
             ));
             c.spawn((
                 FPSCamera::default(),
+                AtmosphereCamera::default(),
                 // ChunkCell::default(),
                 camera,
                 // FloatingOrigin,
-                // FogSettings {
-                //     color: Color::rgba(0.1, 0.1, 0.1, 1.0),
-                //     directional_light_color: Color::WHITE,
-                //     directional_light_exponent: 10.0,
-                //     falloff: FogFalloff::Linear {
-                //         start: (HORIZONTAL_DISTANCE * CHUNK_SIZE) as f32
-                //             - (CHUNK_SIZE * (HORIZONTAL_DISTANCE / 3)) as f32,
-                //         end: (HORIZONTAL_DISTANCE * CHUNK_SIZE) as f32 + (CHUNK_SIZE) as f32,
-                //     },
-                // },
+                FogSettings {
+                    color: Color::rgba(0.1, 0.1, 0.1, 1.0),
+                    directional_light_color: Color::WHITE,
+                    directional_light_exponent: 10.0,
+                    falloff: FogFalloff::Linear {
+                        start: (HORIZONTAL_DISTANCE * CHUNK_SIZE) as f32
+                            - (CHUNK_SIZE * (HORIZONTAL_DISTANCE / 3)) as f32,
+                        end: (HORIZONTAL_DISTANCE * CHUNK_SIZE) as f32 + (CHUNK_SIZE) as f32,
+                    },
+                },
                 DepthPrepass,
                 NormalPrepass,
                 Fxaa {
