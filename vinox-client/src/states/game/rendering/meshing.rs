@@ -146,7 +146,6 @@ impl QuadGroups {
 pub fn face_aos(face: &Face, chunk: &ChunkBoundary) -> [u32; 4] {
     let [x, y, z] = face.voxel();
     // let (x, y, z) = (x as u32, y as u32, z as u32);
-
     match (face.side.axis, face.side.positive) {
         (Axis::X, false) => side_aos([
             (
@@ -547,19 +546,92 @@ pub fn face_aos(face: &Face, chunk: &ChunkBoundary) -> [u32; 4] {
     }
 }
 
+pub fn face_lights(face: &Face, chunk: &ChunkBoundary) -> [f32; 4] {
+    let [x, y, z] = face.voxel();
+    // let (x, y, z) = (x as u32, y as u32, z as u32);
+    match (face.side.axis, face.side.positive) {
+        (Axis::X, false) => side_light([
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y, z + 1)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z + 1)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z - 1)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y, z - 1)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z - 1)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z + 1)].light,
+        ]),
+        (Axis::X, true) => side_light([
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y, z - 1)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z - 1)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z + 1)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y, z + 1)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z + 1)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z - 1)].light,
+        ]),
+        (Axis::Y, false) => side_light([
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z + 1)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x, y - 1, z + 1)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z + 1)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z - 1)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x, y - 1, z - 1)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z - 1)].light,
+        ]),
+        (Axis::Y, true) => side_light([
+            chunk.voxels()[ChunkBoundary::linearize(x, y + 1, z + 1)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z + 1)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z - 1)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x, y + 1, z - 1)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z - 1)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z + 1)].light,
+        ]),
+        (Axis::Z, false) => side_light([
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y, z - 1)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z - 1)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x, y - 1, z - 1)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z - 1)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y, z - 1)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z - 1)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x, y + 1, z - 1)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z - 1)].light,
+        ]),
+        (Axis::Z, true) => side_light([
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y, z + 1)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y - 1, z + 1)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x, y - 1, z + 1)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y - 1, z + 1)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y, z + 1)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x - 1, y + 1, z + 1)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x, y + 1, z + 1)].light,
+            chunk.voxels()[ChunkBoundary::linearize(x + 1, y + 1, z + 1)].light,
+        ]),
+    }
+}
+
 pub struct FaceWithAO<'a> {
     face: Face<'a>,
     aos: [u32; 4],
+    light: [f32; 4],
 }
 
 impl<'a> FaceWithAO<'a> {
     pub fn new(face: Face<'a>, chunk: &ChunkBoundary) -> Self {
         let aos = face_aos(&face, chunk);
-        Self { face, aos }
+        let light = face_lights(&face, chunk);
+        Self { face, aos, light }
     }
 
     pub fn aos(&self) -> [u32; 4] {
         self.aos
+    }
+
+    pub fn light(&self) -> [f32; 4] {
+        self.light
     }
 
     pub fn indices(&self, start: u32) -> [u32; 6] {
@@ -600,6 +672,47 @@ pub(crate) fn side_aos(neighbors: [(RenderedBlockData, &BlockGeo); 8]) -> [u32; 
         ao_value(ns[6], ns[7], ns[0]),
         ao_value(ns[4], ns[5], ns[6]),
     ]
+}
+
+pub(crate) fn side_light(neighbors: [u8; 8]) -> [f32; 4] {
+    // let light_val = raw_chunk.voxels()
+    //     [ChunkBoundary::linearize(matched_neighbor.0, matched_neighbor.1, matched_neighbor.2)]
+    // .light;
+    // let ns = [
+    //     neighbors[0].0.visibility == OPAQUE && neighbors[0].1 == &BlockGeo::default(),
+    //     neighbors[1].0.visibility == OPAQUE && neighbors[1].1 == &BlockGeo::default(),
+    //     neighbors[2].0.visibility == OPAQUE && neighbors[2].1 == &BlockGeo::default(),
+    //     neighbors[3].0.visibility == OPAQUE && neighbors[3].1 == &BlockGeo::default(),
+    //     neighbors[4].0.visibility == OPAQUE && neighbors[4].1 == &BlockGeo::default(),
+    //     neighbors[5].0.visibility == OPAQUE && neighbors[5].1 == &BlockGeo::default(),
+    //     neighbors[6].0.visibility == OPAQUE && neighbors[6].1 == &BlockGeo::default(),
+    //     neighbors[7].0.visibility == OPAQUE && neighbors[7].1 == &BlockGeo::default(),
+    // ];
+
+    [
+        (light_to_intern(neighbors[0])
+            + light_to_intern(neighbors[1])
+            + light_to_intern(neighbors[2]))
+            / 3.0,
+        (light_to_intern(neighbors[2])
+            + light_to_intern(neighbors[3])
+            + light_to_intern(neighbors[4]))
+            / 3.0,
+        (light_to_intern(neighbors[6])
+            + light_to_intern(neighbors[7])
+            + light_to_intern(neighbors[0]))
+            / 3.0,
+        (light_to_intern(neighbors[4])
+            + light_to_intern(neighbors[5])
+            + light_to_intern(neighbors[6]))
+            / 3.0,
+    ]
+    // [
+    //     ao_value(ns[0], ns[1], ns[2]),
+    //     ao_value(ns[2], ns[3], ns[4]),
+    //     ao_value(ns[6], ns[7], ns[0]),
+    //     ao_value(ns[4], ns[5], ns[6]),
+    // ]
 }
 
 impl<'a> Deref for FaceWithAO<'a> {
@@ -1304,6 +1417,7 @@ fn full_mesh(
         positions.extend_from_slice(&face.positions(1.0, raw_chunk)); // Voxel size is 1m
         normals.extend_from_slice(&face.normals());
         ao.extend_from_slice(&face.aos());
+        light.extend_from_slice(&face.light());
         let matched_index = match (face.side.axis, face.side.positive) {
             (Axis::X, false) => 2,
             (Axis::X, true) => 3,
@@ -1320,11 +1434,11 @@ fn full_mesh(
             (Axis::Z, false) => (face.voxel()[0], face.voxel()[1], face.voxel()[2] - 1),
             (Axis::Z, true) => (face.voxel()[0], face.voxel()[1], face.voxel()[2] + 1),
         };
-        let light_val = raw_chunk.voxels()
-            [ChunkBoundary::linearize(matched_neighbor.0, matched_neighbor.1, matched_neighbor.2)]
-        .light;
+        // let light_val = raw_chunk.voxels()
+        //     [ChunkBoundary::linearize(matched_neighbor.0, matched_neighbor.1, matched_neighbor.2)]
+        // .light;
 
-        light.extend_from_slice(&[light_val, light_val, light_val, light_val]);
+        // light.push(light_val);
 
         uvs.extend_from_slice(
             &face.uvs(
@@ -1344,14 +1458,14 @@ fn full_mesh(
     let final_ao = ao_convert(ao);
     let mut final_color = Vec::new();
     for (idx, color) in final_ao.iter().enumerate() {
-        let light_level = light_to_inten(light[idx]);
+        // let light_level = light_to_inten(light[idx]);
         // let light_level_red = light_to_color(light[idx].r);
         // let light_level_green = light_to_color(light[idx].g);
         // let light_level_blue = light_to_color(light[idx].b);
         final_color.extend_from_slice(&[[
-            color[0] * light_level,
-            color[1] * light_level,
-            color[2] * light_level,
+            color[0] * light[idx],
+            color[1] * light[idx],
+            color[2] * light[idx],
             color[3],
         ]]);
     }
@@ -1598,9 +1712,10 @@ pub fn priority_player(
 //         _ => 10.0,
 //     }
 // }
-fn light_to_inten(color: u8) -> f32 {
+fn light_to_intern(color: u8) -> f32 {
     match color {
         0 => 1.0,
+        // 0 => 0.0,
         1 => 1.25,
         2 => 1.5,
         3 => 1.75,
