@@ -1,4 +1,3 @@
-use bevy_atmosphere::prelude::AtmosphereCamera;
 use big_space::{FloatingOrigin, FloatingOriginSettings, GridCell};
 use leafwing_input_manager::prelude::*;
 use std::f32::consts::{FRAC_PI_2, PI};
@@ -156,7 +155,6 @@ pub fn spawn_camera(
             ));
             c.spawn((
                 FPSCamera::default(),
-                AtmosphereCamera::default(),
                 // ChunkCell::default(),
                 camera,
                 // FloatingOrigin,
@@ -170,8 +168,8 @@ pub fn spawn_camera(
                         end: (HORIZONTAL_DISTANCE * CHUNK_SIZE) as f32 + (CHUNK_SIZE) as f32,
                     },
                 },
-                DepthPrepass,
-                NormalPrepass,
+                // DepthPrepass,
+                // NormalPrepass,
                 Fxaa {
                     enabled: true,
                     edge_threshold: Sensitivity::Extreme,

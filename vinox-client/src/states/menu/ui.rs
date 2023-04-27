@@ -117,13 +117,6 @@ pub fn options(
                             });
                             ui.separator();
                             ui.horizontal(|ui| {
-                                ui.label("Outline: ");
-                                if ui.small_button(format!("{}", options.outline)).clicked() {
-                                    options.outline = !options.outline;
-                                }
-                            });
-                            ui.separator();
-                            ui.horizontal(|ui| {
                                 ui.label("Standard Hotbar: ");
                                 if ui
                                     .small_button(format!("{}", options.standard_bar))
