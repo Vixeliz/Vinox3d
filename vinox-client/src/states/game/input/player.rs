@@ -6,7 +6,6 @@ use bevy::{
     core_pipeline::{
         bloom::BloomSettings,
         fxaa::{Fxaa, Sensitivity},
-        prepass::{DepthPrepass, NormalPrepass},
     },
     input::mouse::{MouseMotion, MouseScrollUnit, MouseWheel},
     prelude::*,

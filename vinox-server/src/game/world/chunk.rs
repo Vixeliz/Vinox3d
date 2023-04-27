@@ -121,7 +121,7 @@ pub fn process_pre_queue(
     current_chunks: Res<CurrentChunks>,
     world_info: Res<WorldInfo>,
     _chunks_to_save: ResMut<ChunksToSave>,
-    block_table: Res<BlockTable>,
+    _block_table: Res<BlockTable>,
     (biome_table, biome_hashmap, biome_tree): (Res<BiomeTable>, Res<BiomeHashmap>, Res<BiomeTree>),
     _save: Res<SaveGame>,
 ) {

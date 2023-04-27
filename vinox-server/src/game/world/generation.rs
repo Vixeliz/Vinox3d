@@ -12,16 +12,14 @@ use bracket_noise::prelude::*;
 use rand::{rngs::StdRng, seq::SliceRandom, SeedableRng};
 use std::{
     collections::HashMap,
-    sync::{Arc, Mutex},
 };
 // use rand::{rngs::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 use vinox_common::{
-    storage::biomes::descriptor::BiomeDescriptor,
     world::chunks::{
         positions::RelativeVoxelPos,
         storage::{
-            identifier_to_name, BiomeTable, BlockData, BlockTable, ChunkData, RawChunk, CHUNK_SIZE,
+            identifier_to_name, BiomeTable, BlockData, ChunkData, RawChunk, CHUNK_SIZE,
         },
     },
 };

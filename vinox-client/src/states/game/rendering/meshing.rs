@@ -2,11 +2,9 @@ use bevy::{
     math::Vec3A,
     pbr::{NotShadowCaster, NotShadowReceiver},
     prelude::*,
-    reflect::TypeUuid,
     render::{
         mesh::Indices,
         primitives::Aabb,
-        render_resource::{AsBindGroup, PrimitiveTopology, ShaderRef},
     },
     tasks::{AsyncComputeTaskPool, ComputeTaskPool, Task},
     utils::FloatOrd,
@@ -19,21 +17,20 @@ use vinox_mesher::mesh::MeshedChunk;
 use big_space::FloatingOriginSettings;
 use futures_lite::future;
 use itertools::Itertools;
-use rand::{rngs::StdRng, Rng, SeedableRng};
-use rustc_hash::FxHashMap;
+
+
 // use rand::seq::IteratorRandom;
 
-use std::{collections::HashSet, ops::Deref};
+
 
 use vinox_common::{
-    storage::geometry::descriptor::{BlockGeo, GeometryDescriptor},
     world::chunks::{
         ecs::{
             ChunkManager, CurrentChunks, LoadableAssets, NeedsChunkData, NeedsMesh, PriorityMesh,
         },
         positions::{ChunkPos, RelativeVoxelPos, VoxelPos},
         storage::{
-            self, BlockTable, ChunkData, RawChunk, RenderedBlockData, VoxelVisibility, CHUNK_SIZE,
+            BlockTable, ChunkData, CHUNK_SIZE,
         },
     },
 };

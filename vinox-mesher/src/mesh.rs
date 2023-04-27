@@ -1116,7 +1116,7 @@ pub fn full_mesh(
             (Axis::Z, false) => 5,
             (Axis::Z, true) => 4,
         };
-        let matched_neighbor = match (face.side.axis, face.side.positive) {
+        let _matched_neighbor = match (face.side.axis, face.side.positive) {
             (Axis::X, false) => (face.voxel()[0] - 1, face.voxel()[1], face.voxel()[2]),
             (Axis::X, true) => (face.voxel()[0] + 1, face.voxel()[1], face.voxel()[2]),
             (Axis::Y, false) => (face.voxel()[0], face.voxel()[1] - 1, face.voxel()[2]),
