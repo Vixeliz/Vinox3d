@@ -2,11 +2,13 @@ use acap::euclid::Euclidean;
 use acap::exhaustive::ExhaustiveSearch;
 use acap::NearestNeighbors;
 use bevy::prelude::*;
+use bracket_noise::prelude::*;
+// use worley_noise::*;
 
-use noise::{
-    core::worley::distance_functions, BasicMulti, Blend, Clamp, Fbm, HybridMulti, MultiFractal,
-    NoiseFn, OpenSimplex, RidgedMulti, RotatePoint, Worley,
-};
+// use noise::{
+//     core::worley::distance_functions, BasicMulti, Blend, Clamp, Fbm, HybridMulti, MultiFractal,
+//     NoiseFn, OpenSimplex, RidgedMulti, RotatePoint, Worley,
+// };
 use rand::{rngs::StdRng, seq::SliceRandom, SeedableRng};
 use std::{
     collections::HashMap,
@@ -109,33 +111,33 @@ pub fn add_ceiling(
     }
 }
 
-fn world_noise(seed: u32) -> impl NoiseFn<f64, 3> {
-    let ridged_noise: RidgedMulti<OpenSimplex> =
-        RidgedMulti::new(seed).set_octaves(4).set_frequency(0.00622);
-    let d_noise: RidgedMulti<OpenSimplex> = RidgedMulti::new(seed.wrapping_add(1))
-        .set_octaves(2)
-        .set_frequency(0.00781);
+// fn world_noise(seed: u32) -> impl NoiseFn<f64, 3> {
+//     let ridged_noise: RidgedMulti<OpenSimplex> =
+//         RidgedMulti::new(seed).set_octaves(4).set_frequency(0.00622);
+//     let d_noise: RidgedMulti<OpenSimplex> = RidgedMulti::new(seed.wrapping_add(1))
+//         .set_octaves(2)
+//         .set_frequency(0.00781);
 
-    Blend::new(
-        RotatePoint {
-            source: ridged_noise,
-            x_angle: 0.212,
-            y_angle: 0.321,
-            z_angle: -0.1204,
-            u_angle: 0.11,
-        },
-        RotatePoint {
-            source: d_noise,
-            x_angle: -0.124,
-            y_angle: -0.564,
-            z_angle: 0.231,
-            u_angle: -0.1151,
-        },
-        BasicMulti::<OpenSimplex>::new(seed)
-            .set_octaves(1)
-            .set_frequency(0.003415),
-    )
-}
+//     Blend::new(
+//         RotatePoint {
+//             source: ridged_noise,
+//             x_angle: 0.212,
+//             y_angle: 0.321,
+//             z_angle: -0.1204,
+//             u_angle: 0.11,
+//         },
+//         RotatePoint {
+//             source: d_noise,
+//             x_angle: -0.124,
+//             y_angle: -0.564,
+//             z_angle: 0.231,
+//             u_angle: -0.1151,
+//         },
+//         BasicMulti::<OpenSimplex>::new(seed)
+//             .set_octaves(1)
+//             .set_frequency(0.003415),
+//     )
+// }
 
 fn values_to_biome(
     heat: i32,
@@ -152,16 +154,22 @@ fn values_to_biome(
     "vinox:stone".to_string()
 }
 
-fn biome_noise(x: f64, y: f64, z: f64, seed: u32) -> (i32, i32) {
-    let heat_noise = Worley::new(seed)
-        .set_return_type(noise::core::worley::ReturnType::Value)
-        .set_frequency(0.0002022);
-    let moisture_noise = Worley::new(seed.wrapping_add(1))
-        .set_return_type(noise::core::worley::ReturnType::Value)
-        .set_frequency(0.0002022);
+fn biome_noise(x: f32, y: f32, z: f32, seed: u32) -> (i32, i32) {
+    let mut heat_noise = FastNoise::seeded(seed as u64);
+    let mut moisture_noise = FastNoise::seeded(seed as u64);
+    moisture_noise.set_noise_type(NoiseType::Cellular);
+    heat_noise.set_noise_type(NoiseType::Cellular);
+    heat_noise.set_cellular_return_type(CellularReturnType::CellValue);
+    moisture_noise.set_cellular_return_type(CellularReturnType::CellValue);
+    // let heat_noise = Worley::new(seed)
+    //     .set_return_type(noise::core::worley::ReturnType::Value)
+    //     .set_frequency(0.0002022);
+    // let moisture_noise = Worley::new(seed.wrapping_add(1))
+    //     .set_return_type(noise::core::worley::ReturnType::Value)
+    //     .set_frequency(0.0002022);
     (
-        (heat_noise.get([x, y, z]) * 100.0) as i32,
-        (moisture_noise.get([x, y, z]) * 100.0) as i32,
+        (heat_noise.get_noise3d(x, y, z) * 100.0) as i32,
+        (moisture_noise.get_noise3d(x, y, z) * 100.0) as i32,
     )
 }
 
@@ -173,6 +181,36 @@ fn distance_function(x: &[f64], y: &[f64]) -> f64 {
     }
     0.0
 }
+
+const VALUE_FN_BLOBS: &dyn Fn(Vec<f64>) -> f64 = &|distances| {
+    let mut min = f64::MAX;
+
+    for &distance in distances.iter() {
+        if distance < min {
+            min = distance;
+        }
+    }
+
+    min
+};
+
+const VALUE_FN_BLOBS_2: &dyn Fn(Vec<f64>) -> f64 = &|distances| {
+    let mut min = f64::MAX;
+    let mut second_min = f64::MAX;
+
+    for &distance in distances.iter() {
+        if distance < min {
+            second_min = min;
+            min = distance;
+        } else if distance < second_min {
+            second_min = distance;
+        }
+    }
+
+    min + second_min
+};
+
+const DISTANCE_FN_EUCLIDEAN_SQ: &dyn Fn(f64, f64, f64) -> f64 = &|x, y, z| x * x + y * y + z * z;
 
 // NOTE: A main design goal i have is most things should be completely generatable per chunk without needing other chunks. The only exception
 // will hopefully be structures. Even then i hope to find a system where some can still be generated determinitely such as pillars.
@@ -188,9 +226,9 @@ pub fn generate_chunk(
     // to_be_placed: &ToBePlaced,
 ) -> RawChunk {
     let (heat, humidity) = biome_noise(
-        pos.x as f64 * CHUNK_SIZE as f64,
-        pos.y as f64 * CHUNK_SIZE as f64,
-        pos.z as f64 * CHUNK_SIZE as f64,
+        pos.x as f32 * CHUNK_SIZE as f32,
+        pos.y as f32 * CHUNK_SIZE as f32,
+        pos.z as f32 * CHUNK_SIZE as f32,
         seed,
     );
     let main_blocks = biome_table
@@ -198,18 +236,31 @@ pub fn generate_chunk(
         .unwrap()
         .main_block
         .clone();
+    let mut ridged_noise = FastNoise::seeded(seed as u64);
+    let mut a_noise = FastNoise::seeded(seed as u64);
+    let mut d_noise = FastNoise::seeded(seed.wrapping_add(1) as u64);
+    ridged_noise.set_noise_type(NoiseType::SimplexFractal);
+    ridged_noise.set_fractal_octaves(8);
+    ridged_noise.set_frequency(0.0025122);
+    d_noise.set_noise_type(NoiseType::Perlin);
+    d_noise.set_fractal_octaves(4);
+    d_noise.set_frequency(0.01881);
+    a_noise.set_noise_type(NoiseType::PerlinFractal);
+    a_noise.set_fractal_octaves(3);
+    ridged_noise.set_frequency(0.02);
     //TODO: Switch to using ron files to determine biomes and what blocks they should use. For now hardcoding a simplex noise
-    let ridged_noise: RidgedMulti<OpenSimplex> = RidgedMulti::new(seed)
-        .set_octaves(8)
-        .set_frequency(0.0025122);
-    let d_noise: RidgedMulti<OpenSimplex> = RidgedMulti::new(seed.wrapping_add(1))
-        .set_octaves(4)
-        .set_frequency(0.01881);
-    let a_noise = Fbm::<OpenSimplex>::new(seed)
-        .set_octaves(3)
-        .set_persistence(0.5)
-        .set_frequency(0.02);
-    // let noise = Clamp::new(
+    // let ridged_noise: RidgedMulti<OpenSimplex> = RidgedMulti::new(seed)
+    //     .set_octaves(8)
+    //     .set_frequency(0.0025122);
+    // let d_noise: RidgedMulti<OpenSimplex> = RidgedMulti::new(seed.wrapping_add(1))
+    //     .set_octaves(4)
+    //     .set_frequency(0.01881);
+    // let a_noise = Fbm::<OpenSimplex>::new(seed)
+    //     .set_octaves(3)
+    //     .set_persistence(0.5)
+    //     .set_frequency(0.02);
+
+    // let ridged_noise = Clamp::new(
     //     Worley::new(seed)
     //         .set_frequency(0.01251051)
     //         .set_distance_function(distance_functions::euclidean_squared)
@@ -239,6 +290,10 @@ pub fn generate_chunk(
     //         .set_octaves(1)
     //         .set_frequency(0.015415),
     // );
+    // let mut worley_noise = WorleyNoise::new();
+    // worley_noise.permutate_seeded(WorleyNoise::DEFAULT_PERMUTATION_BITS, seed as u128);
+    // worley_noise.set_distance_function(move |x, y, z| DISTANCE_FN_EUCLIDEAN_SQ(x, y, z));
+    // worley_noise.set_value_function(move |distances| VALUE_FN_BLOBS_2(distances));
     let mut raw_chunk = ChunkData::default();
     for x in 0..=CHUNK_SIZE - 1 {
         let full_x = x as i32 + ((CHUNK_SIZE as i32) * pos.x);
@@ -249,14 +304,14 @@ pub fn generate_chunk(
                 let (x, y, z) = (x as u32, y as u32, z as u32);
                 let relative_pos = RelativeVoxelPos(UVec3::new(x, y, z));
                 let is_cave = ridged_noise
-                    .get([full_x as f64, full_y as f64, full_z as f64])
+                    .get_noise3d(full_x as f32, full_y as f32, full_z as f32)
                     .abs()
                     < 0.1
                     && d_noise
-                        .get([full_x as f64, full_y as f64, full_z as f64])
+                        .get_noise3d(full_x as f32, full_y as f32, full_z as f32)
                         .abs()
                         < 0.1
-                    && (a_noise.get([full_x as f64, full_y as f64, full_z as f64]) < 0.45);
+                    && (a_noise.get_noise3d(full_x as f32, full_y as f32, full_z as f32) < 0.45);
                 // let noise_val =
                 //     final_noise.get([full_x as f64, full_y as f64, full_z as f64]) * 45.152;
                 // let noise_val =

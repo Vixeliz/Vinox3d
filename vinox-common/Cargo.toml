@@ -24,3 +24,4 @@ ndshape.workspace=true
 serde_with = "2.3.1"
 big_space.workspace=true
 argon2.workspace=true
+worley-noise = "3.7.2"
