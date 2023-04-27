@@ -8,12 +8,10 @@ use bevy_egui::{
 use vinox_common::{
     ecs::bundles::{CurrentInvBar, CurrentInvItem, Inventory},
     storage::items::descriptor::ItemData,
-    world::chunks::storage::name_to_identifier,
+    world::chunks::{ecs::LoadableAssets, storage::name_to_identifier},
 };
 
-use crate::states::{
-    assets::load::LoadableAssets, components::GameOptions, game::world::chunks::ControlledPlayer,
-};
+use crate::states::{components::GameOptions, game::world::chunks::ControlledPlayer};
 
 pub fn status_bar(
     mut player_query: Query<&mut Inventory, With<ControlledPlayer>>,

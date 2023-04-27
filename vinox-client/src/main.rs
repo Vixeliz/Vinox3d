@@ -18,7 +18,7 @@ use fs_extra::dir::{copy, CopyOptions};
 use ron::de::from_reader;
 use states::{
     components::{save_game_options, GameOptions, GameState, ProjectPath},
-    game::{plugin::GamePlugin, rendering::meshing::BasicMaterial},
+    game::plugin::GamePlugin,
     loading::plugin::LoadingPlugin,
     menu::plugin::MenuPlugin,
 };
@@ -99,7 +99,6 @@ fn main() {
     .add_plugin(FrameTimeDiagnosticsPlugin::default())
     .insert_resource(ProjectPath(asset_path))
     .insert_resource(final_options)
-    .add_plugin(MaterialPlugin::<BasicMaterial>::default())
     .insert_resource(Msaa::Off)
     .add_plugin(QuinnetClientPlugin::default())
     .add_plugin(TweeningPlugin)

@@ -16,12 +16,14 @@ use vinox_common::{
         geometry::load::load_all_geo,
         items::load::{item_from_block, load_all_items},
     },
-    world::chunks::storage::{trim_geo_identifier, BiomeTable, BlockTable, ItemTable, RecipeTable},
+    world::chunks::{
+        ecs::LoadableAssets,
+        storage::{trim_geo_identifier, BiomeTable, BlockTable, ItemTable, RecipeTable},
+    },
 };
+use vinox_mesher::mesh::GeometryTable;
 
-use crate::states::{
-    assets::load::LoadableAssets, components::GameState, game::rendering::meshing::GeometryTable,
-};
+use crate::states::components::GameState;
 
 #[derive(Resource, Default, Deref, DerefMut)]
 pub struct AssetsLoading(pub Vec<HandleUntyped>);

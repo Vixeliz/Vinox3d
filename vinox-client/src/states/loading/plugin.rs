@@ -1,10 +1,11 @@
 use bevy::prelude::*;
+use vinox_common::world::chunks::ecs::LoadableAssets;
 use vinox_common::world::chunks::storage::{BiomeTable, BlockTable, ItemTable, RecipeTable};
+use vinox_mesher::mesh::GeometryTable;
 
 use crate::states::{
-    assets::load::LoadableAssets,
     components::{despawn_with, GameState, Loading},
-    game::{networking::components::ClientData, rendering::meshing::GeometryTable},
+    game::networking::components::ClientData,
 };
 
 use super::ui::{load_blocks, new_client, setup_resources, switch, timeout, AssetsLoading};

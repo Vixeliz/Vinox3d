@@ -1,0 +1,13 @@
+[package]
+name = "vinox-mesher"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bevy.workspace=true
+vinox-common = {path="../vinox-common"}
+ndshape.workspace=true
+rustc-hash = "1.1.0"
+rand.workspace=true

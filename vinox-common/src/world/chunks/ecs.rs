@@ -17,6 +17,14 @@ use super::{
     },
 };
 
+#[derive(Resource, Default, Clone)]
+pub struct LoadableAssets {
+    pub block_textures: HashMap<String, [Handle<Image>; 6]>,
+    pub item_textures: HashMap<String, Handle<Image>>,
+    pub entity_models: HashMap<String, Handle<Scene>>,
+    pub block_atlas: Handle<TextureAtlas>,
+}
+
 #[derive(Component, Clone, Copy)]
 pub struct LoadPoint {
     pub horizontal: i32,

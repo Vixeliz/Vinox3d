@@ -4,7 +4,6 @@ use super::components::{
 use crate::states::{
     components::{GameActions, GameOptions},
     game::{
-        rendering::meshing::BasicMaterial,
         ui::dropdown::Toast,
         world::chunks::{ControlledPlayer, CreateChunkEvent, SetBlockEvent},
     },
@@ -75,7 +74,7 @@ pub fn get_messages(
     mut chunk_event: EventWriter<CreateChunkEvent>,
     mut block_event: EventWriter<SetBlockEvent>,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<BasicMaterial>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
     mut messages: ResMut<ChatMessages>,
     mut toast: ResMut<Toast>,
@@ -102,11 +101,11 @@ pub fn get_messages(
                         println!("You connected.");
                         cmd2.spawn(MaterialMeshBundle {
                             mesh: meshes.add(Mesh::from(shape::Cube { size: 1.001 })),
-                            material: materials.add(BasicMaterial {
-                                color: Color::rgba(1.1, 1.1, 1.1, 1.0),
-                                color_texture: Some(asset_server.load("outline.png")),
+                            material: materials.add(StandardMaterial {
+                                base_color: Color::rgba(1.1, 1.1, 1.1, 1.0),
+                                base_color_texture: Some(asset_server.load("outline.png")),
                                 alpha_mode: AlphaMode::Blend,
-                                discard_pix: 0,
+                                ..Default::default()
                             }),
                             transform: Transform::from_translation(
                                 translation + Vec3::new(0.0, 0.0, -5.0),

@@ -3,6 +3,8 @@ members = [
   "vinox-client",
   "vinox-server",
   "vinox-common",
+  "vinox-mesher",
+  "vinox-generation"
 ]
 resolver = "2"
 

@@ -14,6 +14,7 @@ serde.workspace=true
 bevy_egui = "0.20.0"
 directories.workspace=true
 vinox-common = {path="../vinox-common"}
+vinox-mesher = {path="../vinox-mesher"}
 vinox-server = {path="../vinox-server"}
 serde-big-array = "0.5.1"
 itertools.workspace=true
